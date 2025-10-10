@@ -400,6 +400,27 @@ export default function VideoCallDialog({
     }
   };
 
+  const copyShareableLink = async () => {
+    if (!sessionCode) return;
+
+    const shareableUrl = `${window.location.origin}/join/${sessionCode}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareableUrl);
+      toast({
+        title: "Link Copied!",
+        description: "Share this link with others to join the call",
+      });
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy link to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   const endCall = () => {
     if (isRecording) {
       stopRecording();
@@ -452,37 +473,60 @@ export default function VideoCallDialog({
             )}
           </DialogTitle>
           
-          {/* Session Code Display */}
+          {/* Session Code Display - Like Teams/Zoom */}
           {sessionCode && !isIncoming && (
-            <div className="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground mb-1">Share this code to invite others:</p>
-                  <div className="flex items-center gap-2">
+            <div className="mt-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-xs text-muted-foreground mb-3">Share to invite others to this call:</p>
+              
+              {/* Session Code */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-foreground mb-1">Session Code:</p>
                     <span className="text-2xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">
                       {sessionCode}
                     </span>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copySessionCode}
+                    data-testid="button-copy-session-code"
+                    className="gap-2"
+                  >
+                    {codeCopied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy Code
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copySessionCode}
-                  data-testid="button-copy-session-code"
-                  className="gap-2"
-                >
-                  {codeCopied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copy
-                    </>
-                  )}
-                </Button>
+              </div>
+
+              {/* Shareable Link */}
+              <div className="pt-3 border-t border-primary/20">
+                <p className="text-xs font-medium text-foreground mb-1">Or share this link:</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 px-3 py-2 bg-background/50 rounded border border-border text-sm font-mono text-muted-foreground truncate" data-testid="text-shareable-link">
+                    {window.location.origin}/join/{sessionCode}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyShareableLink}
+                    data-testid="button-copy-link"
+                    className="gap-2 shrink-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </Button>
+                </div>
               </div>
             </div>
           )}
