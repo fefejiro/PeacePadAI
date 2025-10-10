@@ -65,12 +65,12 @@ export function AppSidebar() {
       queryClient.clear();
       
       // Force a full page reload to reset all state
-      window.location.href = "/";
+      window.location.reload();
     } catch (error) {
       console.error("Logout error:", error);
       localStorage.removeItem("peacepad_session_id");
       queryClient.clear();
-      window.location.href = "/";
+      window.location.reload();
     }
   };
 

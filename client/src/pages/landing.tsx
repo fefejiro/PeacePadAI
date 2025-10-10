@@ -10,7 +10,7 @@ export default function LandingPage() {
   const [showGuestEntry, setShowGuestEntry] = useState(false);
 
   const handleAuthenticated = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
   };
 
   if (showGuestEntry) {
