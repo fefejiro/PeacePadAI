@@ -11,52 +11,115 @@ import { useToast } from "@/hooks/use-toast";
 export default function TherapistDirectoryPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number, address?: string, isCanada?: boolean} | null>(null);
   const [searchDistance, setSearchDistance] = useState<number>(50);
-  const [locationError, setLocationError] = useState<boolean>(false);
+  const [postalCode, setPostalCode] = useState<string>("");
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
-  useEffect(() => {
-    // Get user's location
+  const handlePostalCodeSearch = async () => {
+    if (!postalCode.trim()) {
+      toast({
+        title: "Enter a location",
+        description: "Please enter a postal code or address to search",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Use geocoding API to convert postal code to coordinates
+      const response = await fetch(`/api/geocode?address=${encodeURIComponent(postalCode)}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) throw new Error('Geocoding failed');
+      
+      const data = await response.json();
+      
+      setUserLocation({
+        lat: data.lat,
+        lng: data.lng,
+        address: postalCode,
+        isCanada: data.isCanada || false,
+      });
+      
+      toast({
+        title: "Location found",
+        description: `Searching for therapists near ${postalCode}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Location not found",
+        description: "Could not find coordinates for this postal code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleUseMyLocation = async () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Reverse geocode to determine country
+          try {
+            const reverseUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+            const response = await fetch(reverseUrl);
+            const data = await response.json();
+            const isCanada = data.address?.country_code === 'ca';
+            
+            setUserLocation({
+              lat,
+              lng,
+              address: 'Your location',
+              isCanada,
+            });
+          } catch {
+            // Fallback if reverse geocoding fails
+            setUserLocation({
+              lat,
+              lng,
+              address: 'Your location',
+              isCanada: false,
+            });
+          }
+          
+          toast({
+            title: "Location found",
+            description: "Using your current location",
           });
-          setLocationError(false);
         },
         (error) => {
           console.error('Error getting location:', error);
-          setLocationError(true);
-          // Use a default location (e.g., center of US)
-          setUserLocation({
-            lat: 39.8283,
-            lng: -98.5795,
-          });
           toast({
             title: "Location access denied",
-            description: "Using default location. You can search all therapists.",
+            description: "Please enter a postal code instead",
+            variant: "destructive",
           });
         }
       );
-    } else {
-      setLocationError(true);
-      setUserLocation({
-        lat: 39.8283,
-        lng: -98.5795,
-      });
     }
-  }, [toast]);
+  };
 
   const { data: therapists = [], isLoading } = useQuery({
-    queryKey: ["/api/therapists", userLocation?.lat, userLocation?.lng, searchDistance],
+    queryKey: ["/api/therapists", userLocation?.lat, userLocation?.lng, searchDistance, userLocation?.address, userLocation?.isCanada],
     enabled: !!user && !!userLocation,
     queryFn: async () => {
+      // Convert miles to km if not Canadian (server expects km)
+      const distanceInKm = userLocation!.isCanada 
+        ? searchDistance 
+        : Math.round(searchDistance * 1.60934); // miles to km
+      
       const params = new URLSearchParams({
         lat: userLocation!.lat.toString(),
         lng: userLocation!.lng.toString(),
-        maxDistance: searchDistance.toString(),
+        maxDistance: distanceInKm.toString(),
+        address: userLocation!.address || '',
       });
       
       const response = await fetch(`/api/therapists?${params}`, {
@@ -81,22 +144,6 @@ export default function TherapistDirectoryPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading therapists...</p>
-      </div>
-    );
-  }
-
-  if (!userLocation) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Initializing location...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
       <div className="max-w-6xl mx-auto">
@@ -109,43 +156,89 @@ export default function TherapistDirectoryPage() {
           </div>
         </div>
 
-        {/* Search Controls */}
+        {/* Location Search */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Search Filters</CardTitle>
-            <CardDescription>Adjust search radius to find therapists near you</CardDescription>
+            <CardTitle>Search Location</CardTitle>
+            <CardDescription>Enter a postal code/address or use your current location</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">
-                  Search Radius: {searchDistance} miles
-                </label>
-                <Input
-                  type="range"
-                  min="5"
-                  max="100"
-                  step="5"
-                  value={searchDistance}
-                  onChange={(e) => setSearchDistance(parseInt(e.target.value))}
-                  className="w-full"
-                  data-testid="input-search-radius"
-                />
-              </div>
-              <Badge variant="secondary" data-testid="badge-results-count">
-                {therapists.length} results
-              </Badge>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Input
+                type="text"
+                placeholder="Enter postal code or address (e.g., M9W 0A1, Toronto)"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handlePostalCodeSearch()}
+                className="flex-1"
+                data-testid="input-postal-code"
+              />
+              <Button
+                onClick={handlePostalCodeSearch}
+                disabled={isSearching || !postalCode.trim()}
+                data-testid="button-search-location"
+              >
+                {isSearching ? "Searching..." : "Search"}
+              </Button>
+              <Button
+                onClick={handleUseMyLocation}
+                variant="outline"
+                data-testid="button-use-location"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Use My Location
+              </Button>
             </div>
+            
+            {userLocation && (
+              <p className="text-sm text-muted-foreground">
+                Searching near: {userLocation.address || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
+              </p>
+            )}
           </CardContent>
         </Card>
 
+        {/* Search Controls */}
+        {userLocation && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Search Radius</CardTitle>
+              <CardDescription>Adjust distance to find therapists (miles or km)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">
+                    Search Radius: {searchDistance} {userLocation.isCanada ? 'km' : 'miles'}
+                  </label>
+                  <Input
+                    type="range"
+                    min="5"
+                    max="100"
+                    step="5"
+                    value={searchDistance}
+                    onChange={(e) => setSearchDistance(parseInt(e.target.value))}
+                    className="w-full"
+                    data-testid="input-search-radius"
+                  />
+                </div>
+                {therapists && (
+                  <Badge variant="secondary" data-testid="badge-results-count">
+                    {therapists.length} results
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Therapist Cards */}
         <div className="space-y-4">
-          {therapists.length === 0 ? (
+          {therapists.length === 0 && userLocation ? (
             <Card>
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  No therapists found within {searchDistance} miles. Try increasing the search radius.
+                  No therapists found within {searchDistance} {userLocation.isCanada ? 'km' : 'miles'}. Try increasing the search radius.
                 </p>
               </CardContent>
             </Card>
@@ -169,7 +262,7 @@ export default function TherapistDirectoryPage() {
                       )}
                       <Badge variant="outline" data-testid={`badge-distance-${therapist.id}`}>
                         <MapPin className="h-3 w-3 mr-1" />
-                        {therapist.distance} mi
+                        {therapist.distance} {userLocation?.isCanada ? 'km' : 'mi'}
                       </Badge>
                     </div>
                   </div>
