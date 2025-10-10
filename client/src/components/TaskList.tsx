@@ -47,9 +47,10 @@ export default function TaskList() {
           description: "You are logged out. Logging in again...",
           variant: "destructive",
         });
+        localStorage.removeItem("peacepad_session_id");
         setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
+          window.location.href = "/";
+        }, 1000);
         return;
       }
       toast({ title: "Error", description: "Failed to create task", variant: "destructive" });

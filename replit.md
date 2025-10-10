@@ -6,11 +6,15 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 
 ## Recent Changes (October 10, 2025)
 
-**MVP Complete and Tested:**
-- Fixed critical bug in mutation API calls where parameters were in wrong order (`apiRequest` signature is `(method, url, data)`)
-- All features successfully tested end-to-end: authentication, messaging with AI tone analysis, dashboard CRUD operations
-- Verified fallback behavior when OpenAI API unavailable (shows "Neutral - Analysis unavailable")
-- Architecture review confirmed robust error handling and security implementation
+**Soft Authentication & PWA Deployment:**
+- Replaced Replit Auth with Soft Authentication for frictionless onboarding
+- Guest entry with optional nickname support
+- 14-day session persistence with localStorage sync
+- Usage metrics tracking (messages sent, tone analyzed, therapist searches, call activity)
+- PWA implementation with manifest.json and service worker for offline caching
+- "Add to Home Screen" support for Android, iOS, and desktop
+- Enhanced AI tone analysis with emoji feedback and rewording suggestions
+- Pet management and expense tracking modules fully integrated
 
 ## User Preferences
 
@@ -47,8 +51,8 @@ Preferred communication style: Simple, everyday language.
 - **Language:** TypeScript with ES Modules
 - **Database ORM:** Drizzle ORM
 - **Database:** PostgreSQL (via Neon serverless)
-- **Authentication:** Replit Auth with OpenID Connect (OIDC)
-- **Session Management:** Express sessions with PostgreSQL storage (connect-pg-simple)
+- **Authentication:** Soft Authentication (guest/nickname entry)
+- **Session Management:** Express sessions with PostgreSQL storage (14-day TTL)
 
 **API Design:**
 - RESTful API endpoints under `/api` prefix
@@ -57,18 +61,38 @@ Preferred communication style: Simple, everyday language.
 - Request/response logging for API endpoints
 
 **Data Models:**
-- **Users:** Profile information, authentication data
-- **Messages:** Chat messages with AI tone analysis (tone, toneSummary)
+- **Users:** Profile information with guest/nickname support
+- **Guest Sessions:** Session tracking with localStorage sync (14-day expiry)
+- **Usage Metrics:** Analytics tracking per session (messages, tone analysis, searches, calls)
+- **Messages:** Chat messages with AI tone analysis (tone, toneSummary, toneEmoji, rewordingSuggestion)
 - **Notes:** Shared notes between co-parents
 - **Tasks:** Collaborative task management with due dates and completion status
 - **Child Updates:** Important updates about children
+- **Pets:** Pet tracking with vet appointments and custody schedules
+- **Expenses:** Expense tracking with categorization and split payment support
 - **Sessions:** Server-side session storage for authentication
 
-**Authentication Flow:**
-- OAuth 2.0 / OpenID Connect via Replit Auth
-- Session-based authentication with secure HTTP-only cookies
-- Automatic session refresh and user synchronization
-- Protected API routes with authentication middleware
+**Soft Authentication Flow:**
+- Guest entry with optional display name
+- Unique session ID stored in localStorage (14-day persistence)
+- Auto-generated guest ID (e.g., "Guest123") for anonymous users
+- Welcome back messages for returning visitors
+- No email, password, or personal info required
+- Usage metrics tracked per session for analytics
+
+### Progressive Web App (PWA)
+
+**PWA Configuration:**
+- Manifest.json with app metadata (name, icons, theme colors)
+- Service worker for offline caching and fast reloads
+- "Add to Home Screen" support for Android, iOS, and desktop
+- Standalone display mode with PeacePad blue theme (#3b82f6)
+- **Note:** PWA icons (192x192 and 512x512) need to be added to /client/public/
+
+**Offline Capabilities:**
+- Service worker caches essential pages and assets
+- Chat UI, tone feedback, and dashboard work offline with cached data
+- Background sync for offline message queuing (future enhancement)
 
 ### AI Integration
 
