@@ -1,74 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import { type ToneType } from "./TonePill";
-
-// todo: remove mock functionality
-const mockMessages = [
-  {
-    id: "1",
-    content: "Hi, can we discuss the pickup schedule for next week? I have a work event on Thursday.",
-    sender: "coparent" as const,
-    timestamp: "10:23 AM",
-    senderName: "Alex",
-    senderAvatar: undefined,
-    tone: "calm" as const,
-    toneSummary: "Polite and straightforward",
-  },
-  {
-    id: "2",
-    content: "Sure, Thursday works. What time do you need me to pick them up?",
-    sender: "me" as const,
-    timestamp: "10:25 AM",
-    senderName: "You",
-    tone: "cooperative" as const,
-    toneSummary: "Helpful and accommodating",
-  },
-  {
-    id: "3",
-    content: "Around 3 PM would be great. Thanks for being flexible!",
-    sender: "coparent" as const,
-    timestamp: "10:27 AM",
-    senderName: "Alex",
-    tone: "calm" as const,
-    toneSummary: "Appreciative",
-  },
-];
-
-interface Message {
-  id: string;
-  content: string;
-  sender: "me" | "coparent";
-  timestamp: string;
-  senderName: string;
-  senderAvatar?: string;
-  tone?: ToneType;
-  toneSummary?: string;
-}
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import type { Message } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
 
 export default function ChatInterface() {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const { data: messages = [], isLoading } = useQuery<Message[]>({
+    queryKey: ["/api/messages"],
+  });
+
+  const sendMessage = useMutation({
+    mutationFn: async (content: string) => {
+      return await apiRequest<Message>("/api/messages", "POST", { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      setMessage("");
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSend = () => {
     if (!message.trim()) return;
-    
-    console.log("Sending message:", message);
-    
-    const newMessage = {
-      id: Date.now().toString(),
-      content: message,
-      sender: "me" as const,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      senderName: "You",
-      tone: "neutral" as const,
-      toneSummary: "Message sent",
-    };
-    
-    setMessages([...messages, newMessage]);
-    setMessage("");
+    sendMessage.mutate(message);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -78,12 +60,34 @@ export default function ChatInterface() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">Loading messages...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} {...msg} />
-        ))}
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-muted-foreground">No messages yet. Start a conversation!</p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              content={msg.content}
+              sender={msg.senderId === user?.id ? "me" : "coparent"}
+              timestamp={new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              senderName={msg.senderId === user?.id ? "You" : user?.firstName || "Co-parent"}
+              tone={msg.tone as ToneType | undefined}
+              toneSummary={msg.toneSummary || undefined}
+            />
+          ))
+        )}
       </div>
 
       <div className="sticky bottom-0 p-4 bg-background border-t">
@@ -96,11 +100,12 @@ export default function ChatInterface() {
               placeholder="Type your message..."
               className="resize-none border-0 text-base focus-visible:ring-0 pr-12 min-h-[60px]"
               data-testid="input-message"
+              disabled={sendMessage.isPending}
             />
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={!message.trim()}
+              disabled={!message.trim() || sendMessage.isPending}
               className="absolute bottom-2 right-2"
               data-testid="button-send-message"
             >
@@ -108,7 +113,7 @@ export default function ChatInterface() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            AI will analyze your message tone after sending
+            {sendMessage.isPending ? "Analyzing tone..." : "AI will analyze your message tone after sending"}
           </p>
         </div>
       </div>
