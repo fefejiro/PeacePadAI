@@ -60,12 +60,15 @@ export default function SchedulingDashboard() {
       const res = await apiRequest("POST", "/api/events", data);
       return await res.json();
     },
-    onSuccess: () => {
-      // Invalidate and refetch queries in the background
-      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      queryClient.refetchQueries({ queryKey: ["/api/events"] }).catch(err => {
-        console.error("Failed to refetch events:", err);
+    onSuccess: (newEvent: Event) => {
+      // Optimistically update the cache with the new event
+      queryClient.setQueryData(["/api/events"], (old: Event[] = []) => {
+        return [...old, newEvent].sort((a, b) => 
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        );
       });
+      
+      // Invalidate analyze query to trigger conflict detection
       queryClient.invalidateQueries({ queryKey: ["/api/events/analyze"] });
       
       // Update UI immediately

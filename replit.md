@@ -6,13 +6,17 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 
 ## Recent Changes (October 10, 2025)
 
-**Soft Authentication & PWA Deployment:**
-- Replaced Replit Auth with Soft Authentication for frictionless onboarding
-- Guest entry with optional nickname support
-- 14-day session persistence with localStorage sync
-- Usage metrics tracking (messages sent, tone analyzed, therapist searches, call activity)
-- PWA implementation with manifest.json and service worker for offline caching
-- "Add to Home Screen" support for Android, iOS, and desktop
+**Smart Scheduling & Real-Time Communication:**
+- Implemented Smart Scheduling Dashboard with event creation and calendar view
+- AI-powered conflict detection using OpenAI for scheduling overlaps
+- WebRTC voice/video calling with WebSocket signaling server
+- Optional call recording functionality using MediaRecorder API
+- Integrated call buttons into chat interface for easy access
+- Fixed critical bugs: event UI rendering, React Query cache invalidation, WebRTC incoming call connections
+
+**Previous Updates:**
+- Soft Authentication for frictionless onboarding (no email/password required)
+- PWA deployment with offline support and "Add to Home Screen" capability
 - Enhanced AI tone analysis with emoji feedback and rewording suggestions
 - Pet management and expense tracking modules fully integrated
 
@@ -70,6 +74,7 @@ Preferred communication style: Simple, everyday language.
 - **Child Updates:** Important updates about children
 - **Pets:** Pet tracking with vet appointments and custody schedules
 - **Expenses:** Expense tracking with categorization and split payment support
+- **Events:** Scheduling events with AI conflict detection (type: pickup, dropoff, school, medical, activity, other)
 - **Sessions:** Server-side session storage for authentication
 
 **Soft Authentication Flow:**
@@ -97,16 +102,23 @@ Preferred communication style: Simple, everyday language.
 ### AI Integration
 
 **OpenAI Integration:**
-- GPT-3.5-turbo for message tone analysis
+- GPT-3.5-turbo for message tone analysis and scheduling conflict detection
 - Real-time analysis of message emotional content
 - Classification into five tone categories: calm, cooperative, neutral, frustrated, defensive
 - Brief summaries to provide context without overwhelming users
+- AI-powered scheduling pattern analysis for conflict detection
 
 **Tone Analysis Design:**
 - Low temperature (0.3) for consistent, predictable analysis
 - Structured prompt engineering for reliable categorization
 - Graceful fallback to "neutral" on API errors
 - Non-blocking analysis to maintain chat performance
+
+**Scheduling Conflict Detection:**
+- Time-based overlap detection for events
+- AI analysis of scheduling patterns and logistics
+- Actionable suggestions for resolving conflicts
+- Visual conflict warnings with amber styling
 
 ### Database Architecture
 
@@ -145,11 +157,32 @@ Preferred communication style: Simple, everyday language.
 - `@shared/*` maps to `/shared/*` (shared types)
 - `@assets/*` maps to `/attached_assets/*` (static assets)
 
+### WebRTC Real-Time Communication
+
+**WebSocket Signaling Server:**
+- Built on existing WebSocket infrastructure from chat feature
+- Handles WebRTC signaling for voice/video calls
+- Room-based message routing for peer-to-peer connections
+- ICE candidate exchange for NAT traversal
+
+**Voice/Video Calling:**
+- WebRTC peer connections with STUN server configuration
+- Audio-only and video call modes
+- Call controls: mute, camera toggle, end call
+- Optional call recording using MediaRecorder API
+- Download recorded calls as WebM files
+
+**Call Flow:**
+- Peer connection created before getUserMedia to handle incoming offers
+- Pending offer queue for race condition handling
+- Proper ICE candidate exchange and media track negotiation
+- Visual call timer and connection status indicators
+
 ### Security Considerations
 
 **Authentication Security:**
 - Secure session cookies (httpOnly, secure flags)
-- 7-day session TTL with automatic cleanup
+- 14-day session TTL with automatic cleanup
 - Session encryption via secret key
 - CSRF protection through session-based authentication
 
@@ -158,6 +191,11 @@ Preferred communication style: Simple, everyday language.
 - User-scoped data access
 - Input validation using Zod schemas
 - Error message sanitization
+
+**WebRTC Security:**
+- STUN servers for NAT traversal (Google public STUN servers)
+- Secure WebSocket connections for signaling
+- Client-side media recording (not stored on server by default)
 
 ## External Dependencies
 
