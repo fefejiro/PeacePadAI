@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff } from "lucide-react";
+import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -28,6 +28,7 @@ export default function VideoCallDialog({
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(callType === "audio");
   const [callDuration, setCallDuration] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -35,6 +36,8 @@ export default function VideoCallDialog({
   const wsRef = useRef<WebSocket | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (!isOpen || !user) return;
@@ -225,7 +228,79 @@ export default function VideoCallDialog({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const toggleRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      if (!localStreamRef.current) return;
+
+      const stream = localStreamRef.current;
+      const options = { mimeType: "video/webm;codecs=vp9" };
+      
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options.mimeType = "video/webm";
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `call-recording-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Recording Saved",
+          description: "Your call recording has been downloaded",
+        });
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      toast({
+        title: "Recording Started",
+        description: "Call is being recorded",
+      });
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+      toast({
+        title: "Recording Failed",
+        description: "Could not start call recording",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
   const endCall = () => {
+    if (isRecording) {
+      stopRecording();
+    }
+    
     if (wsRef.current && (recipientId || callerId)) {
       wsRef.current.send(JSON.stringify({
         type: "call-end",
@@ -239,6 +314,10 @@ export default function VideoCallDialog({
   const cleanup = () => {
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
+    }
+    
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
     }
     
     if (localStreamRef.current) {
@@ -320,6 +399,16 @@ export default function VideoCallDialog({
             data-testid="button-toggle-mute"
           >
             {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+
+          <Button
+            size="icon"
+            variant={isRecording ? "destructive" : "secondary"}
+            onClick={toggleRecording}
+            disabled={!isConnected}
+            data-testid="button-toggle-recording"
+          >
+            <Circle className={`h-4 w-4 ${isRecording ? "fill-current" : ""}`} />
           </Button>
 
           <Button
