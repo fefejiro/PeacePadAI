@@ -16,6 +16,7 @@ import SettingsPage from "@/pages/settings";
 import TherapistLocatorPage from "@/pages/therapist-locator";
 import TherapistDirectoryPage from "@/pages/therapist-directory";
 import AuditTrailPage from "@/pages/audit-trail";
+import JoinCallPage from "@/pages/join-call";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -42,15 +43,19 @@ function Router() {
         <Route path="/therapist-directory" component={TherapistDirectoryPage} />
         <Route path="/audit-trail" component={AuditTrailPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/join/:code" component={JoinCallPage} />
+        <Route path="/join" component={JoinCallPage} />
         <Route component={NotFound} />
       </Switch>
     );
   }
 
-  // Not authenticated, show landing page
+  // Not authenticated, show landing or join call page
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/join/:code" component={JoinCallPage} />
+      <Route path="/join" component={JoinCallPage} />
       <Route component={LandingPage} />
     </Switch>
   );
