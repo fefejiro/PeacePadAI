@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Send, Phone, Video } from "lucide-react";
 import MessageBubble from "./MessageBubble";
+import VideoCallDialog from "./VideoCallDialog";
 import { type ToneType } from "./TonePill";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -13,6 +14,8 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 
 export default function ChatInterface() {
   const [message, setMessage] = useState("");
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [callType, setCallType] = useState<"audio" | "video">("audio");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -70,8 +73,40 @@ export default function ChatInterface() {
     );
   }
 
+  const startAudioCall = () => {
+    setCallType("audio");
+    setIsCallDialogOpen(true);
+  };
+
+  const startVideoCall = () => {
+    setCallType("video");
+    setIsCallDialogOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b bg-card">
+        <h2 className="text-lg font-semibold text-foreground">Chat</h2>
+        <div className="flex gap-2">
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={startAudioCall}
+            data-testid="button-start-audio-call"
+          >
+            <Phone className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={startVideoCall}
+            data-testid="button-start-video-call"
+          >
+            <Video className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -93,6 +128,13 @@ export default function ChatInterface() {
           ))
         )}
       </div>
+
+      <VideoCallDialog
+        isOpen={isCallDialogOpen}
+        onClose={() => setIsCallDialogOpen(false)}
+        callType={callType}
+        recipientId="co-parent-id"
+      />
 
       <div className="sticky bottom-0 p-4 bg-background border-t">
         <div className="max-w-4xl mx-auto">
