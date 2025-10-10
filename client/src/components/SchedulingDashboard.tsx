@@ -61,8 +61,14 @@ export default function SchedulingDashboard() {
       return await res.json();
     },
     onSuccess: () => {
+      // Invalidate and refetch queries in the background
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.refetchQueries({ queryKey: ["/api/events"] }).catch(err => {
+        console.error("Failed to refetch events:", err);
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/events/analyze"] });
+      
+      // Update UI immediately
       setDialogOpen(false);
       setTitle("");
       setType("pickup");

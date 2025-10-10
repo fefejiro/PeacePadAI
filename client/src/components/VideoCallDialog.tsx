@@ -38,6 +38,7 @@ export default function VideoCallDialog({
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const pendingOfferRef = useRef<{ offer: RTCSessionDescriptionInit; from: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen || !user) return;
@@ -103,18 +104,6 @@ export default function VideoCallDialog({
 
   const initializeCall = async () => {
     try {
-      const constraints = {
-        audio: true,
-        video: callType === "video",
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      localStreamRef.current = stream;
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-
       const configuration = {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
@@ -122,12 +111,9 @@ export default function VideoCallDialog({
         ],
       };
 
+      // Create peer connection BEFORE getting media
       const pc = new RTCPeerConnection(configuration);
       peerConnectionRef.current = pc;
-
-      stream.getTracks().forEach((track) => {
-        pc.addTrack(track, stream);
-      });
 
       pc.ontrack = (event) => {
         if (remoteVideoRef.current && event.streams[0]) {
@@ -147,6 +133,31 @@ export default function VideoCallDialog({
         }
       };
 
+      // Process pending offer if it arrived before peer connection was ready
+      if (pendingOfferRef.current) {
+        const { offer, from } = pendingOfferRef.current;
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        pendingOfferRef.current = null;
+      }
+
+      // Get user media AFTER creating peer connection
+      const constraints = {
+        audio: true,
+        video: callType === "video",
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStreamRef.current = stream;
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      stream.getTracks().forEach((track) => {
+        pc.addTrack(track, stream);
+      });
+
+      // Handle outgoing call
       if (!isIncoming) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -156,6 +167,19 @@ export default function VideoCallDialog({
             type: "offer",
             to: recipientId,
             payload: offer,
+          }));
+        }
+      } 
+      // Handle incoming call - create answer if remote description was set
+      else if (pc.remoteDescription) {
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        if (wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: "answer",
+            to: callerId,
+            payload: answer,
           }));
         }
       }
@@ -171,18 +195,26 @@ export default function VideoCallDialog({
   };
 
   const handleOffer = async (offer: RTCSessionDescriptionInit, from: string) => {
-    if (!peerConnectionRef.current) return;
+    if (!peerConnectionRef.current) {
+      // Store offer to process after peer connection is ready
+      pendingOfferRef.current = { offer, from };
+      return;
+    }
 
-    await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await peerConnectionRef.current.createAnswer();
-    await peerConnectionRef.current.setLocalDescription(answer);
+    try {
+      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
 
-    if (wsRef.current) {
-      wsRef.current.send(JSON.stringify({
-        type: "answer",
-        to: from,
-        payload: answer,
-      }));
+      if (wsRef.current) {
+        wsRef.current.send(JSON.stringify({
+          type: "answer",
+          to: from,
+          payload: answer,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to handle offer:", error);
     }
   };
 
