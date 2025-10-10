@@ -6,6 +6,7 @@ import {
   childUpdates,
   pets,
   expenses,
+  events,
   guestSessions,
   usageMetrics,
   type User,
@@ -22,6 +23,8 @@ import {
   type InsertPet,
   type Expense,
   type InsertExpense,
+  type Event,
+  type InsertEvent,
   type GuestSession,
   type InsertGuestSession,
   type UsageMetric,
@@ -75,6 +78,10 @@ export interface IStorage {
   // Expense operations
   getExpenses(): Promise<Expense[]>;
   createExpense(expense: InsertExpense): Promise<Expense>;
+  
+  // Event operations
+  getEvents(): Promise<Event[]>;
+  createEvent(event: InsertEvent): Promise<Event>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -232,6 +239,16 @@ export class DatabaseStorage implements IStorage {
   async createExpense(expenseData: InsertExpense): Promise<Expense> {
     const [expense] = await db.insert(expenses).values(expenseData).returning();
     return expense;
+  }
+
+  // Event operations
+  async getEvents(): Promise<Event[]> {
+    return await db.select().from(events).orderBy(events.startDate);
+  }
+
+  async createEvent(eventData: InsertEvent): Promise<Event> {
+    const [event] = await db.insert(events).values(eventData).returning();
+    return event;
   }
 }
 

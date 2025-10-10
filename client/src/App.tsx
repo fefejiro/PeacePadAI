@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LandingPage from "@/pages/landing";
 import ChatPage from "@/pages/chat";
 import DashboardPage from "@/pages/dashboard";
+import SchedulingPage from "@/pages/scheduling";
 import SettingsPage from "@/pages/settings";
 import TherapistLocatorPage from "@/pages/therapist-locator";
 import NotFound from "@/pages/not-found";
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/" component={ChatPage} />
       <Route path="/chat" component={ChatPage} />
       <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/scheduling" component={SchedulingPage} />
       <Route path="/therapist-locator" component={TherapistLocatorPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />

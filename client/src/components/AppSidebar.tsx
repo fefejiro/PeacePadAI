@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +24,11 @@ const menuItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Scheduling",
+    url: "/scheduling",
+    icon: Calendar,
   },
   {
     title: "Find Support",
@@ -40,8 +45,15 @@ const menuItems = [
 export function AppSidebar() {
   const [location] = useLocation();
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      localStorage.removeItem("peacepad_session_id");
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.href = "/";
+    }
   };
 
   return (

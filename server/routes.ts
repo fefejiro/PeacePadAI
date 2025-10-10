@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
-import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema } from "@shared/schema";
+import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema } from "@shared/schema";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -345,6 +345,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching therapists:", error);
       res.status(500).json({ message: "Failed to search therapists" });
+    }
+  });
+
+  // Event routes
+  app.get('/api/events', isSoftAuthenticated, async (req, res) => {
+    try {
+      const events = await storage.getEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.post('/api/events', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const parsed = insertEventSchema.parse({
+        ...req.body,
+        createdBy: userId,
+        startDate: new Date(req.body.startDate),
+        endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
+      });
+      const event = await storage.createEvent(parsed);
+      res.json(event);
+    } catch (error: any) {
+      console.error("Error creating event:", error);
+      res.status(400).json({ message: error.message || "Failed to create event" });
+    }
+  });
+
+  // AI conflict detection for events
+  app.get('/api/events/analyze', isSoftAuthenticated, async (req, res) => {
+    try {
+      const events = await storage.getEvents();
+      const conflicts: string[] = [];
+      const suggestions: string[] = [];
+
+      // Check for overlapping events
+      for (let i = 0; i < events.length; i++) {
+        for (let j = i + 1; j < events.length; j++) {
+          const event1 = events[i];
+          const event2 = events[j];
+          const start1 = new Date(event1.startDate);
+          const end1 = event1.endDate ? new Date(event1.endDate) : new Date(start1.getTime() + 60 * 60 * 1000);
+          const start2 = new Date(event2.startDate);
+          const end2 = event2.endDate ? new Date(event2.endDate) : new Date(start2.getTime() + 60 * 60 * 1000);
+
+          if (start1 < end2 && start2 < end1) {
+            conflicts.push(`"${event1.title}" overlaps with "${event2.title}" on ${start1.toLocaleDateString()}`);
+          }
+        }
+      }
+
+      // Use AI to analyze scheduling patterns
+      if (events.length > 0) {
+        try {
+          const eventSummary = events.map(e => 
+            `${e.type}: ${e.title} at ${new Date(e.startDate).toLocaleString()}`
+          ).join('\n');
+
+          const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: "You are a co-parenting scheduling assistant. Analyze the schedule and identify potential conflicts or provide helpful suggestions for better coordination.",
+              },
+              {
+                role: "user",
+                content: `Analyze this co-parenting schedule:\n${eventSummary}\n\nProvide 1-3 brief suggestions for better coordination (max 50 words each).`,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 150,
+          });
+
+          const aiSuggestions = response.choices[0]?.message?.content?.split('\n').filter(s => s.trim());
+          if (aiSuggestions) {
+            suggestions.push(...aiSuggestions.slice(0, 3));
+          }
+        } catch (error) {
+          console.error("AI analysis error:", error);
+          // Fallback suggestions if AI fails
+          if (conflicts.length > 0) {
+            suggestions.push("Consider adjusting overlapping events to avoid conflicts");
+          }
+        }
+      }
+
+      res.json({
+        hasConflicts: conflicts.length > 0,
+        conflicts,
+        suggestions,
+      });
+    } catch (error) {
+      console.error("Error analyzing events:", error);
+      res.status(500).json({ message: "Failed to analyze events" });
     }
   });
 
