@@ -7,6 +7,14 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 ## Recent Changes (October 10, 2025)
 
 **Latest Updates (Session):**
+- WhatsApp-like chat with multimedia support:
+  - File attachments: Images, videos, audio, and documents (100MB limit)
+  - In-chat audio recording: Voice messages using MediaRecorder API
+  - In-chat video recording: Video messages with live camera preview
+  - Media message display: Images (max-h-96), audio player, video player, document downloads
+  - File upload endpoint: /api/chat-attachments with multer handling
+  - Message types: text, image, audio, video, document with proper rendering
+  - WebSocket fix: Reliable sessionId fallback (localStorage → user.id) for real-time updates
 - Therapist directory with real-time web-based therapist search
 - Postal code/address geocoding using OpenStreetMap Nominatim API
 - Automatic Canadian unit detection (km for Canada, miles for US/other)
@@ -81,7 +89,10 @@ Preferred communication style: Simple, everyday language.
 - **Users:** Profile information with guest/nickname support
 - **Guest Sessions:** Session tracking with localStorage sync (14-day expiry)
 - **Usage Metrics:** Analytics tracking per session (messages, tone analysis, searches, calls)
-- **Messages:** Chat messages with AI tone analysis (tone, toneSummary, toneEmoji, rewordingSuggestion)
+- **Messages:** Multimedia chat messages with AI tone analysis
+  - Text content with tone analysis (tone, toneSummary, toneEmoji, rewordingSuggestion)
+  - Multimedia support (messageType: text, image, audio, video, document)
+  - File metadata (fileUrl, fileName, fileSize, mimeType, duration)
 - **Notes:** Shared notes between co-parents
 - **Tasks:** Collaborative task management with due dates and completion status
 - **Child Updates:** Important updates about children
