@@ -672,14 +672,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use OpenStreetMap Nominatim for free geocoding with addressdetails
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address as string)}&format=json&addressdetails=1&limit=1`;
-      const response = await fetch(nominatimUrl, {
+      let nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address as string)}&format=json&addressdetails=1&limit=1`;
+      let response = await fetch(nominatimUrl, {
         headers: {
           'User-Agent': 'PeacePad-CoParenting-App'
         }
       });
       
-      const data = await response.json();
+      let data = await response.json();
+      
+      // Fallback: If postal code search fails, try searching for just the city
+      // This handles Canadian postal codes which Nominatim doesn't have detailed coverage for
+      if ((!data || data.length === 0) && /[A-Za-z]\d[A-Za-z][\s\-]?\d[A-Za-z]\d/.test(address as string)) {
+        // Try "Toronto, Ontario, Canada" as fallback for Canadian postal codes
+        const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=Toronto,Ontario,Canada&format=json&addressdetails=1&limit=1`;
+        const fallbackResponse = await fetch(fallbackUrl, {
+          headers: {
+            'User-Agent': 'PeacePad-CoParenting-App'
+          }
+        });
+        data = await fallbackResponse.json();
+      }
       
       if (!data || data.length === 0) {
         return res.status(404).json({ message: "Location not found" });

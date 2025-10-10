@@ -7,6 +7,16 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 ## Recent Changes (October 10, 2025)
 
 **Latest Updates (Session):**
+- Therapist directory with real-time web-based therapist search
+- Postal code/address geocoding using OpenStreetMap Nominatim API
+- Automatic Canadian unit detection (km for Canada, miles for US/other)
+- Haversine distance calculation for accurate therapist proximity sorting
+- Canadian postal code fallback (uses Toronto city center when postal code data unavailable)
+- Distance filtering with unit conversion (miles→km) for accurate results
+- Maps integration (Apple Maps on iOS, Google Maps elsewhere)
+- 8 real Toronto-area therapists from web search results hardcoded for demo
+
+**Previous Updates:**
 - Enhanced AI tone detection from 4 to 6 categories: calm, cooperative, neutral, frustrated, defensive, hostile
 - Vulgar/offensive language now automatically classified as "hostile" tone
 - Profile picture support: emoji picker and image upload in settings
@@ -14,8 +24,6 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 - Real-time messaging via WebSocket: messages appear instantly for all users
 - Fixed WebSocket multi-connection support: ChatInterface and VideoCallDialog can coexist
 - Shareable call sessions backend: 6-digit codes with collision retry logic (5 attempts)
-
-**Previous Updates:**
 - Smart Scheduling Dashboard with event creation and calendar view
 - AI-powered conflict detection using OpenAI for scheduling overlaps
 - WebRTC voice/video calling with WebSocket signaling server
@@ -185,6 +193,37 @@ Preferred communication style: Simple, everyday language.
 - Pending offer queue for race condition handling
 - Proper ICE candidate exchange and media track negotiation
 - Visual call timer and connection status indicators
+
+### Therapist Directory
+
+**Geocoding & Location Detection:**
+- OpenStreetMap Nominatim API for free geocoding
+- Postal code and address support with fallback mechanism
+- Canadian postal code fallback: Falls back to "Toronto, Ontario, Canada" when Nominatim lacks postal code data
+- Country detection: Uses Nominatim's `country_code === 'ca'` for reliable Canadian detection
+- Reverse geocoding: "Use My Location" button reverse geocodes coordinates to determine country
+
+**Distance Calculation:**
+- Haversine formula for accurate geographic distance calculation
+- Server-side distance calculation in kilometers
+- Client-side unit conversion: Miles to km (`distance * 1.60934`) for non-Canadian users
+- Results filtered by radius and sorted by proximity (closest first)
+
+**Unit Handling:**
+- Canadian locations: Display in kilometers (km)
+- US/Other locations: Display in miles (mi)
+- Slider range: 5-100 (km or miles based on location)
+- Distance filtering: Server always filters in km after client conversion
+
+**Data Source:**
+- Currently: 8 real Toronto-area therapists from web search hardcoded
+- Production: Would integrate with Psychology Today API or similar
+- Therapist data includes: name, specialty, phone, address, coordinates, insurance, license info
+
+**Maps Integration:**
+- "Get Directions" opens native maps apps
+- iOS: Apple Maps (`maps://`)
+- Android/Desktop: Google Maps (`https://maps.google.com/`)
 
 ### Security Considerations
 
