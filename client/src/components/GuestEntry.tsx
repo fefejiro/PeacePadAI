@@ -20,20 +20,21 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
       const sessionId = localStorage.getItem("peacepad_session_id");
       if (sessionId) {
         try {
-          const response = await fetch("/api/auth/me");
+          const response = await fetch("/api/auth/user");
           if (response.ok) {
             const data = await response.json();
             toast({
               title: "Welcome back!",
-              description: `Hello again, ${data.user.displayName}!`,
+              description: `Hello again, ${data.displayName || 'Guest'}!`,
             });
             onAuthenticated();
-          } else {
-            // Session expired, clear it
+          } else if (response.status === 401) {
+            // Session expired, clear it silently
             localStorage.removeItem("peacepad_session_id");
           }
         } catch (error) {
           console.error("Session check error:", error);
+          // Don't show error to user, just clear the session
           localStorage.removeItem("peacepad_session_id");
         }
       }
@@ -53,10 +54,12 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
           displayName: asGuest ? undefined : displayName || undefined,
           sessionId: sessionId || undefined,
         }),
+        credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error("Authentication failed");
+        const errorData = await response.json().catch(() => ({ message: "Authentication failed" }));
+        throw new Error(errorData.message || "Authentication failed");
       }
 
       const data = await response.json();
@@ -69,9 +72,10 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
 
       onAuthenticated();
     } catch (error: any) {
+      console.error("Guest entry error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to authenticate",
+        description: error.message || "Failed to authenticate. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -19,8 +19,9 @@ import AuditTrailPage from "@/pages/audit-trail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
+  // Show loading only briefly while checking auth
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -29,26 +30,28 @@ function Router() {
     );
   }
 
-  if (!isAuthenticated) {
+  // If authenticated, show authenticated routes
+  if (isAuthenticated && user) {
     return (
       <Switch>
-        <Route path="/" component={LandingPage} />
-        <Route component={LandingPage} />
+        <Route path="/" component={ChatPage} />
+        <Route path="/chat" component={ChatPage} />
+        <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/scheduling" component={SchedulingPage} />
+        <Route path="/therapist-locator" component={TherapistLocatorPage} />
+        <Route path="/therapist-directory" component={TherapistDirectoryPage} />
+        <Route path="/audit-trail" component={AuditTrailPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route component={NotFound} />
       </Switch>
     );
   }
 
+  // Not authenticated, show landing page
   return (
     <Switch>
-      <Route path="/" component={ChatPage} />
-      <Route path="/chat" component={ChatPage} />
-      <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/scheduling" component={SchedulingPage} />
-      <Route path="/therapist-locator" component={TherapistLocatorPage} />
-      <Route path="/therapist-directory" component={TherapistDirectoryPage} />
-      <Route path="/audit-trail" component={AuditTrailPage} />
-      <Route path="/settings" component={SettingsPage} />
-      <Route component={NotFound} />
+      <Route path="/" component={LandingPage} />
+      <Route component={LandingPage} />
     </Switch>
   );
 }
