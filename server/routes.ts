@@ -13,7 +13,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Configure multer for file uploads
+// Configure multer for call recordings
 const uploadDir = path.join(process.cwd(), 'uploads', 'recordings');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -32,6 +32,27 @@ const uploadStorage = multer.diskStorage({
 const upload = multer({ 
   storage: uploadStorage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+});
+
+// Configure multer for chat attachments
+const chatAttachmentsDir = path.join(process.cwd(), 'uploads', 'chat');
+if (!fs.existsSync(chatAttachmentsDir)) {
+  fs.mkdirSync(chatAttachmentsDir, { recursive: true });
+}
+
+const chatUploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, chatAttachmentsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const chatUpload = multer({ 
+  storage: chatUploadStorage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for images, videos, documents
 });
 
 async function analyzeTone(content: string): Promise<{ 
@@ -155,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderId: userId,
       });
 
-      const { tone, summary, emoji, rewordingSuggestion } = await analyzeTone(parsed.content);
+      const { tone, summary, emoji, rewordingSuggestion} = await analyzeTone(parsed.content);
       
       const message = await storage.createMessage({
         ...parsed,
@@ -176,6 +197,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating message:", error);
       res.status(400).json({ message: error.message || "Failed to create message" });
+    }
+  });
+
+  // Chat attachments upload endpoint
+  app.post('/api/chat-attachments', isSoftAuthenticated, chatUpload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const fileUrl = `/uploads/chat/${file.filename}`;
+      const messageType = req.body.messageType || 'document'; // text, image, audio, video, document
+      const duration = req.body.duration || null; // For audio/video
+      
+      // Return file information to be used when creating the message
+      res.json({
+        fileUrl,
+        fileName: file.originalname,
+        fileSize: file.size.toString(),
+        mimeType: file.mimetype,
+        duration,
+        messageType,
+      });
+    } catch (error: any) {
+      console.error("Error uploading chat attachment:", error);
+      res.status(400).json({ message: error.message || "Failed to upload file" });
     }
   });
 

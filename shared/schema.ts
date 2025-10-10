@@ -60,6 +60,13 @@ export const messages = pgTable("messages", {
   toneSummary: text("tone_summary"),
   toneEmoji: text("tone_emoji"),
   rewordingSuggestion: text("rewording_suggestion"),
+  // WhatsApp-like media support
+  messageType: text("message_type").notNull().default("text"), // text, image, audio, video, document
+  fileUrl: text("file_url"), // URL to uploaded file
+  fileName: text("file_name"), // Original file name
+  fileSize: text("file_size"), // File size in bytes
+  mimeType: text("mime_type"), // MIME type of file
+  duration: text("duration"), // Duration for audio/video in seconds
 });
 
 export const notes = pgTable("notes", {
