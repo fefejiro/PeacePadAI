@@ -481,6 +481,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Call session routes
+  app.post('/api/call-sessions', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { callType } = req.body;
+      
+      // Validate call type
+      const validCallTypes = ['audio', 'video'];
+      const finalCallType = validCallTypes.includes(callType) ? callType : 'audio';
+      
+      // Generate a 6-digit session code with retry on collision
+      let session;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (attempts < maxAttempts) {
+        try {
+          const sessionCode = Math.floor(100000 + Math.random() * 900000).toString();
+          
+          session = await storage.createCallSession({
+            sessionCode,
+            hostId: userId,
+            callType: finalCallType,
+          });
+          
+          break; // Success, exit retry loop
+        } catch (error: any) {
+          attempts++;
+          if (error.code === '23505' && attempts < maxAttempts) {
+            // Unique constraint violation, retry with new code
+            continue;
+          }
+          throw error; // Re-throw if not a collision or max attempts reached
+        }
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error creating call session:", error);
+      res.status(500).json({ message: "Failed to create call session" });
+    }
+  });
+
+  app.get('/api/call-sessions/:code', isSoftAuthenticated, async (req, res) => {
+    try {
+      const { code } = req.params;
+      const session = await storage.getCallSessionByCode(code);
+      
+      if (!session || !session.isActive) {
+        return res.status(404).json({ message: "Call session not found or ended" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching call session:", error);
+      res.status(500).json({ message: "Failed to fetch call session" });
+    }
+  });
+
+  app.post('/api/call-sessions/:code/end', isSoftAuthenticated, async (req, res) => {
+    try {
+      const { code } = req.params;
+      await storage.endCallSession(code);
+      res.json({ message: "Call ended successfully" });
+    } catch (error) {
+      console.error("Error ending call session:", error);
+      res.status(500).json({ message: "Failed to end call session" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebRTC signaling server

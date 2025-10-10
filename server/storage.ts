@@ -9,6 +9,7 @@ import {
   events,
   guestSessions,
   usageMetrics,
+  callSessions,
   type User,
   type UpsertUser,
   type Message,
@@ -29,6 +30,8 @@ import {
   type InsertGuestSession,
   type UsageMetric,
   type InsertUsageMetric,
+  type CallSession,
+  type InsertCallSession,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -82,6 +85,11 @@ export interface IStorage {
   // Event operations
   getEvents(): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
+  
+  // Call session operations
+  createCallSession(session: InsertCallSession): Promise<CallSession>;
+  getCallSessionByCode(sessionCode: string): Promise<CallSession | undefined>;
+  endCallSession(sessionCode: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -152,8 +160,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Message operations
-  async getMessages(): Promise<Message[]> {
-    return await db.select().from(messages).orderBy(messages.timestamp);
+  async getMessages(): Promise<any[]> {
+    const result = await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        senderId: messages.senderId,
+        timestamp: messages.timestamp,
+        tone: messages.tone,
+        toneSummary: messages.toneSummary,
+        toneEmoji: messages.toneEmoji,
+        rewordingSuggestion: messages.rewordingSuggestion,
+        senderDisplayName: users.displayName,
+        senderFirstName: users.firstName,
+        senderLastName: users.lastName,
+      })
+      .from(messages)
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .orderBy(messages.timestamp);
+    
+    return result;
   }
 
   async createMessage(messageData: InsertMessage): Promise<Message> {
@@ -249,6 +275,23 @@ export class DatabaseStorage implements IStorage {
   async createEvent(eventData: InsertEvent): Promise<Event> {
     const [event] = await db.insert(events).values(eventData).returning();
     return event;
+  }
+
+  // Call session operations
+  async createCallSession(sessionData: InsertCallSession): Promise<CallSession> {
+    const [session] = await db.insert(callSessions).values(sessionData).returning();
+    return session;
+  }
+
+  async getCallSessionByCode(sessionCode: string): Promise<CallSession | undefined> {
+    const [session] = await db.select().from(callSessions).where(eq(callSessions.sessionCode, sessionCode));
+    return session;
+  }
+
+  async endCallSession(sessionCode: string): Promise<void> {
+    await db.update(callSessions)
+      .set({ isActive: false, endedAt: new Date() })
+      .where(eq(callSessions.sessionCode, sessionCode));
   }
 }
 

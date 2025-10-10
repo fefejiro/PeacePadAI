@@ -12,6 +12,12 @@ import type { Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
+type MessageWithSender = Message & {
+  senderDisplayName?: string;
+  senderFirstName?: string;
+  senderLastName?: string;
+};
+
 export default function ChatInterface() {
   const [message, setMessage] = useState("");
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
@@ -19,7 +25,7 @@ export default function ChatInterface() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: messages = [], isLoading } = useQuery<Message[]>({
+  const { data: messages = [], isLoading } = useQuery<MessageWithSender[]>({
     queryKey: ["/api/messages"],
   });
 
@@ -117,9 +123,12 @@ export default function ChatInterface() {
             const getSenderName = () => {
               if (msg.senderId === user?.id) return "You";
               
-              // For co-parent messages, show a friendly name
-              // If it starts with "Guest", show "Guest User" instead
-              const displayName = user?.displayName || user?.firstName || "Co-parent";
+              // For co-parent messages, use their display name, full name, or "Guest User" as fallback
+              const displayName = msg.senderDisplayName || 
+                (msg.senderFirstName && msg.senderLastName 
+                  ? `${msg.senderFirstName} ${msg.senderLastName}` 
+                  : msg.senderFirstName || "Guest User");
+              
               if (displayName.startsWith("Guest")) {
                 return "Guest User";
               }

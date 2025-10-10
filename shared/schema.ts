@@ -120,6 +120,17 @@ export const expenses = pgTable("expenses", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Call sessions for shareable video/audio calls
+export const callSessions = pgTable("call_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionCode: varchar("session_code").notNull().unique(), // 6-digit code like Zoom
+  hostId: varchar("host_id").notNull().references(() => users.id),
+  callType: varchar("call_type").notNull(), // 'audio' or 'video'
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -151,3 +162,6 @@ export type InsertGuestSession = z.infer<typeof insertGuestSessionSchema>;
 export type GuestSession = typeof guestSessions.$inferSelect;
 export type InsertUsageMetric = z.infer<typeof insertUsageMetricSchema>;
 export type UsageMetric = typeof usageMetrics.$inferSelect;
+export const insertCallSessionSchema = createInsertSchema(callSessions).omit({ id: true, createdAt: true });
+export type InsertCallSession = z.infer<typeof insertCallSessionSchema>;
+export type CallSession = typeof callSessions.$inferSelect;
