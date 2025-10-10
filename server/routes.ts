@@ -22,25 +22,37 @@ async function analyzeTone(content: string): Promise<{
       messages: [
         {
           role: "system",
-          content: `You are an empathetic communication analyst for co-parents. Analyze messages and provide:
-1. Tone classification: positive, neutral, sad, or frustrated
+          content: `You are an empathetic communication analyst for co-parents. Analyze messages carefully for emotional tone, paying special attention to hostile, offensive, vulgar, or aggressive language.
+
+Tone classifications (choose the most appropriate):
+- calm: Peaceful, supportive, constructive communication
+- cooperative: Collaborative, solution-oriented, respectful
+- neutral: Matter-of-fact, informational, neither positive nor negative
+- frustrated: Irritated, impatient, but not hostile
+- defensive: Self-protective, blame-shifting, dismissive
+- hostile: Aggressive, attacking, offensive, vulgar, or containing curse words
+
+IMPORTANT: Any message containing vulgar language, curse words, personal attacks, threats, or highly aggressive content MUST be classified as "hostile".
+
+Provide:
+1. Tone classification using one of the above categories
 2. A brief 2-5 word emotional summary
-3. An emoji: 😊 for positive, 😐 for neutral, 😞 for sad, 😡 for frustrated
-4. If tone is sad or frustrated, provide a gentle rewording suggestion that promotes empathy and de-escalation. Otherwise, say "none".`,
+3. An emoji: 😊 for calm, 🤝 for cooperative, 😐 for neutral, 😤 for frustrated, 🛡️ for defensive, 🚨 for hostile
+4. If tone is frustrated, defensive, or hostile, ALWAYS provide a gentle rewording suggestion that promotes empathy and de-escalation. For calm/cooperative/neutral, say "none".`,
         },
         {
           role: "user",
           content: `Analyze this message: "${content}"
           
 Respond in this exact format:
-Tone: [positive/neutral/sad/frustrated]
+Tone: [calm/cooperative/neutral/frustrated/defensive/hostile]
 Summary: [2-5 word description]
-Emoji: [😊/😐/😞/😡]
+Emoji: [😊/🤝/😐/😤/🛡️/🚨]
 Rewording: [suggestion or "none"]`,
         },
       ],
       temperature: 0.3,
-      max_tokens: 100,
+      max_tokens: 150,
     });
 
     const result = response.choices[0]?.message?.content || "";
