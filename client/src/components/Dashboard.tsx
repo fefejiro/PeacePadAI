@@ -36,7 +36,8 @@ export default function Dashboard() {
 
   const createNote = useMutation({
     mutationFn: async (data: { title: string; content: string }) => {
-      return await apiRequest<Note>("/api/notes", "POST", data);
+      const res = await apiRequest("POST", "/api/notes", data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notes"] });

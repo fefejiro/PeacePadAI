@@ -16,7 +16,8 @@ export default function TaskItem({ id, title, completed, dueDate }: TaskItemProp
 
   const updateTask = useMutation({
     mutationFn: async (newCompleted: boolean) => {
-      return await apiRequest(`/api/tasks/${id}`, "PATCH", { completed: newCompleted });
+      const res = await apiRequest("PATCH", `/api/tasks/${id}`, { completed: newCompleted });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });

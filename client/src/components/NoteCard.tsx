@@ -19,7 +19,8 @@ export default function NoteCard({ id, title, content, createdBy, date }: NoteCa
 
   const deleteNote = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/notes/${id}`, "DELETE");
+      const res = await apiRequest("DELETE", `/api/notes/${id}`);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notes"] });

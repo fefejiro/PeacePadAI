@@ -1,0 +1,173 @@
+# PeacePad - Co-Parenting Communication Platform
+
+## Overview
+
+PeacePad is a co-parenting communication platform designed to facilitate constructive dialogue between separated parents. The application emphasizes emotional intelligence through AI-powered tone analysis, helping users communicate more effectively while reducing tension. Built with a calming, accessible interface inspired by Linear, Headspace, and Notion, PeacePad provides real-time messaging, shared task management, collaborative note-taking, and child update tracking.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+
+**Technology Stack:**
+- **Framework:** React 18 with TypeScript
+- **Build Tool:** Vite for fast development and optimized production builds
+- **Routing:** Wouter for lightweight client-side routing
+- **State Management:** TanStack Query (React Query) for server state management
+- **UI Framework:** Radix UI primitives with shadcn/ui component library
+- **Styling:** Tailwind CSS with custom design tokens for light/dark themes
+
+**Design System:**
+- Custom color palette emphasizing calming aesthetics (slate blues, sage greens, soft corals)
+- Typography using Inter for body text and JetBrains Mono for timestamps
+- Comprehensive theme support with CSS custom properties
+- Accessibility-first approach using Radix UI primitives
+
+**Component Architecture:**
+- Modular component design with example components for development
+- Shared UI components in `/client/src/components/ui/`
+- Feature components in `/client/src/components/`
+- Page-level components in `/client/src/pages/`
+
+### Backend Architecture
+
+**Technology Stack:**
+- **Runtime:** Node.js with Express.js
+- **Language:** TypeScript with ES Modules
+- **Database ORM:** Drizzle ORM
+- **Database:** PostgreSQL (via Neon serverless)
+- **Authentication:** Replit Auth with OpenID Connect (OIDC)
+- **Session Management:** Express sessions with PostgreSQL storage (connect-pg-simple)
+
+**API Design:**
+- RESTful API endpoints under `/api` prefix
+- Protected routes using Replit Auth middleware
+- Error handling middleware for consistent error responses
+- Request/response logging for API endpoints
+
+**Data Models:**
+- **Users:** Profile information, authentication data
+- **Messages:** Chat messages with AI tone analysis (tone, toneSummary)
+- **Notes:** Shared notes between co-parents
+- **Tasks:** Collaborative task management with due dates and completion status
+- **Child Updates:** Important updates about children
+- **Sessions:** Server-side session storage for authentication
+
+**Authentication Flow:**
+- OAuth 2.0 / OpenID Connect via Replit Auth
+- Session-based authentication with secure HTTP-only cookies
+- Automatic session refresh and user synchronization
+- Protected API routes with authentication middleware
+
+### AI Integration
+
+**OpenAI Integration:**
+- GPT-3.5-turbo for message tone analysis
+- Real-time analysis of message emotional content
+- Classification into five tone categories: calm, cooperative, neutral, frustrated, defensive
+- Brief summaries to provide context without overwhelming users
+
+**Tone Analysis Design:**
+- Low temperature (0.3) for consistent, predictable analysis
+- Structured prompt engineering for reliable categorization
+- Graceful fallback to "neutral" on API errors
+- Non-blocking analysis to maintain chat performance
+
+### Database Architecture
+
+**Database Provider:** Neon Serverless PostgreSQL
+- WebSocket-based connection pooling for serverless environments
+- Automatic connection management
+- Environment-based configuration via DATABASE_URL
+
+**Schema Design:**
+- UUID primary keys for all entities
+- Timestamp tracking (createdAt, updatedAt) for audit trails
+- Foreign key relationships for data integrity
+- JSONB for session storage (flexible session data structure)
+- Text fields for user-generated content with appropriate length constraints
+
+**Migration Strategy:**
+- Drizzle Kit for schema migrations
+- Schema definitions in `/shared/schema.ts` for type-safe sharing between client and server
+- Push-based migrations for rapid development
+
+### Development Workflow
+
+**Build Pipeline:**
+- Vite for frontend development with HMR
+- esbuild for backend bundling in production
+- TypeScript compilation checking without emit
+- Shared types between client and server via `/shared` directory
+
+**Development Plugins:**
+- Replit-specific tooling (cartographer, dev banner, runtime error overlay)
+- Conditional plugin loading based on environment
+- Source map support for debugging
+
+**Path Aliases:**
+- `@/*` maps to `/client/src/*` (frontend code)
+- `@shared/*` maps to `/shared/*` (shared types)
+- `@assets/*` maps to `/attached_assets/*` (static assets)
+
+### Security Considerations
+
+**Authentication Security:**
+- Secure session cookies (httpOnly, secure flags)
+- 7-day session TTL with automatic cleanup
+- Session encryption via secret key
+- CSRF protection through session-based authentication
+
+**API Security:**
+- Authentication required for all data endpoints
+- User-scoped data access
+- Input validation using Zod schemas
+- Error message sanitization
+
+## External Dependencies
+
+### Third-Party Services
+
+**OpenAI API:**
+- GPT-3.5-turbo model for natural language processing
+- Tone analysis and emotional intelligence features
+- Requires `OPENAI_API_KEY` environment variable
+
+**Neon Database:**
+- Serverless PostgreSQL hosting
+- WebSocket-based connections
+- Requires `DATABASE_URL` environment variable
+
+**Replit Authentication:**
+- OAuth 2.0 / OpenID Connect provider
+- User identity management
+- Requires `REPL_ID`, `ISSUER_URL`, `SESSION_SECRET` environment variables
+
+### Key NPM Packages
+
+**UI/UX:**
+- `@radix-ui/*` - Accessible component primitives
+- `tailwindcss` - Utility-first CSS framework
+- `class-variance-authority` - Type-safe variant styling
+- `lucide-react` - Icon library
+
+**Data Management:**
+- `@tanstack/react-query` - Server state management
+- `drizzle-orm` - Type-safe ORM
+- `drizzle-zod` - Schema validation
+- `zod` - Runtime type validation
+
+**Authentication:**
+- `openid-client` - OpenID Connect client
+- `passport` - Authentication middleware
+- `express-session` - Session management
+- `connect-pg-simple` - PostgreSQL session store
+
+**Development:**
+- `vite` - Build tool and dev server
+- `typescript` - Type safety
+- `tsx` - TypeScript execution
+- `wouter` - Client-side routing

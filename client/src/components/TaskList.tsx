@@ -30,7 +30,8 @@ export default function TaskList() {
 
   const createTask = useMutation({
     mutationFn: async (data: { title: string; dueDate?: string }) => {
-      return await apiRequest<Task>("/api/tasks", "POST", data);
+      const res = await apiRequest("POST", "/api/tasks", data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });

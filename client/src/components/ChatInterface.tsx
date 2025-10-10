@@ -22,7 +22,8 @@ export default function ChatInterface() {
 
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
-      return await apiRequest<Message>("/api/messages", "POST", { content });
+      const res = await apiRequest("POST", "/api/messages", { content });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });

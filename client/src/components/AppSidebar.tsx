@@ -10,18 +10,14 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Home, Settings } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   {
-    title: "Home",
-    url: "/",
-    icon: Home,
-  },
-  {
     title: "Chat",
-    url: "/chat",
+    url: "/",
     icon: MessageCircle,
   },
   {
@@ -38,6 +34,10 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
 
   return (
     <Sidebar>
@@ -66,7 +66,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-2">
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={handleLogout}
+          data-testid="button-logout"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Log Out
+        </Button>
         <p className="text-xs text-muted-foreground">
           Communicate with peace and clarity
         </p>
