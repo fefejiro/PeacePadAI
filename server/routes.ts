@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
 import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema } from "@shared/schema";
+import { setupWebRTCSignaling } from "./webrtc-signaling";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -447,5 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Set up WebRTC signaling server
+  setupWebRTCSignaling(httpServer);
+  
   return httpServer;
 }
