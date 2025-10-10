@@ -1,7 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, FileText, Download } from "lucide-react";
 import TonePill, { type ToneType } from "./TonePill";
+import { Button } from "@/components/ui/button";
 
 interface MessageBubbleProps {
   content: string;
@@ -13,6 +14,10 @@ interface MessageBubbleProps {
   toneSummary?: string;
   toneEmoji?: string;
   rewordingSuggestion?: string;
+  messageType?: string;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
 }
 
 export default function MessageBubble({
@@ -25,8 +30,83 @@ export default function MessageBubble({
   toneSummary,
   toneEmoji,
   rewordingSuggestion,
+  messageType = "text",
+  fileUrl,
+  fileName,
+  mimeType,
 }: MessageBubbleProps) {
   const isMe = sender === "me";
+
+  const renderMessageContent = () => {
+    switch (messageType) {
+      case "image":
+        return (
+          <div className="space-y-2">
+            {fileUrl && (
+              <img
+                src={fileUrl}
+                alt={fileName || "Image"}
+                className="max-w-full max-h-96 rounded-lg object-cover"
+                data-testid="message-image"
+              />
+            )}
+            {content && <p className="text-sm">{content}</p>}
+          </div>
+        );
+      
+      case "audio":
+        return (
+          <div className="space-y-2">
+            {fileUrl && (
+              <audio controls className="w-full max-w-sm" data-testid="message-audio">
+                <source src={fileUrl} type={mimeType || "audio/webm"} />
+                Your browser does not support audio playback.
+              </audio>
+            )}
+            {content && <p className="text-sm">{content}</p>}
+          </div>
+        );
+      
+      case "video":
+        return (
+          <div className="space-y-2">
+            {fileUrl && (
+              <video controls className="max-w-full max-h-96 rounded-lg" data-testid="message-video">
+                <source src={fileUrl} type={mimeType || "video/webm"} />
+                Your browser does not support video playback.
+              </video>
+            )}
+            {content && <p className="text-sm">{content}</p>}
+          </div>
+        );
+      
+      case "document":
+        return (
+          <div className="flex items-center gap-3 p-2">
+            <FileText className="h-8 w-8 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{fileName || content}</p>
+              <p className="text-xs text-muted-foreground">{mimeType}</p>
+            </div>
+            {fileUrl && (
+              <Button
+                size="sm"
+                variant="ghost"
+                asChild
+                data-testid="button-download-file"
+              >
+                <a href={fileUrl} download={fileName} target="_blank" rel="noopener noreferrer">
+                  <Download className="h-4 w-4" />
+                </a>
+              </Button>
+            )}
+          </div>
+        );
+      
+      default:
+        return <p className="text-base leading-relaxed">{content}</p>;
+    }
+  };
 
   return (
     <div className={`flex gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
@@ -46,14 +126,14 @@ export default function MessageBubble({
         </div>
 
         <div
-          className={`rounded-2xl px-4 py-3 ${
+          className={`rounded-2xl ${messageType === "text" ? "px-4 py-3" : "p-2 overflow-hidden"} ${
             isMe
               ? "bg-primary text-primary-foreground"
               : "bg-card text-card-foreground border border-card-border"
           }`}
           data-testid={`message-${sender}`}
         >
-          <p className="text-base leading-relaxed">{content}</p>
+          {renderMessageContent()}
         </div>
 
         {tone && (
