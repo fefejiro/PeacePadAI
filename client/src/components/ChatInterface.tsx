@@ -29,6 +29,43 @@ export default function ChatInterface() {
     queryKey: ["/api/messages"],
   });
 
+  // WebSocket connection for real-time message updates
+  useEffect(() => {
+    if (!user) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/signaling?sessionId=${user.sessionId}&userId=${user.id}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("WebSocket connected for real-time messages");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "new-message") {
+          // Refresh messages when a new one is posted
+          queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        }
+      } catch (error) {
+        console.error("WebSocket message error:", error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket disconnected");
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [user]);
+
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
       const res = await apiRequest("POST", "/api/messages", { content });

@@ -7,9 +7,18 @@ interface Client {
   ws: WebSocket;
   sessionId: string;
   userId: string;
+  connectionId: string;
 }
 
 const clients = new Map<string, Client>();
+
+export function broadcastNewMessage() {
+  clients.forEach((client) => {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({ type: "new-message" }));
+    }
+  });
+}
 
 export function setupWebRTCSignaling(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -36,10 +45,12 @@ export function setupWebRTCSignaling(server: Server) {
       return;
     }
 
-    const client: Client = { ws, sessionId, userId };
-    clients.set(userId, client);
+    // Use unique connection ID to allow multiple connections per user
+    const connectionId = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const client: Client = { ws, sessionId, userId, connectionId };
+    clients.set(connectionId, client);
 
-    console.log(`WebRTC client connected: ${userId}`);
+    console.log(`WebRTC client connected: ${userId} (${connectionId})`);
 
     ws.on("message", async (data: Buffer) => {
       try {
@@ -50,36 +61,42 @@ export function setupWebRTCSignaling(server: Server) {
           case "offer":
           case "answer":
           case "ice-candidate":
-            const recipient = clients.get(to);
-            if (recipient && recipient.ws.readyState === WebSocket.OPEN) {
-              recipient.ws.send(JSON.stringify({
-                type,
-                from: userId,
-                payload,
-              }));
-            }
+            // Send to all connections of the recipient user
+            clients.forEach((client) => {
+              if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
+                client.ws.send(JSON.stringify({
+                  type,
+                  from: userId,
+                  payload,
+                }));
+              }
+            });
             break;
 
           case "call-start":
             await trackUsage(sessionId, "callsInitiated", 1);
-            const callRecipient = clients.get(to);
-            if (callRecipient && callRecipient.ws.readyState === WebSocket.OPEN) {
-              callRecipient.ws.send(JSON.stringify({
-                type: "incoming-call",
-                from: userId,
-                callType: payload.callType,
-              }));
-            }
+            // Send to all connections of the recipient user
+            clients.forEach((client) => {
+              if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
+                client.ws.send(JSON.stringify({
+                  type: "incoming-call",
+                  from: userId,
+                  callType: payload.callType,
+                }));
+              }
+            });
             break;
 
           case "call-end":
-            const endRecipient = clients.get(to);
-            if (endRecipient && endRecipient.ws.readyState === WebSocket.OPEN) {
-              endRecipient.ws.send(JSON.stringify({
-                type: "call-ended",
-                from: userId,
-              }));
-            }
+            // Send to all connections of the recipient user
+            clients.forEach((client) => {
+              if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
+                client.ws.send(JSON.stringify({
+                  type: "call-ended",
+                  from: userId,
+                }));
+              }
+            });
             break;
 
           default:
@@ -91,13 +108,13 @@ export function setupWebRTCSignaling(server: Server) {
     });
 
     ws.on("close", () => {
-      clients.delete(userId);
-      console.log(`WebRTC client disconnected: ${userId}`);
+      clients.delete(connectionId);
+      console.log(`WebRTC client disconnected: ${userId} (${connectionId})`);
     });
 
     ws.on("error", (error) => {
       console.error("WebSocket error:", error);
-      clients.delete(userId);
+      clients.delete(connectionId);
     });
   });
 

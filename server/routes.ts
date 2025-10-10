@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
 import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema } from "@shared/schema";
-import { setupWebRTCSignaling } from "./webrtc-signaling";
+import { setupWebRTCSignaling, broadcastNewMessage } from "./webrtc-signaling";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -144,6 +144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track usage metrics
       await trackUsage(sessionId, 'messagesSent', 1);
       await trackUsage(sessionId, 'toneAnalyzed', 1);
+
+      // Broadcast to all connected clients that a new message was posted
+      broadcastNewMessage();
 
       res.json(message);
     } catch (error: any) {

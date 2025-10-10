@@ -6,18 +6,23 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 
 ## Recent Changes (October 10, 2025)
 
-**Smart Scheduling & Real-Time Communication:**
-- Implemented Smart Scheduling Dashboard with event creation and calendar view
+**Latest Updates (Session):**
+- Enhanced AI tone detection from 4 to 6 categories: calm, cooperative, neutral, frustrated, defensive, hostile
+- Vulgar/offensive language now automatically classified as "hostile" tone
+- Profile picture support: emoji picker and image upload in settings
+- Display name improvements: proper fallbacks (displayName → firstName lastName → firstName → "Guest User")
+- Real-time messaging via WebSocket: messages appear instantly for all users
+- Fixed WebSocket multi-connection support: ChatInterface and VideoCallDialog can coexist
+- Shareable call sessions backend: 6-digit codes with collision retry logic (5 attempts)
+
+**Previous Updates:**
+- Smart Scheduling Dashboard with event creation and calendar view
 - AI-powered conflict detection using OpenAI for scheduling overlaps
 - WebRTC voice/video calling with WebSocket signaling server
 - Optional call recording functionality using MediaRecorder API
 - Integrated call buttons into chat interface for easy access
-- Fixed critical bugs: event UI rendering, React Query cache invalidation, WebRTC incoming call connections
-
-**Previous Updates:**
 - Soft Authentication for frictionless onboarding (no email/password required)
 - PWA deployment with offline support and "Add to Home Screen" capability
-- Enhanced AI tone analysis with emoji feedback and rewording suggestions
 - Pet management and expense tracking modules fully integrated
 
 ## User Preferences
@@ -104,8 +109,10 @@ Preferred communication style: Simple, everyday language.
 **OpenAI Integration:**
 - GPT-3.5-turbo for message tone analysis and scheduling conflict detection
 - Real-time analysis of message emotional content
-- Classification into five tone categories: calm, cooperative, neutral, frustrated, defensive
-- Brief summaries to provide context without overwhelming users
+- Classification into six tone categories: calm, cooperative, neutral, frustrated, defensive, hostile
+- Vulgar/offensive language automatically classified as "hostile" tone
+- Brief summaries and rewording suggestions for negative tones
+- Graceful fallback to "neutral" when OpenAI API unavailable
 - AI-powered scheduling pattern analysis for conflict detection
 
 **Tone Analysis Design:**
@@ -160,9 +167,10 @@ Preferred communication style: Simple, everyday language.
 ### WebRTC Real-Time Communication
 
 **WebSocket Signaling Server:**
-- Built on existing WebSocket infrastructure from chat feature
+- Unified WebSocket server for both chat messaging and WebRTC call signaling
+- Supports multiple connections per user with unique connection IDs
+- Broadcasts new message notifications to all connected clients
 - Handles WebRTC signaling for voice/video calls
-- Room-based message routing for peer-to-peer connections
 - ICE candidate exchange for NAT traversal
 
 **Voice/Video Calling:**
