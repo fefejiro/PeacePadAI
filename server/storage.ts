@@ -4,6 +4,8 @@ import {
   notes,
   tasks,
   childUpdates,
+  pets,
+  expenses,
   type User,
   type UpsertUser,
   type Message,
@@ -14,6 +16,10 @@ import {
   type InsertTask,
   type ChildUpdate,
   type InsertChildUpdate,
+  type Pet,
+  type InsertPet,
+  type Expense,
+  type InsertExpense,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -43,6 +49,14 @@ export interface IStorage {
   getChildUpdates(): Promise<ChildUpdate[]>;
   createChildUpdate(update: InsertChildUpdate): Promise<ChildUpdate>;
   deleteChildUpdate(id: string): Promise<void>;
+  
+  // Pet operations
+  getPets(): Promise<Pet[]>;
+  createPet(pet: InsertPet): Promise<Pet>;
+  
+  // Expense operations
+  getExpenses(): Promise<Expense[]>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -135,6 +149,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteChildUpdate(id: string): Promise<void> {
     await db.delete(childUpdates).where(eq(childUpdates.id, id));
+  }
+
+  // Pet operations
+  async getPets(): Promise<Pet[]> {
+    return await db.select().from(pets).orderBy(desc(pets.createdAt));
+  }
+
+  async createPet(petData: InsertPet): Promise<Pet> {
+    const [pet] = await db.insert(pets).values(petData).returning();
+    return pet;
+  }
+
+  // Expense operations
+  async getExpenses(): Promise<Expense[]> {
+    return await db.select().from(expenses).orderBy(desc(expenses.createdAt));
+  }
+
+  async createExpense(expenseData: InsertExpense): Promise<Expense> {
+    const [expense] = await db.insert(expenses).values(expenseData).returning();
+    return expense;
   }
 }
 

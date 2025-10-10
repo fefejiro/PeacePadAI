@@ -2,46 +2,62 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema } from "@shared/schema";
+import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema } from "@shared/schema";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-async function analyzeTone(content: string): Promise<{ tone: string; summary: string }> {
+async function analyzeTone(content: string): Promise<{ 
+  tone: string; 
+  summary: string; 
+  emoji: string; 
+  rewordingSuggestion: string | null 
+}> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content: "You are a communication analyst for co-parents. Analyze the tone of messages and provide a brief assessment. Classify the tone as one of: calm, cooperative, neutral, frustrated, or defensive. Then provide a 2-5 word summary of the emotional context.",
+          content: `You are an empathetic communication analyst for co-parents. Analyze messages and provide:
+1. Tone classification: positive, neutral, sad, or frustrated
+2. A brief 2-5 word emotional summary
+3. An emoji: 😊 for positive, 😐 for neutral, 😞 for sad, 😡 for frustrated
+4. If tone is sad or frustrated, provide a gentle rewording suggestion that promotes empathy and de-escalation. Otherwise, say "none".`,
         },
         {
           role: "user",
           content: `Analyze this message: "${content}"
           
 Respond in this exact format:
-Tone: [one of: calm, cooperative, neutral, frustrated, defensive]
-Summary: [2-5 word description]`,
+Tone: [positive/neutral/sad/frustrated]
+Summary: [2-5 word description]
+Emoji: [😊/😐/😞/😡]
+Rewording: [suggestion or "none"]`,
         },
       ],
       temperature: 0.3,
-      max_tokens: 50,
+      max_tokens: 100,
     });
 
     const result = response.choices[0]?.message?.content || "";
     const toneMatch = result.match(/Tone:\s*(\w+)/i);
     const summaryMatch = result.match(/Summary:\s*(.+)/i);
+    const emojiMatch = result.match(/Emoji:\s*(.+)/i);
+    const rewordingMatch = result.match(/Rewording:\s*(.+)/i);
     
     const tone = toneMatch?.[1]?.toLowerCase() || "neutral";
     const summary = summaryMatch?.[1]?.trim() || "Message sent";
+    const emoji = emojiMatch?.[1]?.trim() || "😐";
+    const rewording = rewordingMatch?.[1]?.trim();
+    const rewordingSuggestion = rewording && rewording.toLowerCase() !== "none" ? rewording : null;
     
-    return { tone, summary };
+    return { tone, summary, emoji, rewordingSuggestion };
   } catch (error) {
     console.error("Error analyzing tone:", error);
-    return { tone: "neutral", summary: "Analysis unavailable" };
+    return { tone: "neutral", summary: "Analysis unavailable", emoji: "😐", rewordingSuggestion: null };
   }
 }
 
@@ -79,12 +95,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderId: userId,
       });
 
-      const { tone, summary } = await analyzeTone(parsed.content);
+      const { tone, summary, emoji, rewordingSuggestion } = await analyzeTone(parsed.content);
       
       const message = await storage.createMessage({
         ...parsed,
         tone,
         toneSummary: summary,
+        toneEmoji: emoji,
+        rewordingSuggestion,
       });
 
       res.json(message);
@@ -219,6 +237,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting child update:", error);
       res.status(400).json({ message: "Failed to delete child update" });
+    }
+  });
+
+  // Pet routes
+  app.get('/api/pets', isAuthenticated, async (req, res) => {
+    try {
+      const pets = await storage.getPets();
+      res.json(pets);
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+      res.status(500).json({ message: "Failed to fetch pets" });
+    }
+  });
+
+  app.post('/api/pets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = insertPetSchema.parse({
+        ...req.body,
+        createdBy: userId,
+      });
+      const pet = await storage.createPet(parsed);
+      res.json(pet);
+    } catch (error: any) {
+      console.error("Error creating pet:", error);
+      res.status(400).json({ message: error.message || "Failed to create pet" });
+    }
+  });
+
+  // Expense routes
+  app.get('/api/expenses', isAuthenticated, async (req, res) => {
+    try {
+      const expenses = await storage.getExpenses();
+      res.json(expenses);
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      res.status(500).json({ message: "Failed to fetch expenses" });
+    }
+  });
+
+  app.post('/api/expenses', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = insertExpenseSchema.parse({
+        ...req.body,
+        paidBy: userId,
+      });
+      const expense = await storage.createExpense(parsed);
+      res.json(expense);
+    } catch (error: any) {
+      console.error("Error creating expense:", error);
+      res.status(400).json({ message: error.message || "Failed to create expense" });
+    }
+  });
+
+  // Therapist search endpoint
+  app.get('/api/therapists/search', isAuthenticated, async (req, res) => {
+    try {
+      const postalCode = req.query.postalCode as string;
+      
+      if (!postalCode) {
+        return res.status(400).json({ message: "Postal code required" });
+      }
+
+      // Mock therapist data - in production, this would integrate with Google Places API or OpenStreetMap
+      const mockTherapists = [
+        {
+          id: "1",
+          name: "Dr. Sarah Johnson",
+          type: "family therapist",
+          address: `123 Main St, ${postalCode}`,
+          phone: "(555) 123-4567",
+          rating: 4.8,
+          distance: "0.5 miles",
+        },
+        {
+          id: "2",
+          name: "Michael Chen, LMFT",
+          type: "relationship counselor",
+          address: `456 Oak Ave, ${postalCode}`,
+          phone: "(555) 234-5678",
+          rating: 4.9,
+          distance: "1.2 miles",
+        },
+        {
+          id: "3",
+          name: "Dr. Emily Rodriguez",
+          type: "co-parenting mediator",
+          address: `789 Pine Rd, ${postalCode}`,
+          phone: "(555) 345-6789",
+          rating: 4.7,
+          distance: "2.0 miles",
+        },
+      ];
+
+      res.json(mockTherapists);
+    } catch (error) {
+      console.error("Error searching therapists:", error);
+      res.status(500).json({ message: "Failed to search therapists" });
     }
   });
 

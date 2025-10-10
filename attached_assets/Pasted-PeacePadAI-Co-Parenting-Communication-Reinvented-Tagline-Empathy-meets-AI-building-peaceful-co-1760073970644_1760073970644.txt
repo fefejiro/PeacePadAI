@@ -1,0 +1,118 @@
+PeacePadAI – Co-Parenting Communication Reinvented
+
+Tagline:
+Empathy meets AI — building peaceful communication for families, co-parents, and caregivers.
+
+⸻
+
+💡 App Description (For Replit)
+
+PeacePadAI is an AI-powered co-parenting and family communication platform that helps families connect with empathy, clarity, and structure.
+It combines tone-aware chat, emotional analysis, scheduling, secure communication, and local support discovery to create a calm, constructive space for co-parents, stepparents, and family members.
+
+⸻
+
+🧩 Core Features
+
+💬 AI Tone Detection & Emotional Insights
+	•	Detects tone in real-time (😊 Positive, 😐 Neutral, 😞 Sad, 😡 Frustrated).
+	•	Summarizes tone for each message (“Tone: Calm & cooperative” or “Tone: Frustration detected”).
+	•	Suggests gentle rewording options to promote empathy and de-escalation.
+	•	Stores communication logs in PostgreSQL for review or mediation.
+
+⸻
+
+🎥 Secure Voice & Video Calling (with Recording)
+	•	Enables in-app voice and video calls via WebRTC + Socket.io.
+	•	No personal phone numbers or locations shared — all communication is encrypted.
+	•	Optional call recording feature with safe storage (encrypted cloud or Replit DB).
+	•	Adds call tone summaries post-call (e.g., “Calm discussion”, “Raised voices detected”).
+	•	Designed for co-parenting mediation and transparent communication.
+
+⸻
+
+🧭 Therapist & Mediator Locator
+	•	Uses postal code or device location (with user permission) to find nearby:
+	•	🧑‍⚕️ Family therapists
+	•	❤️ Relationship counselors
+	•	👨‍👩‍👧 Co-parenting mediators
+	•	Integrates with Google Maps or OpenStreetMap APIs.
+	•	Provides contact details, ratings, and session availability (where supported).
+
+⸻
+
+🐾 Pet Management Module
+	•	Schedule vet appointments and sync reminders.
+	•	Share and track pet-related expenses and documents (vaccination, grooming, etc.).
+	•	Organize shared pet custody schedules between co-parents.
+
+⸻
+
+👨‍👩‍👧‍👦 Stepparent & Guardian Access
+	•	Allows verified stepparents or guardians to join specific family dashboards.
+	•	Access to child updates, school events, and chat channels (with permissions).
+	•	Encourages transparent, all-inclusive communication around shared parenting.
+
+⸻
+
+📅 Smart Scheduling Dashboard
+	•	Create and share family calendars (custody, school, therapy, etc.).
+	•	AI-assisted conflict detection for overlapping schedules.
+	•	Sync with iCal or Google Calendar.
+	•	Built-in reminders for important dates or deadlines.
+
+⸻
+
+💰 Expense Tracking & PayYou Integration
+	•	Record, categorize, and split shared expenses.
+	•	Request and reimburse payments securely through PayYou API.
+	•	Generate monthly summaries and exportable PDF reports for transparency.
+
+⸻
+
+🧠 Empathy & Clarity Assistant
+	•	When tone analysis detects conflict, AI suggests neutral phrasing alternatives.
+	•	Highlights emotionally charged words and suggests positive replacements.
+	•	Example:
+	•	❌ “You never listen.”
+	•	✅ “Can we talk about what we both need to feel heard?”
+
+⸻
+
+🔒 Privacy & Data Security
+	•	End-to-end encryption for chat, calls, and records.
+	•	Secure login with Replit Auth or OAuth2.
+	•	All communication and metadata are anonymized for analytics.
+	•	Compliant with family safety and child data standards (COPPA, GDPR-family mode).
+
+⸻
+
+⚙️ Technical Stack
+	•	Frontend: React + TypeScript + TailwindCSS
+	•	Backend: Node.js (Express) + PostgreSQL (via Drizzle ORM)
+	•	AI Layer: OpenAI API (Tone + Text Analysis)
+	•	Realtime: WebSockets for chat and calls
+	•	Location & Maps: Google Maps API or OpenStreetMap
+	•	Authentication: Replit Auth / OAuth2
+	•	Storage: Replit DB or Supabase for files, audio, and metadata
+
+⸻
+
+🚀 Goal
+
+PeacePadAI aims to reduce emotional friction in co-parenting through AI-assisted empathy, giving families tools to communicate calmly, manage shared life responsibilities, and find professional help when needed — all within one peaceful platform.
+
+⸻
+
+🔑 Secrets Required
+	1.	OPENAI_API_KEY – for tone and empathy analysis
+	2.	DATABASE_URL – PostgreSQL or Neon DB connection
+	3.	MAPS_API_KEY – for therapist locator (Google Maps or OpenStreetMap)
+	4.	PAYYOU_API_KEY – for secure reimbursements (optional)
+
+⸻
+
+🪄 Prompt for Replit Agent
+
+“Rebuild PeacePadAI with all the features described in this app description.
+Ensure the tone analysis module shows emoji feedback, integrate secure video/voice calls with optional recording, enable therapist locator by postal code, and include pet management and expense tracking modules. Use modern, calming UI elements with soft colors and family-friendly layout.”

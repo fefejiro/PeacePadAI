@@ -4,6 +4,8 @@ import { Plus } from "lucide-react";
 import NoteCard from "./NoteCard";
 import TaskList from "./TaskList";
 import ChildUpdateCard from "./ChildUpdateCard";
+import PetManagement from "./PetManagement";
+import ExpenseTracking from "./ExpenseTracking";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Note, ChildUpdate } from "@shared/schema";
@@ -167,6 +169,11 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 mt-6">
+        <PetManagement />
+        <ExpenseTracking />
       </div>
     </div>
   );

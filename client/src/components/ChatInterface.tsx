@@ -86,6 +86,8 @@ export default function ChatInterface() {
               senderName={msg.senderId === user?.id ? "You" : user?.firstName || "Co-parent"}
               tone={msg.tone as ToneType | undefined}
               toneSummary={msg.toneSummary || undefined}
+              toneEmoji={msg.toneEmoji || undefined}
+              rewordingSuggestion={msg.rewordingSuggestion || undefined}
             />
           ))
         )}

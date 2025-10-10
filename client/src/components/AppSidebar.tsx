@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +24,11 @@ const menuItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Find Support",
+    url: "/therapist-locator",
+    icon: MapPin,
   },
   {
     title: "Settings",

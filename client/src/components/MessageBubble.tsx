@@ -1,4 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Lightbulb } from "lucide-react";
 import TonePill, { type ToneType } from "./TonePill";
 
 interface MessageBubbleProps {
@@ -9,6 +11,8 @@ interface MessageBubbleProps {
   senderAvatar?: string;
   tone?: ToneType;
   toneSummary?: string;
+  toneEmoji?: string;
+  rewordingSuggestion?: string;
 }
 
 export default function MessageBubble({
@@ -19,6 +23,8 @@ export default function MessageBubble({
   senderAvatar,
   tone,
   toneSummary,
+  toneEmoji,
+  rewordingSuggestion,
 }: MessageBubbleProps) {
   const isMe = sender === "me";
 
@@ -51,7 +57,20 @@ export default function MessageBubble({
         </div>
 
         {tone && (
-          <TonePill tone={tone} summary={toneSummary || ""} />
+          <div className={`flex items-center gap-2 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+            {toneEmoji && <span className="text-lg" data-testid="tone-emoji">{toneEmoji}</span>}
+            <TonePill tone={tone} summary={toneSummary || ""} />
+          </div>
+        )}
+
+        {rewordingSuggestion && (
+          <Alert className="mt-2 bg-accent/50 border-accent-border" data-testid="rewording-suggestion">
+            <Lightbulb className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <span className="font-medium">Suggestion: </span>
+              {rewordingSuggestion}
+            </AlertDescription>
+          </Alert>
         )}
       </div>
     </div>
