@@ -4,6 +4,14 @@
 
 PeacePad is a co-parenting communication platform designed to facilitate constructive dialogue between separated parents. The application emphasizes emotional intelligence through AI-powered tone analysis, helping users communicate more effectively while reducing tension. Built with a calming, accessible interface inspired by Linear, Headspace, and Notion, PeacePad provides real-time messaging, shared task management, collaborative note-taking, and child update tracking.
 
+## Recent Changes (October 10, 2025)
+
+**MVP Complete and Tested:**
+- Fixed critical bug in mutation API calls where parameters were in wrong order (`apiRequest` signature is `(method, url, data)`)
+- All features successfully tested end-to-end: authentication, messaging with AI tone analysis, dashboard CRUD operations
+- Verified fallback behavior when OpenAI API unavailable (shows "Neutral - Analysis unavailable")
+- Architecture review confirmed robust error handling and security implementation
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
