@@ -113,19 +113,33 @@ export default function ChatInterface() {
             <p className="text-muted-foreground">No messages yet. Start a conversation!</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              content={msg.content}
-              sender={msg.senderId === user?.id ? "me" : "coparent"}
-              timestamp={new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              senderName={msg.senderId === user?.id ? "You" : user?.firstName || "Co-parent"}
-              tone={msg.tone as ToneType | undefined}
-              toneSummary={msg.toneSummary || undefined}
-              toneEmoji={msg.toneEmoji || undefined}
-              rewordingSuggestion={msg.rewordingSuggestion || undefined}
-            />
-          ))
+          messages.map((msg) => {
+            const getSenderName = () => {
+              if (msg.senderId === user?.id) return "You";
+              
+              // For co-parent messages, show a friendly name
+              // If it starts with "Guest", show "Guest User" instead
+              const displayName = user?.displayName || user?.firstName || "Co-parent";
+              if (displayName.startsWith("Guest")) {
+                return "Guest User";
+              }
+              return displayName;
+            };
+
+            return (
+              <MessageBubble
+                key={msg.id}
+                content={msg.content}
+                sender={msg.senderId === user?.id ? "me" : "coparent"}
+                timestamp={new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                senderName={getSenderName()}
+                tone={msg.tone as ToneType | undefined}
+                toneSummary={msg.toneSummary || undefined}
+                toneEmoji={msg.toneEmoji || undefined}
+                rewordingSuggestion={msg.rewordingSuggestion || undefined}
+              />
+            );
+          })
         )}
       </div>
 
