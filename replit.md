@@ -7,6 +7,14 @@ PeacePad is a co-parenting communication platform designed to facilitate constru
 ## Recent Changes (October 10, 2025)
 
 **Latest Updates (Session):**
+- Shareable call session codes (Teams/Zoom-like):
+  - 6-digit session codes automatically generated for outgoing calls
+  - Prominent UI display with "Copy Code" and "Copy Link" buttons
+  - Shareable links: {origin}/join/{sessionCode} for easy sharing
+  - Join Call page (/join and /join/:code) for manual code entry
+  - Session validation and auto-join from URL
+  - Backend: POST /api/call-sessions, GET /api/call-sessions/:code
+  - 6-digit collision retry logic (5 attempts)
 - WhatsApp-like chat with multimedia support:
   - File attachments: Images, videos, audio, and documents (100MB limit)
   - In-chat audio recording: Voice messages using MediaRecorder API
