@@ -1,12 +1,21 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Brain, Calendar, Shield, TrendingUp, Users } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
+import GuestEntry from "@/components/GuestEntry";
 import heroImage from "@assets/stock_images/peaceful_diverse_fam_f2239163.jpg";
 
 export default function LandingPage() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const [showGuestEntry, setShowGuestEntry] = useState(false);
+
+  const handleAuthenticated = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
   };
+
+  if (showGuestEntry) {
+    return <GuestEntry onAuthenticated={handleAuthenticated} />;
+  }
 
   const features = [
     {
@@ -73,7 +82,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="backdrop-blur-md bg-white/20 border border-white/30 text-white hover:bg-white/30"
-                onClick={handleLogin}
+                onClick={() => setShowGuestEntry(true)}
                 data-testid="button-get-started"
               >
                 <Shield className="mr-2 h-5 w-5" />

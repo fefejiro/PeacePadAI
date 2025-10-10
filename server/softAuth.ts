@@ -1,0 +1,157 @@
+import type { Express, RequestHandler } from "express";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { storage } from "./storage";
+import { nanoid } from "nanoid";
+
+export function getSession() {
+  const sessionTtl = 14 * 24 * 60 * 60 * 1000; // 14 days
+  const pgStore = connectPg(session);
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: false,
+    ttl: sessionTtl,
+    tableName: "sessions",
+  });
+  return session({
+    secret: process.env.SESSION_SECRET!,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      maxAge: sessionTtl,
+    },
+  });
+}
+
+export async function setupSoftAuth(app: Express) {
+  app.set("trust proxy", 1);
+  app.use(getSession());
+
+  // Guest entry endpoint
+  app.post("/api/auth/guest", async (req: any, res) => {
+    try {
+      const { displayName, sessionId: clientSessionId } = req.body;
+
+      // Check if session already exists
+      if (clientSessionId) {
+        const existingSession = await storage.getGuestSession(clientSessionId);
+        if (existingSession && new Date(existingSession.expiresAt) > new Date()) {
+          await storage.updateGuestSessionActivity(clientSessionId);
+          const user = await storage.getUser(existingSession.userId);
+          req.session.userId = existingSession.userId;
+          req.session.sessionId = clientSessionId;
+          return res.json({
+            success: true,
+            user,
+            sessionId: clientSessionId,
+            message: `Welcome back, ${user?.displayName || 'Guest'}!`,
+          });
+        }
+      }
+
+      // Create new guest user and session
+      const guestId = nanoid(6);
+      const sessionId = clientSessionId || nanoid(16);
+      const finalDisplayName = displayName || `Guest${guestId}`;
+
+      const user = await storage.upsertUser({
+        displayName: finalDisplayName,
+        isGuest: true,
+        guestId,
+      });
+
+      const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+      await storage.createGuestSession({
+        sessionId,
+        userId: user.id,
+        displayName: finalDisplayName,
+        lastActive: new Date(),
+        expiresAt,
+      });
+
+      await storage.createUsageMetric({
+        sessionId,
+        userId: user.id,
+        messagesSent: "0",
+        toneAnalyzed: "0",
+        therapistSearches: "0",
+        callActivity: "0",
+      });
+
+      req.session.userId = user.id;
+      req.session.sessionId = sessionId;
+
+      res.json({
+        success: true,
+        user,
+        sessionId,
+        message: `Welcome, ${finalDisplayName}!`,
+      });
+    } catch (error: any) {
+      console.error("Guest auth error:", error);
+      res.status(500).json({ message: "Failed to authenticate", error: error.message });
+    }
+  });
+
+  // Get current user endpoint
+  app.get("/api/auth/me", async (req: any, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      res.json({ user, sessionId: req.session.sessionId });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", (req: any, res) => {
+    req.session.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+}
+
+export const isSoftAuthenticated: RequestHandler = async (req: any, res, next) => {
+  if (!req.session.userId || !req.session.sessionId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const session = await storage.getGuestSession(req.session.sessionId);
+    if (!session || new Date(session.expiresAt) < new Date()) {
+      return res.status(401).json({ message: "Session expired" });
+    }
+
+    await storage.updateGuestSessionActivity(req.session.sessionId);
+    req.user = { id: req.session.userId, sessionId: req.session.sessionId };
+    next();
+  } catch (error) {
+    res.status(401).json({ message: "Unauthorized" });
+  }
+};
+
+// Usage tracking helper
+export async function trackUsage(sessionId: string, metric: string, increment: number = 1) {
+  try {
+    const existing = await storage.getUsageMetrics(sessionId);
+    if (existing) {
+      const currentValue = parseInt(existing[metric as keyof typeof existing] as string || "0");
+      await storage.updateUsageMetric(sessionId, {
+        [metric]: String(currentValue + increment),
+      });
+    }
+  } catch (error) {
+    console.error("Usage tracking error:", error);
+  }
+}

@@ -1,0 +1,64 @@
+Replit Iteration Prompt for PeacePadAI (Soft Auth + PWA Deployment)
+
+Description for Replit:
+
+Please iterate PeacePadAI to simplify onboarding and prepare for mobile launch.
+
+Primary Goals:
+	1.	Replace the current authentication system with Soft Authentication.
+	2.	Enable Progressive Web App (PWA) deployment, so PeacePadAI can be installed on Android, iOS, or desktop directly from the browser.
+
+⸻
+
+🪪 Soft Authentication Requirements
+	•	Replace Replit Auth with a nickname or guest entry screen.
+	•	Each visitor can:
+	•	Enter a display name or remain as a Guest### (auto-generated ID).
+	•	Receive a unique session ID stored in localStorage and the database.
+	•	Sessions should persist for 14 days.
+	•	Track usage metrics (messages sent, tone analyzed, therapist searches, call activity, etc.) linked to the session ID.
+	•	Do not request email, password, or personal info — keep it frictionless for testers.
+	•	Display a short message like “Welcome back, Guest123!” when returning users re-enter.
+
+⸻
+
+🌐 Progressive Web App (PWA) Setup
+	•	Add a manifest.json file with app name, icons, theme color, and short name “PeacePad”.
+	•	Include a service worker for offline caching and fast reloads.
+	•	Ensure app supports Add to Home Screen install prompt on Android & iOS.
+	•	Set display mode to standalone, background color to white (#ffffff), and theme color to PeacePad blue (#3b82f6).
+	•	PWA should function fully offline for cached pages (chat UI, tone feedback, etc.).
+	•	Ensure compatibility with Capacitor export for future App Store / Play Store builds.
+
+⸻
+
+💬 Keep Existing Features Working
+	•	AI tone detection with emoji feedback 😊 😐 😞 😡
+	•	Secure voice and video calls via WebRTC
+	•	Therapist locator (postal code or location-based)
+	•	Pet management and expense tracking modules
+	•	All features should work seamlessly within the PWA environment.
+
+⸻
+
+⚙️ Technical Setup
+	•	Maintain existing PostgreSQL + Drizzle ORM setup.
+	•	Use OpenAI API for tone analysis.
+	•	Ensure localStorage syncs with DB session data for analytics continuity.
+	•	Optimize icons and manifest metadata for future CapacitorJS export.
+
+⸻
+
+🧩 Secrets to Keep Active
+	•	OPENAI_API_KEY
+	•	DATABASE_URL
+	•	MAPS_API_KEY
+	•	PAYYOU_API_KEY (optional for expense features)
+
+⸻
+
+🚀 Expected Output
+	•	PeacePadAI launches as a Progressive Web App installable on mobile or desktop.
+	•	Users enter via nickname or guest mode, no full auth required.
+	•	Session data persists for 14 days for returning testers.
+	•	All AI and communication features remain functional offline and online.

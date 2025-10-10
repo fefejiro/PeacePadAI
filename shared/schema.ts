@@ -14,15 +14,41 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for Soft Auth (supports both guests and named users)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  displayName: varchar("display_name"),
+  isGuest: boolean("is_guest").notNull().default(true),
+  guestId: varchar("guest_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Guest session tracking with localStorage sync
+export const guestSessions = pgTable("guest_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().unique(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  displayName: varchar("display_name"),
+  lastActive: timestamp("last_active").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Usage metrics tracking
+export const usageMetrics = pgTable("usage_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => guestSessions.sessionId),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  messagesSent: text("messages_sent").notNull().default("0"),
+  toneAnalyzed: text("tone_analyzed").notNull().default("0"),
+  therapistSearches: text("therapist_searches").notNull().default("0"),
+  callActivity: text("call_activity").notNull().default("0"),
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
 });
 
 export const messages = pgTable("messages", {
@@ -104,6 +130,8 @@ export const insertChildUpdateSchema = createInsertSchema(childUpdates).omit({ i
 export const insertPetSchema = createInsertSchema(pets).omit({ id: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
 export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
+export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({ id: true, createdAt: true });
+export const insertUsageMetricSchema = createInsertSchema(usageMetrics).omit({ id: true, lastUpdated: true });
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
@@ -119,3 +147,7 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
+export type InsertGuestSession = z.infer<typeof insertGuestSessionSchema>;
+export type GuestSession = typeof guestSessions.$inferSelect;
+export type InsertUsageMetric = z.infer<typeof insertUsageMetricSchema>;
+export type UsageMetric = typeof usageMetrics.$inferSelect;

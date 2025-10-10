@@ -6,6 +6,8 @@ import {
   childUpdates,
   pets,
   expenses,
+  guestSessions,
+  usageMetrics,
   type User,
   type UpsertUser,
   type Message,
@@ -20,6 +22,10 @@ import {
   type InsertPet,
   type Expense,
   type InsertExpense,
+  type GuestSession,
+  type InsertGuestSession,
+  type UsageMetric,
+  type InsertUsageMetric,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -28,6 +34,18 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getUserByGuestId(guestId: string): Promise<User | undefined>;
+  
+  // Guest session operations
+  getGuestSession(sessionId: string): Promise<GuestSession | undefined>;
+  createGuestSession(session: InsertGuestSession): Promise<GuestSession>;
+  updateGuestSessionActivity(sessionId: string): Promise<void>;
+  cleanupExpiredSessions(): Promise<void>;
+  
+  // Usage metrics operations
+  getUsageMetrics(sessionId: string): Promise<UsageMetric | undefined>;
+  createUsageMetric(metric: InsertUsageMetric): Promise<UsageMetric>;
+  updateUsageMetric(sessionId: string, updates: Partial<UsageMetric>): Promise<void>;
   
   // Message operations
   getMessages(): Promise<Message[]>;
@@ -79,6 +97,51 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async getUserByGuestId(guestId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.guestId, guestId));
+    return user;
+  }
+
+  // Guest session operations
+  async getGuestSession(sessionId: string): Promise<GuestSession | undefined> {
+    const [session] = await db.select().from(guestSessions).where(eq(guestSessions.sessionId, sessionId));
+    return session;
+  }
+
+  async createGuestSession(sessionData: InsertGuestSession): Promise<GuestSession> {
+    const [session] = await db.insert(guestSessions).values(sessionData).returning();
+    return session;
+  }
+
+  async updateGuestSessionActivity(sessionId: string): Promise<void> {
+    await db
+      .update(guestSessions)
+      .set({ lastActive: new Date() })
+      .where(eq(guestSessions.sessionId, sessionId));
+  }
+
+  async cleanupExpiredSessions(): Promise<void> {
+    await db.delete(guestSessions).where(desc(guestSessions.expiresAt));
+  }
+
+  // Usage metrics operations
+  async getUsageMetrics(sessionId: string): Promise<UsageMetric | undefined> {
+    const [metric] = await db.select().from(usageMetrics).where(eq(usageMetrics.sessionId, sessionId));
+    return metric;
+  }
+
+  async createUsageMetric(metricData: InsertUsageMetric): Promise<UsageMetric> {
+    const [metric] = await db.insert(usageMetrics).values(metricData).returning();
+    return metric;
+  }
+
+  async updateUsageMetric(sessionId: string, updates: Partial<UsageMetric>): Promise<void> {
+    await db
+      .update(usageMetrics)
+      .set({ ...updates, lastUpdated: new Date() })
+      .where(eq(usageMetrics.sessionId, sessionId));
   }
 
   // Message operations
