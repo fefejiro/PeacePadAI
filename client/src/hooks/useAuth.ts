@@ -9,7 +9,7 @@ export function useAuth() {
         credentials: "include",
       });
       
-      // Return null on 401 (not authenticated) - this is a valid state
+      // Return null on 401 (not authenticated) - this is a valid state, not an error
       if (res.status === 401) {
         return null;
       }
@@ -20,8 +20,7 @@ export function useAuth() {
       
       return await res.json();
     },
-    retry: 2, // Retry up to 2 times to handle session initialization delays
-    retryDelay: 300, // Wait 300ms between retries
+    retry: false, // Don't retry - 401 is a valid state
   });
 
   return {
