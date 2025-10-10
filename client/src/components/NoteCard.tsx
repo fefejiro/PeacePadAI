@@ -1,6 +1,10 @@
 import { Card } from "@/components/ui/card";
-import { StickyNote, Pencil, Trash2 } from "lucide-react";
+import { StickyNote, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
 
 interface NoteCardProps {
   id: string;
@@ -11,12 +15,34 @@ interface NoteCardProps {
 }
 
 export default function NoteCard({ id, title, content, createdBy, date }: NoteCardProps) {
-  const handleEdit = () => {
-    console.log("Edit note:", id);
-  };
+  const { toast } = useToast();
+
+  const deleteNote = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/notes/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notes"] });
+      toast({ title: "Note deleted successfully" });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
+    },
+  });
 
   const handleDelete = () => {
-    console.log("Delete note:", id);
+    deleteNote.mutate();
   };
 
   return (
@@ -27,15 +53,6 @@ export default function NoteCard({ id, title, content, createdBy, date }: NoteCa
           <h3 className="font-medium text-sm text-foreground">{title}</h3>
         </div>
         <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={handleEdit}
-            data-testid={`button-edit-note-${id}`}
-          >
-            <Pencil className="h-3 w-3" />
-          </Button>
           <Button
             variant="ghost"
             size="icon"
