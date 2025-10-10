@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle } from "lucide-react";
+import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -29,6 +29,8 @@ export default function VideoCallDialog({
   const [isVideoOff, setIsVideoOff] = useState(callType === "audio");
   const [callDuration, setCallDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [sessionCode, setSessionCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -39,6 +41,31 @@ export default function VideoCallDialog({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const pendingOfferRef = useRef<{ offer: RTCSessionDescriptionInit; from: string } | null>(null);
+
+  // Create shareable session code when call starts
+  useEffect(() => {
+    if (!isOpen || !user || isIncoming) return;
+
+    const createCallSession = async () => {
+      try {
+        const response = await fetch('/api/call-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ callType }),
+        });
+
+        if (response.ok) {
+          const session = await response.json();
+          setSessionCode(session.sessionCode);
+        }
+      } catch (error) {
+        console.error('Failed to create call session:', error);
+      }
+    };
+
+    createCallSession();
+  }, [isOpen, user, callType, isIncoming]);
 
   useEffect(() => {
     if (!isOpen || !user) return;
@@ -352,6 +379,27 @@ export default function VideoCallDialog({
     }
   };
 
+  const copySessionCode = async () => {
+    if (!sessionCode) return;
+
+    try {
+      await navigator.clipboard.writeText(sessionCode);
+      setCodeCopied(true);
+      toast({
+        title: "Session Code Copied!",
+        description: `Share code ${sessionCode} with others to join this call`,
+      });
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy code:', error);
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy session code to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   const endCall = () => {
     if (isRecording) {
       stopRecording();
@@ -403,6 +451,41 @@ export default function VideoCallDialog({
               </span>
             )}
           </DialogTitle>
+          
+          {/* Session Code Display */}
+          {sessionCode && !isIncoming && (
+            <div className="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">Share this code to invite others:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-mono font-bold text-primary tracking-widest" data-testid="text-session-code">
+                      {sessionCode}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copySessionCode}
+                  data-testid="button-copy-session-code"
+                  className="gap-2"
+                >
+                  {codeCopied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="flex-1 grid grid-cols-2 gap-4 relative">
