@@ -13,6 +13,7 @@ import {
 import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { queryClient } from "@/lib/queryClient";
 
 const menuItems = [
   {
@@ -57,11 +58,18 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
       localStorage.removeItem("peacepad_session_id");
+      
+      // Clear all React Query cache to ensure fresh state on next login
+      queryClient.clear();
+      
+      // Force a full page reload to reset all state
       window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
+      localStorage.removeItem("peacepad_session_id");
+      queryClient.clear();
       window.location.href = "/";
     }
   };

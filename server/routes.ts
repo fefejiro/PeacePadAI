@@ -157,9 +157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message routes
-  app.get('/api/messages', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/messages', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const messages = await storage.getMessages();
+      const userId = req.user.id;
+      const messages = await storage.getMessagesByUser(userId);
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);

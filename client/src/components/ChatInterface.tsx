@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2 } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
 import { type ToneType } from "./TonePill";
@@ -24,6 +24,10 @@ export default function ChatInterface() {
   const [callType, setCallType] = useState<"audio" | "video">("audio");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const { user } = useAuth();
@@ -37,6 +41,7 @@ export default function ChatInterface() {
   const audioStreamRef = useRef<MediaStream | null>(null);
   const videoStreamRef = useRef<MediaStream | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const recordedVideoPreviewRef = useRef<HTMLVideoElement>(null);
 
   const { data: messages = [], isLoading } = useQuery<MessageWithSender[]>({
     queryKey: ["/api/messages"],
@@ -141,6 +146,10 @@ export default function ChatInterface() {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setSelectedFile(null);
       setFilePreviewUrl(null);
+      setRecordedAudioBlob(null);
+      setRecordedAudioUrl(null);
+      setRecordedVideoBlob(null);
+      setRecordedVideoUrl(null);
       toast({
         title: "Message sent",
         description: "Your media message was sent successfully",
@@ -161,6 +170,12 @@ export default function ChatInterface() {
                          selectedFile.type.startsWith('video/') ? 'video' :
                          selectedFile.type.startsWith('audio/') ? 'audio' : 'document';
       sendMediaMessage.mutate({ file: selectedFile, messageType });
+    } else if (recordedAudioBlob) {
+      const file = new File([recordedAudioBlob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+      sendMediaMessage.mutate({ file, messageType: 'audio' });
+    } else if (recordedVideoBlob) {
+      const file = new File([recordedVideoBlob], `video-${Date.now()}.webm`, { type: 'video/webm' });
+      sendMediaMessage.mutate({ file, messageType: 'video' });
     } else if (message.trim()) {
       sendTextMessage.mutate(message);
     }
@@ -208,9 +223,9 @@ export default function ChatInterface() {
 
       mediaRecorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
-        
-        sendMediaMessage.mutate({ file, messageType: 'audio' });
+        const url = URL.createObjectURL(blob);
+        setRecordedAudioBlob(blob);
+        setRecordedAudioUrl(url);
         
         stream.getTracks().forEach(track => track.stop());
         audioStreamRef.current = null;
@@ -237,17 +252,39 @@ export default function ChatInterface() {
     if (audioRecorderRef.current && isRecordingAudio) {
       audioRecorderRef.current.stop();
       setIsRecordingAudio(false);
+      toast({
+        title: "Recording stopped",
+        description: "Review your audio message",
+      });
     }
+  };
+
+  const cancelAudioRecording = () => {
+    if (isRecordingAudio && audioRecorderRef.current) {
+      audioRecorderRef.current.stop();
+      setIsRecordingAudio(false);
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop());
+        audioStreamRef.current = null;
+      }
+      toast({
+        title: "Recording cancelled",
+        description: "Audio recording discarded",
+      });
+    }
+    setRecordedAudioBlob(null);
+    setRecordedAudioUrl(null);
   };
 
   const startVideoRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
       videoStreamRef.current = stream;
       videoChunksRef.current = [];
 
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
+        videoPreviewRef.current.play().catch(err => console.error("Video play error:", err));
       }
 
       const mediaRecorder = new MediaRecorder(stream);
@@ -261,12 +298,16 @@ export default function ChatInterface() {
 
       mediaRecorder.onstop = async () => {
         const blob = new Blob(videoChunksRef.current, { type: 'video/webm' });
-        const file = new File([blob], `video-${Date.now()}.webm`, { type: 'video/webm' });
-        
-        sendMediaMessage.mutate({ file, messageType: 'video' });
+        const url = URL.createObjectURL(blob);
+        setRecordedVideoBlob(blob);
+        setRecordedVideoUrl(url);
         
         stream.getTracks().forEach(track => track.stop());
         videoStreamRef.current = null;
+        
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = null;
+        }
       };
 
       mediaRecorder.start();
@@ -280,7 +321,7 @@ export default function ChatInterface() {
       console.error("Failed to start video recording:", error);
       toast({
         title: "Recording failed",
-        description: "Could not access camera",
+        description: "Could not access camera. Make sure you've granted camera permissions.",
         variant: "destructive",
       });
     }
@@ -290,7 +331,31 @@ export default function ChatInterface() {
     if (videoRecorderRef.current && isRecordingVideo) {
       videoRecorderRef.current.stop();
       setIsRecordingVideo(false);
+      toast({
+        title: "Recording stopped",
+        description: "Review your video message",
+      });
     }
+  };
+
+  const cancelVideoRecording = () => {
+    if (isRecordingVideo && videoRecorderRef.current) {
+      videoRecorderRef.current.stop();
+      setIsRecordingVideo(false);
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(track => track.stop());
+        videoStreamRef.current = null;
+      }
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = null;
+      }
+      toast({
+        title: "Recording cancelled",
+        description: "Video recording discarded",
+      });
+    }
+    setRecordedVideoBlob(null);
+    setRecordedVideoUrl(null);
   };
 
   if (isLoading) {
@@ -310,6 +375,8 @@ export default function ChatInterface() {
     setCallType("video");
     setIsCallDialogOpen(true);
   };
+
+  const hasAnyMediaReady = !!(selectedFile || recordedAudioBlob || recordedVideoBlob);
 
   return (
     <div className="flex flex-col h-full">
@@ -384,24 +451,113 @@ export default function ChatInterface() {
         recipientId="co-parent-id"
       />
 
-      {/* Video Recording Preview */}
+      {/* Video Recording Live Preview */}
       {isRecordingVideo && (
         <div className="p-4 bg-card border-t">
-          <div className="max-w-md mx-auto">
-            <video
-              ref={videoPreviewRef}
-              autoPlay
-              muted
-              className="w-full rounded-lg"
-            />
-            <Button
-              onClick={stopVideoRecording}
-              className="w-full mt-2"
-              variant="destructive"
-              data-testid="button-stop-video-recording"
-            >
-              Stop Recording
-            </Button>
+          <div className="max-w-md mx-auto space-y-3">
+            <div className="relative rounded-lg overflow-hidden bg-black">
+              <video
+                ref={videoPreviewRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full aspect-video object-cover"
+              />
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                REC
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={stopVideoRecording}
+                className="flex-1"
+                data-testid="button-stop-video-recording"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Stop & Review
+              </Button>
+              <Button
+                onClick={cancelVideoRecording}
+                variant="destructive"
+                className="flex-1"
+                data-testid="button-cancel-video-recording"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recorded Video Preview */}
+      {recordedVideoBlob && recordedVideoUrl && !isRecordingVideo && (
+        <div className="p-4 bg-card border-t">
+          <div className="max-w-md mx-auto space-y-3">
+            <p className="text-sm font-medium">Review your video message</p>
+            <div className="rounded-lg overflow-hidden bg-black">
+              <video
+                ref={recordedVideoPreviewRef}
+                src={recordedVideoUrl}
+                controls
+                playsInline
+                className="w-full aspect-video object-cover"
+                data-testid="video-preview"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSend}
+                disabled={sendMediaMessage.isPending}
+                className="flex-1"
+                data-testid="button-send-video"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {sendMediaMessage.isPending ? "Sending..." : "Send Video"}
+              </Button>
+              <Button
+                onClick={cancelVideoRecording}
+                variant="outline"
+                className="flex-1"
+                data-testid="button-delete-video"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recorded Audio Preview */}
+      {recordedAudioBlob && recordedAudioUrl && !isRecordingAudio && (
+        <div className="p-4 bg-card border-t">
+          <div className="max-w-md mx-auto space-y-3">
+            <p className="text-sm font-medium">Review your audio message</p>
+            <div className="p-3 bg-muted rounded-lg">
+              <audio src={recordedAudioUrl} controls className="w-full" data-testid="audio-preview" />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSend}
+                disabled={sendMediaMessage.isPending}
+                className="flex-1"
+                data-testid="button-send-audio"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {sendMediaMessage.isPending ? "Sending..." : "Send Audio"}
+              </Button>
+              <Button
+                onClick={cancelAudioRecording}
+                variant="outline"
+                className="flex-1"
+                data-testid="button-delete-audio"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -410,28 +566,72 @@ export default function ChatInterface() {
         <div className="max-w-4xl mx-auto">
           {/* File Preview */}
           {selectedFile && (
-            <div className="mb-3 p-3 bg-card border border-card-border rounded-lg flex items-center gap-3">
-              {filePreviewUrl && selectedFile.type.startsWith('image/') ? (
-                <img src={filePreviewUrl} alt="Preview" className="h-16 w-16 object-cover rounded" />
-              ) : selectedFile.type.startsWith('video/') ? (
-                <video src={filePreviewUrl || undefined} className="h-16 w-16 object-cover rounded" />
-              ) : (
-                <FileText className="h-16 w-16 text-muted-foreground" />
-              )}
-              <div className="flex-1">
-                <p className="text-sm font-medium">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(selectedFile.size / 1024).toFixed(2)} KB
-                </p>
+            <div className="mb-3 p-3 bg-card border border-card-border rounded-lg">
+              <p className="text-sm font-medium mb-2">Preview attachment</p>
+              <div className="flex items-center gap-3">
+                {filePreviewUrl && selectedFile.type.startsWith('image/') ? (
+                  <img src={filePreviewUrl} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                ) : selectedFile.type.startsWith('video/') ? (
+                  <video src={filePreviewUrl || undefined} controls className="h-20 w-32 object-cover rounded" />
+                ) : (
+                  <FileText className="h-20 w-20 text-muted-foreground" />
+                )}
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSend}
+                    disabled={sendMediaMessage.isPending}
+                    data-testid="button-send-file"
+                  >
+                    <Send className="h-3 w-3 mr-1" />
+                    Send
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={clearFileSelection}
+                    data-testid="button-clear-file"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={clearFileSelection}
-                data-testid="button-clear-file"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            </div>
+          )}
+
+          {/* Audio Recording Indicator */}
+          {isRecordingAudio && (
+            <div className="mb-3 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="text-sm font-medium text-red-700 dark:text-red-300">Recording audio...</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={stopAudioRecording}
+                  data-testid="button-stop-audio-recording"
+                >
+                  <Check className="h-3 w-3 mr-1" />
+                  Stop
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={cancelAudioRecording}
+                  data-testid="button-cancel-audio-recording"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
 
@@ -443,6 +643,7 @@ export default function ChatInterface() {
                 variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
                 className="shrink-0"
+                disabled={hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
                 data-testid="button-attach-file"
               >
                 <Paperclip className="h-4 w-4" />
@@ -454,6 +655,7 @@ export default function ChatInterface() {
                 variant={isRecordingAudio ? "destructive" : "ghost"}
                 onClick={isRecordingAudio ? stopAudioRecording : startAudioRecording}
                 className="shrink-0"
+                disabled={hasAnyMediaReady || isRecordingVideo}
                 data-testid="button-record-audio"
               >
                 <Mic className="h-4 w-4" />
@@ -465,6 +667,7 @@ export default function ChatInterface() {
                 variant={isRecordingVideo ? "destructive" : "ghost"}
                 onClick={isRecordingVideo ? stopVideoRecording : startVideoRecording}
                 className="shrink-0"
+                disabled={hasAnyMediaReady || isRecordingAudio}
                 data-testid="button-record-video"
               >
                 <Camera className="h-4 w-4" />
@@ -477,13 +680,13 @@ export default function ChatInterface() {
                 placeholder="Type your message..."
                 className="resize-none border-0 text-base focus-visible:ring-0 min-h-[48px] flex-1"
                 data-testid="input-message"
-                disabled={sendTextMessage.isPending || sendMediaMessage.isPending || !!selectedFile}
+                disabled={sendTextMessage.isPending || sendMediaMessage.isPending || hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
               />
 
               <Button
                 size="icon"
                 onClick={handleSend}
-                disabled={(!message.trim() && !selectedFile) || sendTextMessage.isPending || sendMediaMessage.isPending}
+                disabled={(!message.trim() && !hasAnyMediaReady) || sendTextMessage.isPending || sendMediaMessage.isPending || isRecordingAudio || isRecordingVideo}
                 className="shrink-0"
                 data-testid="button-send-message"
               >
@@ -504,6 +707,10 @@ export default function ChatInterface() {
           <p className="text-xs text-muted-foreground mt-2 text-center">
             {sendTextMessage.isPending || sendMediaMessage.isPending 
               ? "Sending..." 
+              : isRecordingAudio
+              ? "Recording audio... Click stop to review"
+              : isRecordingVideo
+              ? "Recording video... Click stop to review"
               : "AI will analyze your message tone after sending"}
           </p>
         </div>

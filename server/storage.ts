@@ -64,6 +64,7 @@ export interface IStorage {
   
   // Message operations
   getMessages(): Promise<Message[]>;
+  getMessagesByUser(userId: string): Promise<any[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   
   // Note operations
@@ -201,6 +202,35 @@ export class DatabaseStorage implements IStorage {
       })
       .from(messages)
       .leftJoin(users, eq(messages.senderId, users.id))
+      .orderBy(messages.timestamp);
+    
+    return result;
+  }
+
+  async getMessagesByUser(userId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        senderId: messages.senderId,
+        timestamp: messages.timestamp,
+        tone: messages.tone,
+        toneSummary: messages.toneSummary,
+        toneEmoji: messages.toneEmoji,
+        rewordingSuggestion: messages.rewordingSuggestion,
+        messageType: messages.messageType,
+        fileUrl: messages.fileUrl,
+        fileName: messages.fileName,
+        fileSize: messages.fileSize,
+        mimeType: messages.mimeType,
+        duration: messages.duration,
+        senderDisplayName: users.displayName,
+        senderFirstName: users.firstName,
+        senderLastName: users.lastName,
+      })
+      .from(messages)
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .where(eq(messages.senderId, userId))
       .orderBy(messages.timestamp);
     
     return result;
