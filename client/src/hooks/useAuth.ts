@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
 
 export function useAuth() {
-  const { data: user, isLoading } = useQuery<User | null>({
+  const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
       const res = await fetch("/api/auth/user", {
@@ -15,12 +15,18 @@ export function useAuth() {
       }
       
       if (!res.ok) {
-        throw new Error(`${res.status}: ${res.statusText}`);
+        // Still return null instead of throwing - auth errors shouldn't show to user
+        console.error("Auth check failed:", res.status, res.statusText);
+        return null;
       }
       
       return await res.json();
     },
     retry: false, // Don't retry - 401 is a valid state
+    meta: {
+      // Prevent React Query devtools or error boundaries from showing this
+      suppressErrors: true,
+    },
   });
 
   return {
