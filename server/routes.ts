@@ -89,6 +89,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile
+  app.patch('/api/user/profile', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { profileImageUrl, displayName } = req.body;
+      
+      const updateData: any = {};
+      if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
+      if (displayName !== undefined) updateData.displayName = displayName;
+      
+      const updatedUser = await storage.upsertUser({
+        id: userId,
+        ...updateData,
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Message routes
   app.get('/api/messages', isSoftAuthenticated, async (req, res) => {
     try {

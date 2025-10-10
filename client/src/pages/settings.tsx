@@ -2,12 +2,68 @@ import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon } from "lucide-react";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Settings as SettingsIcon, Upload, User } from "lucide-react";
+import { useState, useRef } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+const EMOJI_OPTIONS = [
+  "😊", "😎", "🤗", "😇", "🥰", "😃", "🙂", "😌",
+  "👨", "👩", "👦", "👧", "🧑", "👶", "👴", "👵",
+  "🐶", "🐱", "🐻", "🦁", "🐼", "🦊", "🐯", "🐨",
+  "🌟", "💫", "⭐", "✨", "🌈", "🎨", "🎭", "🎪"
+];
 
 export default function SettingsPage() {
   const [toneAnalysis, setToneAnalysis] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const updateProfile = useMutation({
+    mutationFn: async (data: { profileImageUrl?: string; displayName?: string }) => {
+      const res = await apiRequest("PATCH", "/api/user/profile", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "Profile updated successfully" });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEmojiSelect = (emoji: string) => {
+    setSelectedEmoji(emoji);
+    updateProfile.mutate({ profileImageUrl: `emoji:${emoji}` });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      updateProfile.mutate({ profileImageUrl: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const currentProfileImage = user?.profileImageUrl || "";
+  const isEmoji = currentProfileImage.startsWith("emoji:");
+  const emojiValue = isEmoji ? currentProfileImage.replace("emoji:", "") : "";
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -17,6 +73,65 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Profile Picture</h2>
+            <CardDescription>Choose an emoji or upload your own picture</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                {isEmoji ? (
+                  <div className="flex items-center justify-center text-4xl">{emojiValue}</div>
+                ) : currentProfileImage ? (
+                  <AvatarImage src={currentProfileImage} />
+                ) : (
+                  <AvatarFallback>
+                    <User className="h-10 w-10" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-2">Current profile picture</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  data-testid="button-upload-image"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Image
+                </Button>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  data-testid="input-profile-image"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium mb-3 block">Or choose an emoji</Label>
+              <div className="grid grid-cols-8 gap-2">
+                {EMOJI_OPTIONS.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant={selectedEmoji === emoji || emojiValue === emoji ? "default" : "outline"}
+                    className="h-12 w-12 text-2xl p-0"
+                    onClick={() => handleEmojiSelect(emoji)}
+                    data-testid={`button-emoji-${emoji}`}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <h2 className="text-xl font-semibold">AI Features</h2>
