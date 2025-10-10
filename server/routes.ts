@@ -2,12 +2,36 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
-import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema } from "@shared/schema";
+import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
 import { setupWebRTCSignaling, broadcastNewMessage } from "./webrtc-signaling";
 import OpenAI from "openai";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Configure multer for file uploads
+const uploadDir = path.join(process.cwd(), 'uploads', 'recordings');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({ 
+  storage: uploadStorage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
 });
 
 async function analyzeTone(content: string): Promise<{ 
@@ -551,6 +575,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error ending call session:", error);
       res.status(500).json({ message: "Failed to end call session" });
+    }
+  });
+
+  // Authenticated file serving for uploads
+  app.get('/uploads/recordings/:filename', isSoftAuthenticated, (req: any, res) => {
+    const { filename } = req.params;
+    const filePath = path.join(uploadDir, filename);
+    
+    // Validate file exists and is within uploads directory
+    if (!fs.existsSync(filePath) || !filePath.startsWith(uploadDir)) {
+      return res.status(404).json({ message: "File not found" });
+    }
+    
+    res.sendFile(filePath);
+  });
+
+  // Call recording routes
+  app.post('/api/call-recordings', isSoftAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const recordingUrl = `/uploads/recordings/${file.filename}`;
+      const sessionCode = req.body.sessionCode || `recording-${Date.now()}`;
+      
+      // Create or find call session
+      let sessionId = sessionCode;
+      try {
+        const existingSession = await storage.getCallSessionByCode(sessionCode);
+        if (existingSession) {
+          sessionId = existingSession.id;
+        } else {
+          // Create a new session for this recording
+          const newSession = await storage.createCallSession({
+            code: sessionCode,
+            createdBy: userId,
+            participants: [userId],
+          });
+          sessionId = newSession.id;
+        }
+      } catch {
+        // If session operations fail, use sessionCode as sessionId
+        sessionId = sessionCode;
+      }
+      
+      const parsed = insertCallRecordingSchema.parse({
+        sessionId,
+        recordingUrl,
+        recordingType: req.body.recordingType || 'video',
+        duration: req.body.duration?.toString() || '0',
+        participants: [userId],
+        recordedBy: userId,
+      });
+      
+      const recording = await storage.createCallRecording(parsed);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId,
+        actionType: 'call_recording',
+        resourceId: recording.id,
+        resourceType: 'recording',
+        details: { sessionId: recording.sessionId },
+      });
+      
+      res.json(recording);
+    } catch (error: any) {
+      console.error("Error creating call recording:", error);
+      res.status(400).json({ message: error.message || "Failed to create call recording" });
+    }
+  });
+
+  app.get('/api/call-recordings', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const recordings = await storage.getCallRecordings(userId);
+      res.json(recordings);
+    } catch (error) {
+      console.error("Error fetching call recordings:", error);
+      res.status(500).json({ message: "Failed to fetch call recordings" });
+    }
+  });
+
+  // Therapist directory routes
+  app.get('/api/therapists', isSoftAuthenticated, async (req, res) => {
+    try {
+      const { lat, lng, maxDistance } = req.query;
+      
+      let therapists;
+      if (lat && lng) {
+        therapists = await storage.searchTherapists(
+          lat as string, 
+          lng as string, 
+          maxDistance ? parseInt(maxDistance as string) : 50
+        );
+      } else {
+        therapists = await storage.getTherapists();
+      }
+      
+      res.json(therapists);
+    } catch (error) {
+      console.error("Error fetching therapists:", error);
+      res.status(500).json({ message: "Failed to fetch therapists" });
+    }
+  });
+
+  app.post('/api/therapists', isSoftAuthenticated, async (req, res) => {
+    try {
+      const parsed = insertTherapistSchema.parse(req.body);
+      const therapist = await storage.createTherapist(parsed);
+      res.json(therapist);
+    } catch (error: any) {
+      console.error("Error creating therapist:", error);
+      res.status(400).json({ message: error.message || "Failed to create therapist" });
+    }
+  });
+
+  // Audit log and export routes
+  app.get('/api/audit-trail', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { startDate, endDate, format } = req.query;
+      
+      const auditTrail = await storage.getUserAuditTrail(
+        userId,
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      // Create audit log for export
+      await storage.createAuditLog({
+        userId,
+        actionType: 'export',
+        resourceType: 'audit_trail',
+        details: { format, itemCount: auditTrail.summary.totalMessages + auditTrail.summary.totalEvents + auditTrail.summary.totalCalls },
+      });
+      
+      // If format is CSV or PDF, convert the data
+      if (format === 'json') {
+        res.json(auditTrail);
+      } else if (format === 'csv') {
+        // Generate CSV
+        let csv = 'Type,Content,Date,Details\n';
+        
+        auditTrail.messages.forEach((m: any) => {
+          csv += `Message,"${m.content}",${m.timestamp},"Tone: ${m.tone || 'N/A'}"\n`;
+        });
+        
+        auditTrail.events.forEach((e: any) => {
+          csv += `Event,"${e.title}",${e.startDate},"Type: ${e.type}"\n`;
+        });
+        
+        auditTrail.calls.forEach((c: any) => {
+          csv += `Call,"${c.callType} call",${c.createdAt},"Code: ${c.sessionCode}"\n`;
+        });
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="audit-trail.csv"');
+        res.send(csv);
+      } else {
+        res.json(auditTrail);
+      }
+    } catch (error) {
+      console.error("Error fetching audit trail:", error);
+      res.status(500).json({ message: "Failed to fetch audit trail" });
+    }
+  });
+
+  app.get('/api/audit-logs', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const logs = await storage.getAuditLogs(userId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
 

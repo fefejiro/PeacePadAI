@@ -14,6 +14,8 @@ import DashboardPage from "@/pages/dashboard";
 import SchedulingPage from "@/pages/scheduling";
 import SettingsPage from "@/pages/settings";
 import TherapistLocatorPage from "@/pages/therapist-locator";
+import TherapistDirectoryPage from "@/pages/therapist-directory";
+import AuditTrailPage from "@/pages/audit-trail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,6 +45,8 @@ function Router() {
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/scheduling" component={SchedulingPage} />
       <Route path="/therapist-locator" component={TherapistLocatorPage} />
+      <Route path="/therapist-directory" component={TherapistDirectoryPage} />
+      <Route path="/audit-trail" component={AuditTrailPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>

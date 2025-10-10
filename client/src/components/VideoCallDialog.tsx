@@ -289,8 +289,10 @@ export default function VideoCallDialog({
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+        
+        // Download locally
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -298,10 +300,32 @@ export default function VideoCallDialog({
         a.click();
         URL.revokeObjectURL(url);
         
-        toast({
-          title: "Recording Saved",
-          description: "Your call recording has been downloaded",
-        });
+        // Save to backend
+        try {
+          const formData = new FormData();
+          formData.append('file', blob, `recording-${Date.now()}.webm`);
+          const sessionId = recipientId || callerId || '';
+          formData.append('sessionCode', `call-${user?.id}-${sessionId}-${Date.now()}`);
+          formData.append('recordingType', isVideoOff ? 'audio' : 'video');
+          formData.append('duration', callDuration.toString());
+          
+          await fetch('/api/call-recordings', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          });
+          
+          toast({
+            title: "Recording Saved",
+            description: "Your call recording has been saved and downloaded",
+          });
+        } catch (error) {
+          console.error('Failed to save recording:', error);
+          toast({
+            title: "Recording Downloaded",
+            description: "Recording saved locally but failed to upload to cloud",
+          });
+        }
       };
 
       mediaRecorder.start();

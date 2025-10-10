@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -34,6 +34,16 @@ const menuItems = [
     title: "Find Support",
     url: "/therapist-locator",
     icon: MapPin,
+  },
+  {
+    title: "Therapist Directory",
+    url: "/therapist-directory",
+    icon: Users,
+  },
+  {
+    title: "Audit Trail",
+    url: "/audit-trail",
+    icon: FileText,
   },
   {
     title: "Settings",

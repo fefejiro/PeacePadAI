@@ -10,6 +10,9 @@ import {
   guestSessions,
   usageMetrics,
   callSessions,
+  callRecordings,
+  therapists,
+  auditLogs,
   type User,
   type UpsertUser,
   type Message,
@@ -32,6 +35,12 @@ import {
   type InsertUsageMetric,
   type CallSession,
   type InsertCallSession,
+  type CallRecording,
+  type InsertCallRecording,
+  type Therapist,
+  type InsertTherapist,
+  type AuditLog,
+  type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -90,6 +99,21 @@ export interface IStorage {
   createCallSession(session: InsertCallSession): Promise<CallSession>;
   getCallSessionByCode(sessionCode: string): Promise<CallSession | undefined>;
   endCallSession(sessionCode: string): Promise<void>;
+  
+  // Call recording operations
+  createCallRecording(recording: InsertCallRecording): Promise<CallRecording>;
+  getCallRecordings(userId: string): Promise<CallRecording[]>;
+  getCallRecordingById(id: string): Promise<CallRecording | undefined>;
+  
+  // Therapist operations
+  createTherapist(therapist: InsertTherapist): Promise<Therapist>;
+  getTherapists(): Promise<Therapist[]>;
+  searchTherapists(userLat: string, userLng: string, maxDistance?: number): Promise<Therapist[]>;
+  
+  // Audit log operations
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(userId: string): Promise<AuditLog[]>;
+  getUserAuditTrail(userId: string, startDate?: Date, endDate?: Date): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -292,6 +316,109 @@ export class DatabaseStorage implements IStorage {
     await db.update(callSessions)
       .set({ isActive: false, endedAt: new Date() })
       .where(eq(callSessions.sessionCode, sessionCode));
+  }
+
+  // Call recording operations
+  async createCallRecording(recordingData: InsertCallRecording): Promise<CallRecording> {
+    const [recording] = await db.insert(callRecordings).values(recordingData).returning();
+    return recording;
+  }
+
+  async getCallRecordings(userId: string): Promise<CallRecording[]> {
+    return await db.select().from(callRecordings)
+      .where(eq(callRecordings.recordedBy, userId))
+      .orderBy(desc(callRecordings.createdAt));
+  }
+
+  async getCallRecordingById(id: string): Promise<CallRecording | undefined> {
+    const [recording] = await db.select().from(callRecordings).where(eq(callRecordings.id, id));
+    return recording;
+  }
+
+  // Therapist operations
+  async createTherapist(therapistData: InsertTherapist): Promise<Therapist> {
+    const [therapist] = await db.insert(therapists).values(therapistData).returning();
+    return therapist;
+  }
+
+  async getTherapists(): Promise<Therapist[]> {
+    return await db.select().from(therapists).orderBy(therapists.name);
+  }
+
+  async searchTherapists(userLat: string, userLng: string, maxDistance: number = 50): Promise<Therapist[]> {
+    // Calculate distance using Haversine formula in SQL
+    const allTherapists = await db.select().from(therapists);
+    
+    // Calculate distance for each therapist
+    const therapistsWithDistance = allTherapists.map(t => {
+      const lat1 = parseFloat(userLat);
+      const lon1 = parseFloat(userLng);
+      const lat2 = parseFloat(t.latitude);
+      const lon2 = parseFloat(t.longitude);
+      
+      const R = 3959; // Earth radius in miles
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      
+      return { ...t, distance: distance.toFixed(2) };
+    });
+    
+    // Filter by distance and sort
+    return therapistsWithDistance
+      .filter(t => parseFloat(t.distance || '0') <= maxDistance)
+      .sort((a, b) => parseFloat(a.distance || '0') - parseFloat(b.distance || '0'));
+  }
+
+  // Audit log operations
+  async createAuditLog(logData: InsertAuditLog): Promise<AuditLog> {
+    const [log] = await db.insert(auditLogs).values(logData).returning();
+    return log;
+  }
+
+  async getAuditLogs(userId: string): Promise<AuditLog[]> {
+    return await db.select().from(auditLogs)
+      .where(eq(auditLogs.userId, userId))
+      .orderBy(desc(auditLogs.createdAt));
+  }
+
+  async getUserAuditTrail(userId: string, startDate?: Date, endDate?: Date): Promise<any> {
+    // Get all messages
+    const userMessages = await db.select().from(messages)
+      .where(eq(messages.senderId, userId))
+      .orderBy(messages.timestamp);
+    
+    // Get all events
+    const userEvents = await db.select().from(events)
+      .where(eq(events.createdBy, userId))
+      .orderBy(events.startDate);
+    
+    // Get all call sessions
+    const userCalls = await db.select().from(callSessions)
+      .where(eq(callSessions.hostId, userId))
+      .orderBy(desc(callSessions.createdAt));
+    
+    // Get call recordings
+    const userRecordings = await db.select().from(callRecordings)
+      .where(eq(callRecordings.recordedBy, userId))
+      .orderBy(desc(callRecordings.createdAt));
+    
+    return {
+      messages: userMessages,
+      events: userEvents,
+      calls: userCalls,
+      recordings: userRecordings,
+      summary: {
+        totalMessages: userMessages.length,
+        totalEvents: userEvents.length,
+        totalCalls: userCalls.length,
+        totalRecordings: userRecordings.length,
+      }
+    };
   }
 }
 

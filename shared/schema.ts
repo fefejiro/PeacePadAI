@@ -131,6 +131,49 @@ export const callSessions = pgTable("call_sessions", {
   endedAt: timestamp("ended_at"),
 });
 
+// Call recordings for audit/legal purposes
+export const callRecordings = pgTable("call_recordings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => callSessions.id),
+  recordingUrl: text("recording_url"), // Local blob URL or external storage
+  transcript: text("transcript"), // AI-generated transcript
+  duration: text("duration"), // Duration in seconds
+  participants: text("participants").array(), // Array of participant IDs
+  recordedBy: varchar("recorded_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Therapist directory for legal/support resources
+export const therapists = pgTable("therapists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  specialty: text("specialty").notNull(),
+  address: text("address").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  latitude: text("latitude").notNull(),
+  longitude: text("longitude").notNull(),
+  rating: text("rating"), // Average rating (1-5)
+  reviewCount: text("review_count").notNull().default("0"),
+  distance: text("distance"), // Calculated distance from user
+  licenseNumber: text("license_number"),
+  acceptsInsurance: boolean("accepts_insurance").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Audit logs for legal documentation
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  actionType: text("action_type").notNull(), // 'message', 'call', 'appointment', 'export'
+  resourceId: varchar("resource_id"), // ID of message, call, event, etc.
+  resourceType: text("resource_type"), // 'message', 'call', 'event', etc.
+  details: jsonb("details"), // Additional context
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -165,3 +208,15 @@ export type UsageMetric = typeof usageMetrics.$inferSelect;
 export const insertCallSessionSchema = createInsertSchema(callSessions).omit({ id: true, createdAt: true });
 export type InsertCallSession = z.infer<typeof insertCallSessionSchema>;
 export type CallSession = typeof callSessions.$inferSelect;
+
+export const insertCallRecordingSchema = createInsertSchema(callRecordings).omit({ id: true, createdAt: true });
+export type InsertCallRecording = z.infer<typeof insertCallRecordingSchema>;
+export type CallRecording = typeof callRecordings.$inferSelect;
+
+export const insertTherapistSchema = createInsertSchema(therapists).omit({ id: true, createdAt: true });
+export type InsertTherapist = z.infer<typeof insertTherapistSchema>;
+export type Therapist = typeof therapists.$inferSelect;
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
