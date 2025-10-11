@@ -157,7 +157,7 @@ export default function SettingsPage() {
 
             <div>
               <Label className="text-sm font-medium mb-3 block">Or choose an emoji</Label>
-              <div className="grid grid-cols-8 gap-2">
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
                 {EMOJI_OPTIONS.map((emoji) => (
                   <Button
                     key={emoji}

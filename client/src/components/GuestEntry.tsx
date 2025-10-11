@@ -216,12 +216,12 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
             </div>
             
             {/* Emoji Picker */}
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
               {DEFAULT_EMOJIS.map((emoji) => (
                 <Button
                   key={emoji}
                   variant={emojiValue === emoji ? "default" : "outline"}
-                  className="h-10 w-10 text-xl p-0"
+                  className="h-12 w-12 sm:h-10 sm:w-10 text-xl p-0"
                   onClick={() => handleEmojiSelect(emoji)}
                   disabled={isLoading}
                   data-testid={`button-emoji-${emoji}`}

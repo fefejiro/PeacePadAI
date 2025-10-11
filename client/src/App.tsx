@@ -75,8 +75,8 @@ export default function App() {
             <SidebarProvider style={style as React.CSSProperties}>
               <div className="flex h-screen w-full">
                 <ConditionalSidebar />
-                <div className="flex flex-col flex-1">
-                  <header className="flex items-center justify-between p-2 border-b sticky top-0 z-50 bg-background">
+                <div className="flex flex-col flex-1 min-w-0">
+                  <header className="flex items-center justify-between p-3 sm:p-2 border-b sticky top-0 z-50 bg-background">
                     <ConditionalSidebarTrigger />
                     <ThemeToggle />
                   </header>
