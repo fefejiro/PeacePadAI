@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Upload, User } from "lucide-react";
+import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check } from "lucide-react";
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [toneAnalysis, setToneAnalysis] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,8 +66,49 @@ export default function SettingsPage() {
   const isEmoji = currentProfileImage.startsWith("emoji:");
   const emojiValue = isEmoji ? currentProfileImage.replace("emoji:", "") : "";
 
+  // Generate shareable session link
+  const sessionId = localStorage.getItem("peacepad_session_id") || "";
+  const shareableLink = `${window.location.origin}?session=${sessionId}`;
+
+  const copySessionLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      setCopied(true);
+      toast({ title: "Link copied!", description: "Share this link with your co-parent" });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Please copy the link manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const shareViaSystem = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Join PeacePad",
+          text: "Join me on PeacePad for co-parenting communication",
+          url: shareableLink,
+        });
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          toast({
+            title: "Share failed",
+            description: "Please copy the link instead",
+            variant: "destructive",
+          });
+        }
+      }
+    } else {
+      copySessionLink();
+    }
+  };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <SettingsIcon className="h-8 w-8 text-primary" />
         <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
@@ -174,6 +216,57 @@ export default function SettingsPage() {
                 onCheckedChange={setNotifications}
                 data-testid="switch-notifications"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Share Your Session</h2>
+            <CardDescription>Invite your co-parent to join this conversation</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Your Session Link</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Share this link with your co-parent to join the same conversation
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 px-3 py-2 bg-muted rounded-md border border-border text-sm font-mono break-all" data-testid="text-session-link">
+                  {shareableLink}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={copySessionLink}
+                    data-testid="button-copy-session-link"
+                    className="flex-1 sm:flex-none min-h-10"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="default"
+                    onClick={shareViaSystem}
+                    data-testid="button-share-session-link"
+                    className="flex-1 sm:flex-none min-h-10"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
