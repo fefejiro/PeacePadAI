@@ -21,7 +21,7 @@ type CallSession = {
 export default function JoinCallPage() {
   const [, params] = useRoute("/join/:code");
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   
   const [sessionCode, setSessionCode] = useState(params?.code || "");
@@ -251,6 +251,20 @@ export default function JoinCallPage() {
     setShowPreview(false);
     stopMediaPreview();
   };
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
