@@ -24,6 +24,8 @@ export default function ChatInterface() {
   const [callType, setCallType] = useState<"audio" | "video">("audio");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [showCameraPreview, setShowCameraPreview] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export default function ChatInterface() {
   const videoStreamRef = useRef<MediaStream | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const recordedVideoPreviewRef = useRef<HTMLVideoElement>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: messages = [], isLoading } = useQuery<MessageWithSender[]>({
     queryKey: ["/api/messages"],
@@ -312,6 +315,12 @@ export default function ChatInterface() {
 
       mediaRecorder.start();
       setIsRecordingVideo(true);
+      setRecordingDuration(0);
+      
+      // Start duration timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
       
       toast({
         title: "Recording started",
@@ -331,6 +340,12 @@ export default function ChatInterface() {
     if (videoRecorderRef.current && isRecordingVideo) {
       videoRecorderRef.current.stop();
       setIsRecordingVideo(false);
+      
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      
       toast({
         title: "Recording stopped",
         description: "Review your video message",
@@ -342,6 +357,13 @@ export default function ChatInterface() {
     if (isRecordingVideo && videoRecorderRef.current) {
       videoRecorderRef.current.stop();
       setIsRecordingVideo(false);
+      
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      setRecordingDuration(0);
+      
       if (videoStreamRef.current) {
         videoStreamRef.current.getTracks().forEach(track => track.stop());
         videoStreamRef.current = null;
@@ -457,6 +479,10 @@ export default function ChatInterface() {
       {isRecordingVideo && (
         <div className="p-4 bg-card border-t">
           <div className="max-w-md mx-auto space-y-3">
+            <p className="text-sm font-medium flex items-center justify-between">
+              <span>Recording video...</span>
+              <span className="text-red-500 font-mono">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+            </p>
             <div className="relative rounded-lg overflow-hidden bg-black">
               <video
                 ref={videoPreviewRef}
