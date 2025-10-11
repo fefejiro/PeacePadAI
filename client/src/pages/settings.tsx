@@ -210,6 +210,20 @@ export default function SettingsPage() {
                 data-testid="switch-tone-analysis"
               />
             </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="hints-enabled">Hints & Tips</Label>
+                <p className="text-sm text-muted-foreground">
+                  Show helpful guidance with Clippy assistant
+                </p>
+              </div>
+              <Switch
+                id="hints-enabled"
+                checked={hintsEnabled}
+                onCheckedChange={handleHintsToggle}
+                data-testid="switch-hints-enabled"
+              />
+            </div>
           </CardContent>
         </Card>
 
