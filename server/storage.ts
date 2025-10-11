@@ -13,6 +13,7 @@ import {
   callRecordings,
   therapists,
   auditLogs,
+  pushSubscriptions,
   type User,
   type UpsertUser,
   type Message,
@@ -41,6 +42,8 @@ import {
   type InsertTherapist,
   type AuditLog,
   type InsertAuditLog,
+  type PushSubscription,
+  type InsertPushSubscription,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or } from "drizzle-orm";
@@ -116,6 +119,11 @@ export interface IStorage {
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(userId: string): Promise<AuditLog[]>;
   getUserAuditTrail(userId: string, startDate?: Date, endDate?: Date): Promise<any>;
+  
+  // Push subscription operations
+  createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
+  getPushSubscriptionsByUser(userId: string): Promise<PushSubscription[]>;
+  deletePushSubscription(endpoint: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -465,6 +473,21 @@ export class DatabaseStorage implements IStorage {
         totalRecordings: userRecordings.length,
       }
     };
+  }
+
+  // Push subscription operations
+  async createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription> {
+    const [sub] = await db.insert(pushSubscriptions).values(subscription).returning();
+    return sub;
+  }
+
+  async getPushSubscriptionsByUser(userId: string): Promise<PushSubscription[]> {
+    return await db.select().from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
   }
 }
 

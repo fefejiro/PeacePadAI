@@ -2,6 +2,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import { type Server } from "http";
 import { parse } from "url";
 import { trackUsage } from "./softAuth";
+import { sendPushNotification } from "./push-notifications";
+import { storage } from "./storage";
 
 interface Client {
   ws: WebSocket;
@@ -75,6 +77,7 @@ export function setupWebRTCSignaling(server: Server) {
 
           case "call-start":
             await trackUsage(sessionId, "callsInitiated", 1);
+            
             // Send to all connections of the recipient user
             clients.forEach((client) => {
               if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
@@ -85,6 +88,25 @@ export function setupWebRTCSignaling(server: Server) {
                 }));
               }
             });
+            
+            // Send push notification to recipient
+            try {
+              const caller = await storage.getUser(userId);
+              const callerName = caller?.displayName || 'Someone';
+              const callType = payload.callType === 'video' ? 'video' : 'audio';
+              
+              await sendPushNotification(to, {
+                title: 'Incoming Call',
+                body: `${callerName} is calling you (${callType} call)`,
+                data: {
+                  type: 'incoming-call',
+                  from: userId,
+                  callType: payload.callType,
+                },
+              });
+            } catch (error) {
+              console.error('Failed to send push notification:', error);
+            }
             break;
 
           case "call-end":

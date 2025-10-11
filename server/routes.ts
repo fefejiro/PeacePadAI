@@ -739,6 +739,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Push notification routes
+  app.get('/api/push/vapid-public-key', (req, res) => {
+    const { getVapidPublicKey } = require('./push-notifications');
+    res.json({ publicKey: getVapidPublicKey() });
+  });
+
+  app.post('/api/push/subscribe', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { endpoint, keys } = req.body;
+
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: "Invalid subscription data" });
+      }
+
+      const subscription = await storage.createPushSubscription({
+        userId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+
+      res.json({ success: true, subscription });
+    } catch (error: any) {
+      // Handle duplicate endpoint error
+      if (error.code === '23505') {
+        return res.json({ success: true, message: "Already subscribed" });
+      }
+      console.error("Error creating push subscription:", error);
+      res.status(500).json({ message: "Failed to create push subscription" });
+    }
+  });
+
+  app.delete('/api/push/unsubscribe', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { endpoint } = req.body;
+
+      if (!endpoint) {
+        return res.status(400).json({ message: "Endpoint is required" });
+      }
+
+      await storage.deletePushSubscription(endpoint);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting push subscription:", error);
+      res.status(500).json({ message: "Failed to delete push subscription" });
+    }
+  });
+
   // Geocoding route - convert address/postal code to coordinates
   app.get('/api/geocode', isSoftAuthenticated, async (req, res) => {
     try {
