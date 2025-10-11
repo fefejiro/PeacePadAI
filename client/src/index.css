@@ -215,19 +215,19 @@
   }
 }
 
-/* Clippy 2.0 Animations */
+/* Clippy 2.0 Animations - Classic Windows Style */
 @keyframes clippy-bounce {
   0%, 100% {
     transform: translateY(0) rotate(0deg);
   }
   25% {
-    transform: translateY(-8px) rotate(-5deg);
+    transform: translateY(-10px) rotate(-8deg);
   }
   50% {
     transform: translateY(0) rotate(0deg);
   }
   75% {
-    transform: translateY(-4px) rotate(5deg);
+    transform: translateY(-5px) rotate(8deg);
   }
 }
 
@@ -235,10 +235,16 @@
   0%, 100% {
     transform: rotate(0deg) scale(1);
   }
-  25% {
+  15% {
+    transform: rotate(-20deg) scale(1.15);
+  }
+  30% {
+    transform: rotate(20deg) scale(0.9);
+  }
+  45% {
     transform: rotate(-15deg) scale(1.1);
   }
-  50% {
+  60% {
     transform: rotate(15deg) scale(0.95);
   }
   75% {
@@ -261,16 +267,51 @@
   }
 }
 
+@keyframes clippy-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes clippy-hint-entrance {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.9);
+  }
+  50% {
+    transform: translateX(5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
 .clippy-bounce {
-  animation: clippy-bounce 2s ease-in-out infinite;
+  animation: clippy-bounce 2.5s ease-in-out infinite;
 }
 
 .clippy-dance {
-  animation: clippy-dance 1s ease-in-out;
+  animation: clippy-dance 1.5s ease-in-out;
 }
 
 .clippy-wiggle {
   animation: clippy-wiggle 0.5s ease-in-out;
+}
+
+.clippy-blink {
+  animation: clippy-blink 0.2s ease-in-out;
+}
+
+.clippy-hint-bubble {
+  animation: clippy-hint-entrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.clippy-eye {
+  transition: all 0.1s ease;
 }
 
 /**
