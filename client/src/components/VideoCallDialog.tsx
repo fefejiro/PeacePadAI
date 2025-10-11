@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle, Copy, Check } from "lucide-react";
+import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle, Copy, Check, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -12,6 +12,9 @@ interface VideoCallDialogProps {
   callType: "audio" | "video";
   isIncoming?: boolean;
   callerId?: string;
+  sessionCodeProp?: string;
+  initialCameraEnabled?: boolean;
+  initialMicEnabled?: boolean;
 }
 
 export default function VideoCallDialog({
@@ -21,16 +24,20 @@ export default function VideoCallDialog({
   callType,
   isIncoming = false,
   callerId,
+  sessionCodeProp,
+  initialCameraEnabled = true,
+  initialMicEnabled = true,
 }: VideoCallDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(callType === "audio");
+  const [isMuted, setIsMuted] = useState(!initialMicEnabled);
+  const [isVideoOff, setIsVideoOff] = useState(callType === "audio" || !initialCameraEnabled);
   const [callDuration, setCallDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -42,9 +49,18 @@ export default function VideoCallDialog({
   const recordedChunksRef = useRef<Blob[]>([]);
   const pendingOfferRef = useRef<{ offer: RTCSessionDescriptionInit; from: string } | null>(null);
 
-  // Create shareable session code when call starts
+  // Create shareable session code when call starts or use provided code
   useEffect(() => {
-    if (!isOpen || !user || isIncoming) return;
+    if (!isOpen || !user) return;
+
+    // If session code is provided (joining existing call), use it
+    if (sessionCodeProp) {
+      setSessionCode(sessionCodeProp);
+      return;
+    }
+
+    // Otherwise create new session (starting new call)
+    if (isIncoming) return;
 
     const createCallSession = async () => {
       try {
@@ -65,7 +81,7 @@ export default function VideoCallDialog({
     };
 
     createCallSession();
-  }, [isOpen, user, callType, isIncoming]);
+  }, [isOpen, user, callType, isIncoming, sessionCodeProp]);
 
   useEffect(() => {
     if (!isOpen || !user) return;
@@ -168,6 +184,7 @@ export default function VideoCallDialog({
       }
 
       // Get user media AFTER creating peer connection
+      // Always request tracks so they can be toggled later
       const constraints = {
         audio: true,
         video: callType === "video",
@@ -175,6 +192,17 @@ export default function VideoCallDialog({
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
+
+      // Immediately disable tracks based on preview settings
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = initialMicEnabled;
+      }
+      
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = initialCameraEnabled;
+      }
 
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
@@ -212,12 +240,21 @@ export default function VideoCallDialog({
       }
     } catch (error) {
       console.error("Failed to initialize call:", error);
+      
+      // Set error state but keep dialog open so user can still access session code
+      const errorMessage = error instanceof Error && error.name === "NotAllowedError"
+        ? "Camera/microphone access denied. Please allow access to join the call."
+        : "Could not access camera/microphone. You can still share the session code.";
+      
+      setMediaError(errorMessage);
+      
       toast({
-        title: "Call Failed",
-        description: "Could not access camera/microphone",
+        title: "Media Access Failed",
+        description: errorMessage,
         variant: "destructive",
       });
-      onClose();
+      
+      // Don't close dialog - allow user to access session code for sharing
     }
   };
 
@@ -421,6 +458,35 @@ export default function VideoCallDialog({
     }
   };
 
+  const shareViaSystem = async () => {
+    if (!sessionCode) return;
+
+    const shareableUrl = `${window.location.origin}/join/${sessionCode}`;
+    const shareData = {
+      title: 'Join my PeacePad call',
+      text: `Join my ${callType} call on PeacePad. Session code: ${sessionCode}`,
+      url: shareableUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast({
+          title: "Shared Successfully!",
+          description: "Invitation sent",
+        });
+      } else {
+        // Fallback to copying link
+        await copyShareableLink();
+      }
+    } catch (error) {
+      // User cancelled or share failed
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Failed to share:', error);
+      }
+    }
+  };
+
   const endCall = () => {
     if (isRecording) {
       stopRecording();
@@ -474,8 +540,21 @@ export default function VideoCallDialog({
           </DialogTitle>
           
           {/* Session Code Display - Like Teams/Zoom */}
-          {sessionCode && !isIncoming && (
+          {sessionCode && (
             <div className="mt-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
+              {/* Media Error Display */}
+              {mediaError && (
+                <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
+                  <svg className="h-5 w-5 text-destructive mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-destructive mb-1">Media Access Error</p>
+                    <p className="text-xs text-destructive/80">{mediaError}</p>
+                  </div>
+                </div>
+              )}
+              
               <p className="text-xs text-muted-foreground mb-3">Share to invite others to this call:</p>
               
               {/* Session Code */}
@@ -519,12 +598,22 @@ export default function VideoCallDialog({
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={shareViaSystem}
+                    data-testid="button-share"
+                    className="gap-2 shrink-0"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={copyShareableLink}
                     data-testid="button-copy-link"
                     className="gap-2 shrink-0"
                   >
                     <Copy className="h-4 w-4" />
-                    Copy Link
+                    Copy
                   </Button>
                 </div>
               </div>
