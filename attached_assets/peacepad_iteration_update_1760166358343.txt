@@ -1,0 +1,47 @@
+
+🧩 PeacePadAI — “Media UI & Find Support Enhancement Iteration”
+
+1. 🪪 Fix Sign-Out Functionality
+Observation:
+The sign-out button does not fully clear session data or redirect smoothly on production.
+Instruction:
+Fix the sign-out process so that when a user logs out, the session clears immediately from localStorage and DB session (if active), then cleanly redirects to the login or home screen without needing manual refresh.
+
+2. 🎨 UI Alignment & Professional Layout
+Observation:
+Icons (record, attach, audio, call, etc.) are not uniformly aligned or visually stable across screen sizes.
+Instruction:
+Reformat all icons using consistent padding, spacing, and responsive scaling (Flexbox/Grid).
+Ensure layout matches professional apps (WhatsApp/Google Chat standards).
+Icons must appear balanced, clean, and touch-friendly across mobile and desktop.
+
+3. 🎥 Video & Audio Recording — Improved UX Flow
+Observations:
+- Camera view not showing properly during recording.
+- No progress or stop dialog when recording audio/video.
+- Recordings send immediately, no review/crop option.
+Instruction:
+Ensure camera preview displays before recording starts.
+Add a small recording dialog showing progress + stop button.
+After stopping, show a preview panel where users can trim or crop video/audio before sending.
+UI should mimic a professional recording interface — clean, intuitive, stable.
+
+4. 🌍 Therapist Finder — Expand Postal Code Coverage
+Observation:
+Therapist search currently focuses only on the M9W Toronto postal area.
+Instruction:
+Expand the Therapist API search to cover all of Canada and the U.S.
+Use a free, reliable open-data source (e.g., OpenCanada for CA postal codes, Data.gov for U.S. ZIPs).
+Display results with province/state, city, and postal code.
+Optimize lookup speed with caching or indexing.
+
+5. 🧭 Find Support Section — Same Expansion Logic
+Observation:
+Find Support (formerly Seek Help) has limited postal coverage.
+Instruction:
+Apply the same Canada/U.S.-wide postal lookup logic to the Find Support section.
+Ensure users can find the nearest clinics, mediators, or family centers across all regions.
+
+✅ Summary for Replit Prompt
+Please fix the sign-out bug, align all icons uniformly, and enhance the video/audio recording flow with a professional camera preview, progress bar, and crop-before-send option.
+Expand the Therapist and Find Support postal coverage to all Canada and U.S. postal codes using free open-data APIs. Keep the interface neat, efficient, and cost-optimized.

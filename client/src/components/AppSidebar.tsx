@@ -54,23 +54,28 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const handleLogout = async () => {
     try {
+      // 1. Call logout endpoint to destroy server session
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-      localStorage.removeItem("peacepad_session_id");
-      
-      // Clear all React Query cache to ensure fresh state on next login
-      queryClient.clear();
-      
-      // Force a full page reload to reset all state
-      window.location.reload();
     } catch (error) {
       console.error("Logout error:", error);
+    } finally {
+      // 2. Always clear client-side data regardless of API success
       localStorage.removeItem("peacepad_session_id");
+      
+      // 3. Clear React Query cache
       queryClient.clear();
-      window.location.reload();
+      
+      // 4. Redirect to landing page (which will trigger auth check)
+      setLocation("/");
+      
+      // 5. Force page reload to ensure complete state reset
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     }
   };
 
