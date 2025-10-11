@@ -526,7 +526,7 @@ export default function VideoCallDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[600px]" data-testid="dialog-video-call">
+      <DialogContent className="max-w-4xl h-[90vh] sm:h-[600px] w-[95vw] sm:w-auto" data-testid="dialog-video-call">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span data-testid="text-call-status">
@@ -591,37 +591,41 @@ export default function VideoCallDialog({
               {/* Shareable Link */}
               <div className="pt-3 border-t border-primary/20">
                 <p className="text-xs font-medium text-foreground mb-1">Or share this link:</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 bg-background/50 rounded border border-border text-sm font-mono text-muted-foreground truncate" data-testid="text-shareable-link">
-                    {window.location.origin}/join/{sessionCode}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="flex-1 px-3 py-2 bg-background/50 rounded border border-border text-sm font-mono text-muted-foreground overflow-hidden" data-testid="text-shareable-link">
+                    <span className="hidden sm:inline">{window.location.origin}/join/</span>
+                    <span className="sm:hidden">peacepad.com/join/</span>
+                    <span className="font-bold text-primary">{sessionCode}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={shareViaSystem}
-                    data-testid="button-share"
-                    className="gap-2 shrink-0"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyShareableLink}
-                    data-testid="button-copy-link"
-                    className="gap-2 shrink-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={shareViaSystem}
+                      data-testid="button-share"
+                      className="gap-2 flex-1 sm:flex-none"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyShareableLink}
+                      data-testid="button-copy-link"
+                      className="gap-2 flex-1 sm:flex-none"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </DialogHeader>
 
-        <div className="flex-1 grid grid-cols-2 gap-4 relative">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
           <div className="relative bg-muted rounded-lg overflow-hidden" data-testid="video-remote">
             <video
               ref={remoteVideoRef}

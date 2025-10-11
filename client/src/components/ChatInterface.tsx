@@ -168,6 +168,24 @@ export default function ChatInterface() {
     },
   });
 
+  // Helper to get file extension from MIME type
+  const getExtensionFromMimeType = (mimeType: string): string => {
+    // Strip codec parameters (e.g., "audio/webm;codecs=opus" -> "audio/webm")
+    const baseMimeType = mimeType.split(';')[0].trim();
+    
+    const mimeMap: { [key: string]: string } = {
+      'audio/mp4': 'mp4',
+      'audio/m4a': 'm4a',
+      'audio/webm': 'webm',
+      'audio/ogg': 'ogg',
+      'audio/wav': 'wav',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/ogg': 'ogg',
+    };
+    return mimeMap[baseMimeType] || baseMimeType.split('/')[1] || 'webm';
+  };
+
   const handleSend = () => {
     if (selectedFile) {
       const messageType = selectedFile.type.startsWith('image/') ? 'image' :
@@ -175,10 +193,14 @@ export default function ChatInterface() {
                          selectedFile.type.startsWith('audio/') ? 'audio' : 'document';
       sendMediaMessage.mutate({ file: selectedFile, messageType });
     } else if (recordedAudioBlob) {
-      const file = new File([recordedAudioBlob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+      const mimeType = recordedAudioBlob.type || 'audio/webm';
+      const extension = getExtensionFromMimeType(mimeType);
+      const file = new File([recordedAudioBlob], `audio-${Date.now()}.${extension}`, { type: mimeType });
       sendMediaMessage.mutate({ file, messageType: 'audio' });
     } else if (recordedVideoBlob) {
-      const file = new File([recordedVideoBlob], `video-${Date.now()}.webm`, { type: 'video/webm' });
+      const mimeType = recordedVideoBlob.type || 'video/webm';
+      const extension = getExtensionFromMimeType(mimeType);
+      const file = new File([recordedVideoBlob], `video-${Date.now()}.${extension}`, { type: mimeType });
       sendMediaMessage.mutate({ file, messageType: 'video' });
     } else if (message.trim()) {
       sendTextMessage.mutate(message);
@@ -216,7 +238,17 @@ export default function ChatInterface() {
       audioStreamRef.current = stream;
       audioChunksRef.current = [];
 
-      const mediaRecorder = new MediaRecorder(stream);
+      // Use compatible MIME type for better iOS support
+      let options = {};
+      if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' };
+      } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options = { mimeType: 'audio/webm;codecs=opus' };
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm' };
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
       audioRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -226,7 +258,8 @@ export default function ChatInterface() {
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setRecordedAudioBlob(blob);
         setRecordedAudioUrl(url);
@@ -301,7 +334,8 @@ export default function ChatInterface() {
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(videoChunksRef.current, { type: 'video/webm' });
+        const mimeType = mediaRecorder.mimeType || 'video/webm';
+        const blob = new Blob(videoChunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setRecordedVideoBlob(blob);
         setRecordedVideoUrl(url);
@@ -566,7 +600,20 @@ export default function ChatInterface() {
           <div className="max-w-md mx-auto space-y-3">
             <p className="text-sm font-medium">Review your audio message</p>
             <div className="p-3 bg-muted rounded-lg">
-              <audio src={recordedAudioUrl} controls className="w-full" data-testid="audio-preview" />
+              <audio 
+                src={recordedAudioUrl} 
+                controls 
+                className="w-full" 
+                data-testid="audio-preview"
+                onError={(e) => {
+                  console.error("Audio playback error:", e);
+                  toast({
+                    title: "Playback issue",
+                    description: "Audio format may not be supported on this device",
+                    variant: "destructive",
+                  });
+                }}
+              />
             </div>
             <div className="flex gap-2">
               <Button
