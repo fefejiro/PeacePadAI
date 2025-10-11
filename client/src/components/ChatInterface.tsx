@@ -382,22 +382,24 @@ export default function ChatInterface() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b bg-card">
         <h2 className="text-lg font-semibold text-foreground">Chat</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             size="icon"
             variant="secondary"
             onClick={startAudioCall}
+            className="h-9 w-9 flex items-center justify-center"
             data-testid="button-start-audio-call"
           >
-            <Phone className="h-4 w-4" />
+            <Phone className="h-5 w-5" />
           </Button>
           <Button
             size="icon"
             variant="secondary"
             onClick={startVideoCall}
+            className="h-9 w-9 flex items-center justify-center"
             data-testid="button-start-video-call"
           >
-            <Video className="h-4 w-4" />
+            <Video className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -587,18 +589,20 @@ export default function ChatInterface() {
                     size="sm"
                     onClick={handleSend}
                     disabled={sendMediaMessage.isPending}
+                    className="flex items-center justify-center gap-2"
                     data-testid="button-send-file"
                   >
-                    <Send className="h-3 w-3 mr-1" />
+                    <Send className="h-4 w-4" />
                     Send
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={clearFileSelection}
+                    className="flex items-center justify-center gap-2"
                     data-testid="button-clear-file"
                   >
-                    <Trash2 className="h-3 w-3 mr-1" />
+                    <Trash2 className="h-4 w-4" />
                     Delete
                   </Button>
                 </div>
@@ -617,18 +621,20 @@ export default function ChatInterface() {
                 <Button
                   size="sm"
                   onClick={stopAudioRecording}
+                  className="flex items-center gap-2"
                   data-testid="button-stop-audio-recording"
                 >
-                  <Check className="h-3 w-3 mr-1" />
+                  <Check className="h-4 w-4" />
                   Stop
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={cancelAudioRecording}
+                  className="flex items-center gap-2"
                   data-testid="button-cancel-audio-recording"
                 >
-                  <X className="h-3 w-3 mr-1" />
+                  <X className="h-4 w-4" />
                   Cancel
                 </Button>
               </div>
@@ -636,17 +642,17 @@ export default function ChatInterface() {
           )}
 
           <div className="relative rounded-xl shadow-lg bg-card border border-card-border">
-            <div className="flex items-end gap-2 p-2">
+            <div className="flex items-center gap-1.5 p-2.5">
               {/* File Attachment Button */}
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
-                className="shrink-0"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 disabled={hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
                 data-testid="button-attach-file"
               >
-                <Paperclip className="h-4 w-4" />
+                <Paperclip className="h-5 w-5" />
               </Button>
 
               {/* Audio Recording Button */}
@@ -654,11 +660,11 @@ export default function ChatInterface() {
                 size="icon"
                 variant={isRecordingAudio ? "destructive" : "ghost"}
                 onClick={isRecordingAudio ? stopAudioRecording : startAudioRecording}
-                className="shrink-0"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 disabled={hasAnyMediaReady || isRecordingVideo}
                 data-testid="button-record-audio"
               >
-                <Mic className="h-4 w-4" />
+                <Mic className="h-5 w-5" />
               </Button>
 
               {/* Video Recording Button */}
@@ -666,11 +672,11 @@ export default function ChatInterface() {
                 size="icon"
                 variant={isRecordingVideo ? "destructive" : "ghost"}
                 onClick={isRecordingVideo ? stopVideoRecording : startVideoRecording}
-                className="shrink-0"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 disabled={hasAnyMediaReady || isRecordingAudio}
                 data-testid="button-record-video"
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-5 w-5" />
               </Button>
 
               <Textarea
@@ -678,7 +684,7 @@ export default function ChatInterface() {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
-                className="resize-none border-0 text-base focus-visible:ring-0 min-h-[48px] flex-1"
+                className="resize-none border-0 text-base focus-visible:ring-0 min-h-[40px] max-h-[120px] flex-1 self-center"
                 data-testid="input-message"
                 disabled={sendTextMessage.isPending || sendMediaMessage.isPending || hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
               />
@@ -687,10 +693,10 @@ export default function ChatInterface() {
                 size="icon"
                 onClick={handleSend}
                 disabled={(!message.trim() && !hasAnyMediaReady) || sendTextMessage.isPending || sendMediaMessage.isPending || isRecordingAudio || isRecordingVideo}
-                className="shrink-0"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 data-testid="button-send-message"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               </Button>
             </div>
           </div>
