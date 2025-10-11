@@ -42,6 +42,12 @@ Preferred communication style: Simple, everyday language.
 - **WebSocket Signaling Server**: Unified server for chat and WebRTC signaling, handles multiple connections, ICE candidate exchange.
 - **Voice/Video Calling**: WebRTC peer connections, STUN server configuration, audio/video modes, call controls (mute, camera, end call), optional call recording (WebM).
 
+### Emotional Intelligence Features (PeacePadAI)
+- **Clippy 2.0 Animated Mascot**: Interactive paperclip assistant with idle bounce and dance animations, provides contextual hints, responds to user actions.
+- **Contextual Hints System**: User-controlled hints toggle in Settings, localStorage-based state management, helpful guidance for first-time features.
+- **Daily Affirmations**: JSON-driven affirmation library with themes (patience, peace, multicultural, communication, coparenting), gradient banner display, dismissible with daily rotation.
+- **Mood Check-Ins**: Post-session emotional reflection modal, emoji-based mood selection (positive/neutral/negative), optional note field, anonymous mood history tracking.
+
 ### Therapist Directory
 - **Geocoding & Location Detection**: OpenStreetMap Nominatim API for addresses and postal codes, Canadian postal code fallback, country detection, "Use My Location" feature.
 - **Distance Calculation**: Haversine formula for accurate geographic distance, server-side km calculation, client-side miles-to-km conversion.
