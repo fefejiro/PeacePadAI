@@ -16,6 +16,7 @@ type MessageWithSender = Message & {
   senderDisplayName?: string;
   senderFirstName?: string;
   senderLastName?: string;
+  senderProfileImage?: string;
 };
 
 export default function ChatInterface() {
@@ -454,6 +455,7 @@ export default function ChatInterface() {
                 sender={msg.senderId === user?.id ? "me" : "coparent"}
                 timestamp={new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 senderName={getSenderName()}
+                senderAvatar={msg.senderProfileImage || undefined}
                 tone={msg.tone as ToneType | undefined}
                 toneSummary={msg.toneSummary || undefined}
                 toneEmoji={msg.toneEmoji || undefined}

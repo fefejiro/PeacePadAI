@@ -10,9 +10,11 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users, User } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 
 const menuItems = [
@@ -55,6 +57,10 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
+  const { user } = useAuth();
+
+  const isEmoji = user?.profileImageUrl?.startsWith("emoji:");
+  const emojiValue = isEmoji && user?.profileImageUrl ? user.profileImageUrl.replace("emoji:", "") : "";
 
   const handleLogout = async () => {
     console.log("[Logout] Starting logout process...");
@@ -98,11 +104,34 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-6 w-6 text-primary" />
           <h2 className="text-lg font-semibold text-foreground">PeacePad</h2>
         </div>
+        {user && (
+          <div className="flex items-center gap-3 p-2 bg-card rounded-lg border border-card-border">
+            <Avatar className="h-10 w-10">
+              {isEmoji ? (
+                <div className="flex items-center justify-center text-2xl">{emojiValue}</div>
+              ) : user.profileImageUrl ? (
+                <AvatarImage src={user.profileImageUrl} alt={user.displayName || "User"} />
+              ) : (
+                <AvatarFallback>
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-displayname">
+                {user.displayName || "Guest"}
+              </p>
+              {user.isGuest && (
+                <p className="text-xs text-muted-foreground">Guest User</p>
+              )}
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

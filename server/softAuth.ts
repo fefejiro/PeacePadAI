@@ -33,7 +33,7 @@ export async function setupSoftAuth(app: Express) {
   // Guest entry endpoint
   app.post("/api/auth/guest", async (req: any, res) => {
     try {
-      const { displayName, sessionId: clientSessionId } = req.body;
+      const { displayName, profileImageUrl, sessionId: clientSessionId } = req.body;
 
       // Check if session already exists
       if (clientSessionId) {
@@ -61,6 +61,7 @@ export async function setupSoftAuth(app: Express) {
         displayName: finalDisplayName,
         isGuest: true,
         guestId,
+        profileImageUrl: profileImageUrl || undefined,
       });
 
       const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);

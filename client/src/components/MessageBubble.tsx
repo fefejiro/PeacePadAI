@@ -108,11 +108,19 @@ export default function MessageBubble({
     }
   };
 
+  const isEmoji = senderAvatar?.startsWith("emoji:");
+  const emojiValue = isEmoji && senderAvatar ? senderAvatar.replace("emoji:", "") : "";
+
   return (
     <div className={`flex gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarImage src={senderAvatar} alt={senderName} />
-        <AvatarFallback>{senderName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        {isEmoji ? (
+          <div className="flex items-center justify-center text-xl">{emojiValue}</div>
+        ) : senderAvatar ? (
+          <AvatarImage src={senderAvatar} alt={senderName} />
+        ) : (
+          <AvatarFallback>{senderName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        )}
       </Avatar>
 
       <div className={`flex flex-col max-w-[70%] ${isMe ? "items-end" : "items-start"}`}>

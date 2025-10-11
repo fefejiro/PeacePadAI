@@ -1,0 +1,56 @@
+📱 PeacePadAI — “Profile Emoji, Picture & Mobile UI Optimization Iteration”
+
+🎯 Goal
+Enhance user personalization and ensure PeacePadAI’s UI looks and works seamlessly across mobile devices (Android & iPhone). 
+This iteration focuses on improving profile setup (emoji/photo), fixing emoji rendering, stabilizing uploads, and ensuring full mobile compatibility.
+
+🪪 1. Profile Setup Enhancement
+During the soft login screen (nickname or guest mode), users should be able to:
+- Choose a profile emoji (emoji picker).
+- Or upload a profile photo (PNG/JPEG).
+
+Implementation Notes:
+- Add emoji picker and file upload input (accept="image/*").
+- Compress uploaded images (client-side) before saving.
+- Save emoji/photo in localStorage linked to the session ID.
+- Assign random emoji (🌞, 🌻, 🦋, ✨) if none chosen.
+
+💬 2. Profile Display Across UI
+Display user emoji/photo consistently:
+- Top Bar: beside PeacePadAI logo or chat header → Mama 🙋‍♀️
+- Chat Bubbles: show small circular avatar beside each message.
+- Sidebar (if present): mini avatar next to active chat or contact list.
+
+🧠 3. Backend & Data Handling
+- Store emoji/photo reference in session data (no heavy storage).
+- Use base64-encoded images for temporary profiles.
+- Keep design ready for future persistent (hard-auth) accounts.
+
+🧰 4. Troubleshooting Fixes
+- Fix broken emoji rendering (UTF-8 + Noto Color Emoji font).
+- Stabilize image upload flow (include upload progress + retry).
+- Add graceful fallbacks for failed uploads (e.g., “Upload failed, please retry”).
+
+📱 5. Mobile Optimization (NEW)
+Ensure the interface is fully responsive and user-friendly on Android and iPhone.
+
+Requirements:
+- Use responsive CSS grid/flex layouts that scale properly across all screen widths.
+- Ensure all icons, emoji pickers, upload buttons, and chat bubbles fit correctly within mobile viewports.
+- Test and adjust keyboard overlap when typing.
+- Floating buttons (record, send) remain visible and tappable.
+- Camera and mic permissions for in-app recording on iOS Safari and Android Chrome.
+- Optimize for touch gestures (scroll, tap, long press) with no layout shift or hidden buttons.
+
+✅ Deliverables
+- [ ] Emoji/photo selection on login
+- [ ] Profile display across chat areas
+- [ ] Fixed emoji rendering and upload flow
+- [ ] Responsive mobile layout for Android + iPhone
+- [ ] Stable camera/mic permissions for mobile browsers
+
+🔧 Summary for Replit Prompt
+Implement emoji and profile picture personalization at login. 
+Display user avatar across the app (top bar, sidebar, chat). 
+Fix emoji rendering and photo upload bugs. 
+Finally, optimize the entire UI for Android/iPhone mobile users — ensuring responsive design, full feature visibility, and reliable touch interaction.

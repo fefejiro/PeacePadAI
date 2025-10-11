@@ -199,6 +199,7 @@ export class DatabaseStorage implements IStorage {
         senderDisplayName: users.displayName,
         senderFirstName: users.firstName,
         senderLastName: users.lastName,
+        senderProfileImage: users.profileImageUrl,
       })
       .from(messages)
       .leftJoin(users, eq(messages.senderId, users.id))
@@ -208,6 +209,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessagesByUser(userId: string): Promise<any[]> {
+    // TODO: This needs proper conversation/session scoping with recipientId
+    // Current implementation shows only user's sent messages as a privacy safeguard
+    // For proper co-parent chat, schema needs: recipientId or conversationId field
+    // Then filter: WHERE (senderId = userId OR recipientId = userId)
     const result = await db
       .select({
         id: messages.id,
@@ -227,6 +232,7 @@ export class DatabaseStorage implements IStorage {
         senderDisplayName: users.displayName,
         senderFirstName: users.firstName,
         senderLastName: users.lastName,
+        senderProfileImage: users.profileImageUrl,
       })
       .from(messages)
       .leftJoin(users, eq(messages.senderId, users.id))
