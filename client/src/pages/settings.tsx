@@ -66,9 +66,10 @@ export default function SettingsPage() {
   const isEmoji = currentProfileImage.startsWith("emoji:");
   const emojiValue = isEmoji ? currentProfileImage.replace("emoji:", "") : "";
 
-  // Generate shareable session link
+  // Generate shareable session link - only show if session ID exists
   const sessionId = localStorage.getItem("peacepad_session_id") || "";
-  const shareableLink = `${window.location.origin}?session=${sessionId}`;
+  const hasValidSession = sessionId && sessionId.length > 0;
+  const shareableLink = hasValidSession ? `${window.location.origin}?session=${sessionId}` : "";
 
   const copySessionLink = async () => {
     try {
@@ -220,56 +221,58 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <h2 className="text-xl font-semibold">Share Your Session</h2>
-            <CardDescription>Invite your co-parent to join this conversation</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Your Session Link</Label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Share this link with your co-parent to join the same conversation
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 px-3 py-2 bg-muted rounded-md border border-border text-sm font-mono break-all" data-testid="text-session-link">
-                  {shareableLink}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={copySessionLink}
-                    data-testid="button-copy-session-link"
-                    className="flex-1 sm:flex-none min-h-10"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="default"
-                    onClick={shareViaSystem}
-                    data-testid="button-share-session-link"
-                    className="flex-1 sm:flex-none min-h-10"
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
+{hasValidSession && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-xl font-semibold">Share Your Session</h2>
+              <CardDescription>Invite your co-parent to join this conversation</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Your Session Link</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Share this link with your co-parent to join the same conversation
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 px-3 py-2 bg-muted rounded-md border border-border text-sm font-mono break-all" data-testid="text-session-link">
+                    {shareableLink}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={copySessionLink}
+                      data-testid="button-copy-session-link"
+                      className="flex-1 sm:flex-none min-h-10"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="default"
+                      onClick={shareViaSystem}
+                      data-testid="button-share-session-link"
+                      className="flex-1 sm:flex-none min-h-10"
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
