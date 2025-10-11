@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Mail, Globe, Star, Navigation, ExternalLink } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MapPin, Phone, Mail, Globe, Star, Navigation, ExternalLink, AlertCircle, Heart, Users, Scale } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +16,7 @@ export default function TherapistDirectoryPage() {
   const [searchDistance, setSearchDistance] = useState<number>(50);
   const [postalCode, setPostalCode] = useState<string>("");
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [resourceType, setResourceType] = useState<string>("all");
 
   const handlePostalCodeSearch = async () => {
     if (!postalCode.trim()) {
@@ -106,8 +108,8 @@ export default function TherapistDirectoryPage() {
     }
   };
 
-  const { data: therapists = [], isLoading } = useQuery({
-    queryKey: ["/api/therapists", userLocation?.lat, userLocation?.lng, searchDistance, userLocation?.address, userLocation?.isCanada],
+  const { data: resources = [], isLoading } = useQuery({
+    queryKey: ["/api/support-resources", userLocation?.lat, userLocation?.lng, searchDistance, userLocation?.address, userLocation?.isCanada, resourceType],
     enabled: !!user && !!userLocation,
     queryFn: async () => {
       // Convert miles to km if not Canadian (server expects km)
@@ -120,13 +122,14 @@ export default function TherapistDirectoryPage() {
         lng: userLocation!.lng.toString(),
         maxDistance: distanceInKm.toString(),
         address: userLocation!.address || '',
+        resourceType: resourceType,
       });
       
-      const response = await fetch(`/api/therapists?${params}`, {
+      const response = await fetch(`/api/support-resources?${params}`, {
         credentials: 'include',
       });
       
-      if (!response.ok) throw new Error('Failed to fetch therapists');
+      if (!response.ok) throw new Error('Failed to fetch resources');
       return response.json();
     },
   });
@@ -149,12 +152,43 @@ export default function TherapistDirectoryPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Therapist Directory</h1>
+            <h1 className="text-3xl font-bold text-foreground">Find Support</h1>
             <p className="text-muted-foreground mt-1">
-              Find licensed therapists and support resources near you
+              Find crisis support, therapists, family services, and resources near you
             </p>
           </div>
         </div>
+
+        {/* Resource Type Filter */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Resource Type</CardTitle>
+            <CardDescription>Choose the type of support you're looking for</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={resourceType} onValueChange={setResourceType}>
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
+                <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
+                <TabsTrigger value="crisis" data-testid="tab-crisis">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Crisis
+                </TabsTrigger>
+                <TabsTrigger value="therapist" data-testid="tab-therapist">
+                  <Heart className="h-4 w-4 mr-2" />
+                  Therapists
+                </TabsTrigger>
+                <TabsTrigger value="family-services" data-testid="tab-family">
+                  <Users className="h-4 w-4 mr-2" />
+                  Family Services
+                </TabsTrigger>
+                <TabsTrigger value="legal" data-testid="tab-legal">
+                  <Scale className="h-4 w-4 mr-2" />
+                  Legal
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
 
         {/* Location Search */}
         <Card className="mb-6">
@@ -222,9 +256,9 @@ export default function TherapistDirectoryPage() {
                     data-testid="input-search-radius"
                   />
                 </div>
-                {therapists && (
+                {resources && (
                   <Badge variant="secondary" data-testid="badge-results-count">
-                    {therapists.length} results
+                    {resources.length} results
                   </Badge>
                 )}
               </div>
@@ -232,38 +266,54 @@ export default function TherapistDirectoryPage() {
           </Card>
         )}
 
-        {/* Therapist Cards */}
+        {/* Support Resources */}
         <div className="space-y-4">
-          {therapists.length === 0 && userLocation ? (
+          {resources.length === 0 && userLocation ? (
             <Card>
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  No therapists found within {searchDistance} {userLocation.isCanada ? 'km' : 'miles'}. Try increasing the search radius.
+                  No resources found within {searchDistance} {userLocation.isCanada ? 'km' : 'miles'}. Try increasing the search radius or changing the resource type.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            therapists.map((therapist: any) => (
-              <Card key={therapist.id} data-testid={`card-therapist-${therapist.id}`}>
+            resources.map((resource: any) => (
+              <Card key={resource.id} data-testid={`card-resource-${resource.id}`} className={resource.type === 'crisis' ? 'border-destructive' : ''}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-xl">{therapist.name}</CardTitle>
+                      <div className="flex items-center gap-2 mb-1">
+                        <CardTitle className="text-xl">{resource.name}</CardTitle>
+                        {resource.type === 'crisis' && (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            24/7 Crisis
+                          </Badge>
+                        )}
+                        {resource.isFree && (
+                          <Badge variant="secondary">Free</Badge>
+                        )}
+                      </div>
                       <CardDescription className="mt-1">
-                        {therapist.specialty}
+                        {resource.specialty}
                       </CardDescription>
+                      {resource.description && (
+                        <p className="text-sm text-muted-foreground mt-2">{resource.description}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {therapist.rating && (
+                      {resource.rating && (
                         <Badge variant="secondary" className="gap-1">
                           <Star className="h-3 w-3 fill-current" />
-                          {therapist.rating}
+                          {resource.rating}
                         </Badge>
                       )}
-                      <Badge variant="outline" data-testid={`badge-distance-${therapist.id}`}>
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {therapist.distance} {userLocation?.isCanada ? 'km' : 'mi'}
-                      </Badge>
+                      {!resource.isOnline && (
+                        <Badge variant="outline" data-testid={`badge-distance-${resource.id}`}>
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {resource.distance} {userLocation?.isCanada ? 'km' : 'mi'}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -271,32 +321,32 @@ export default function TherapistDirectoryPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4" />
-                      <span>{therapist.address}</span>
+                      <span>{resource.address}</span>
                     </div>
                     
-                    {therapist.phone && (
+                    {resource.phone && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Phone className="h-4 w-4" />
-                        <a href={`tel:${therapist.phone}`} className="hover:underline">
-                          {therapist.phone}
+                        <a href={`tel:${resource.phone}`} className="hover:underline">
+                          {resource.phone}
                         </a>
                       </div>
                     )}
                     
-                    {therapist.email && (
+                    {resource.email && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Mail className="h-4 w-4" />
-                        <a href={`mailto:${therapist.email}`} className="hover:underline">
-                          {therapist.email}
+                        <a href={`mailto:${resource.email}`} className="hover:underline">
+                          {resource.email}
                         </a>
                       </div>
                     )}
                     
-                    {therapist.website && (
+                    {resource.website && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Globe className="h-4 w-4" />
                         <a
-                          href={therapist.website}
+                          href={resource.website}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="hover:underline flex items-center gap-1"
@@ -306,27 +356,43 @@ export default function TherapistDirectoryPage() {
                         </a>
                       </div>
                     )}
+
+                    {resource.hours && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span className="font-medium">Hours:</span>
+                        <span>{resource.hours}</span>
+                      </div>
+                    )}
+
+                    {resource.languages && resource.languages.length > 0 && (
+                      <div className="col-span-full flex items-start gap-2 text-muted-foreground">
+                        <span className="font-medium">Languages:</span>
+                        <span>{resource.languages.join(', ')}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {therapist.acceptsInsurance && (
+                  {resource.acceptsInsurance && (
                     <Badge variant="secondary">Accepts Insurance</Badge>
                   )}
 
-                  {therapist.licenseNumber && (
+                  {resource.licenseNumber && (
                     <p className="text-xs text-muted-foreground">
-                      License: {therapist.licenseNumber}
+                      License: {resource.licenseNumber}
                     </p>
                   )}
 
-                  <div className="pt-2">
-                    <Button
-                      onClick={() => openInMaps(therapist.address, therapist.latitude, therapist.longitude)}
-                      data-testid={`button-navigate-${therapist.id}`}
-                    >
-                      <Navigation className="h-4 w-4 mr-2" />
-                      Get Directions
-                    </Button>
-                  </div>
+                  {!resource.isOnline && resource.latitude && resource.longitude && (
+                    <div className="pt-2">
+                      <Button
+                        onClick={() => openInMaps(resource.address, resource.latitude, resource.longitude)}
+                        data-testid={`button-navigate-${resource.id}`}
+                      >
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Get Directions
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))

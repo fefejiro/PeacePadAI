@@ -748,35 +748,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Address is required" });
       }
       
-      // Use OpenStreetMap Nominatim for free geocoding with addressdetails
-      let nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address as string)}&format=json&addressdetails=1&limit=1`;
-      let response = await fetch(nominatimUrl, {
+      const addressStr = address as string;
+      let data: any = null;
+      let isCanada = false;
+      
+      // Check if it's a Canadian postal code (format: A1A 1A1 or A1A1A1)
+      const canadianPostalRegex = /^[A-Za-z]\d[A-Za-z][\s\-]?\d[A-Za-z]\d$/;
+      
+      if (canadianPostalRegex.test(addressStr.trim())) {
+        // Use Geocoder.ca for Canadian postal codes (more accurate)
+        const postalCode = addressStr.replace(/\s/g, '').toUpperCase();
+        try {
+          const geocoderUrl = `https://geocoder.ca/?postal=${postalCode}&geoit=XML&json=1`;
+          const response = await fetch(geocoderUrl);
+          const geocoderData = await response.json();
+          
+          if (geocoderData && geocoderData.latt && geocoderData.longt) {
+            isCanada = true;
+            return res.json({
+              lat: parseFloat(geocoderData.latt),
+              lng: parseFloat(geocoderData.longt),
+              displayName: `${postalCode}, ${geocoderData.standard?.city || ''}, ${geocoderData.standard?.prov || 'ON'}, Canada`,
+              isCanada: true
+            });
+          }
+        } catch (geocoderError) {
+          console.log("Geocoder.ca failed, falling back to Nominatim:", geocoderError);
+        }
+      }
+      
+      // Use OpenStreetMap Nominatim for non-Canadian addresses or as fallback
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&addressdetails=1&limit=1`;
+      const response = await fetch(nominatimUrl, {
         headers: {
           'User-Agent': 'PeacePad-CoParenting-App'
         }
       });
       
-      let data = await response.json();
-      
-      // Fallback: If postal code search fails, try searching for just the city
-      // This handles Canadian postal codes which Nominatim doesn't have detailed coverage for
-      if ((!data || data.length === 0) && /[A-Za-z]\d[A-Za-z][\s\-]?\d[A-Za-z]\d/.test(address as string)) {
-        // Try "Toronto, Ontario, Canada" as fallback for Canadian postal codes
-        const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=Toronto,Ontario,Canada&format=json&addressdetails=1&limit=1`;
-        const fallbackResponse = await fetch(fallbackUrl, {
-          headers: {
-            'User-Agent': 'PeacePad-CoParenting-App'
-          }
-        });
-        data = await fallbackResponse.json();
-      }
+      data = await response.json();
       
       if (!data || data.length === 0) {
-        return res.status(404).json({ message: "Location not found" });
+        return res.status(404).json({ message: "Location not found. Please check the postal code or address." });
       }
       
       const countryCode = data[0].address?.country_code;
-      const isCanada = countryCode === 'ca';
+      isCanada = countryCode === 'ca';
       
       res.json({
         lat: parseFloat(data[0].lat),
@@ -803,26 +819,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return R * c;
   }
 
-  // Therapist directory routes - web search based
-  app.get('/api/therapists', isSoftAuthenticated, async (req, res) => {
+  // Support Resources directory - includes therapists, crisis support, government services, etc.
+  app.get('/api/support-resources', isSoftAuthenticated, async (req, res) => {
     try {
-      const { lat, lng, maxDistance, address } = req.query;
+      const { lat, lng, maxDistance, address, resourceType } = req.query;
       
       if (!lat || !lng) {
         return res.json([]);
       }
       
-      // Determine location name for search
-      let locationName = address as string || 'location';
       const distanceNum = parseInt(maxDistance as string || '50');
+      const filterType = resourceType as string || 'all';
       
-      // Create hardcoded therapist data based on web search results for Toronto area
-      // In a production app, you would integrate with Psychology Today API or similar
-      const therapistData = [
+      // Comprehensive support resources database
+      // Resource types: therapist, crisis, government, family-services, legal, financial
+      const allResources = [
+        // CRISIS & IMMEDIATE SUPPORT (24/7, always available regardless of location)
+        {
+          id: 'crisis-988',
+          name: '988 Suicide Crisis Helpline',
+          type: 'crisis',
+          specialty: '24/7 Crisis Support',
+          description: 'Immediate support for anyone in suicidal crisis or emotional distress',
+          address: 'Available across Canada',
+          latitude: '43.6532',
+          longitude: '-79.3832',
+          phone: '988 (call or text)',
+          website: 'https://988.ca/',
+          hours: '24/7',
+          isFree: true,
+          isOnline: true,
+          languages: ['English', 'French'],
+          distance: 0,
+        },
+        {
+          id: 'crisis-kids',
+          name: 'Kids Help Phone',
+          type: 'crisis',
+          specialty: 'Youth Crisis Support (Ages 5-29)',
+          description: 'Professional counseling, information and referrals',
+          address: 'Available across Canada',
+          latitude: '43.6532',
+          longitude: '-79.3832',
+          phone: '1-800-668-6868 or text CONNECT to 686868',
+          website: 'https://kidshelpphone.ca/',
+          hours: '24/7',
+          isFree: true,
+          isOnline: true,
+          languages: ['English', 'French'],
+          distance: 0,
+        },
+        {
+          id: 'crisis-211',
+          name: '211 Ontario',
+          type: 'crisis',
+          specialty: 'Community, Health & Social Services Helpline',
+          description: 'Information and referral to community, health and mental health services',
+          address: 'Available across Ontario',
+          latitude: '43.6532',
+          longitude: '-79.3832',
+          phone: '211 or 1-877-330-3213',
+          website: 'https://211ontario.ca/',
+          hours: '24/7',
+          isFree: true,
+          isOnline: true,
+          languages: ['English', 'French', '150+ languages via translation'],
+          distance: 0,
+        },
+        {
+          id: 'crisis-text',
+          name: 'Crisis Text Line Canada',
+          type: 'crisis',
+          specialty: 'Text-Based Crisis Support',
+          description: 'Free, confidential crisis support via text message',
+          address: 'Available across Canada',
+          latitude: '43.6532',
+          longitude: '-79.3832',
+          phone: 'Text CONNECT to 686868',
+          website: 'https://www.crisistextline.ca/',
+          hours: '24/7',
+          isFree: true,
+          isOnline: true,
+          languages: ['English', 'French'],
+          distance: 0,
+        },
+        {
+          id: 'crisis-women',
+          name: 'Assaulted Women\'s Helpline',
+          type: 'crisis',
+          specialty: 'Support for Women Experiencing Abuse',
+          description: 'Crisis counseling, safety planning, and referrals',
+          address: 'Available across Ontario',
+          latitude: '43.6532',
+          longitude: '-79.3832',
+          phone: '1-866-863-0511 (TTY: 1-866-863-7868)',
+          website: 'https://www.awhl.org/',
+          hours: '24/7',
+          isFree: true,
+          isOnline: true,
+          languages: ['English', 'French', '9+ languages'],
+          distance: 0,
+        },
+        
+        // THERAPISTS (Location-based)
         {
           id: '1',
           name: 'KMA Therapy',
+          type: 'therapist',
           specialty: 'Individual, Couples & Family Counseling',
+          description: 'Evidence-based therapy for anxiety, depression, relationships, trauma',
           address: 'Multiple Locations: Yonge & Eglinton, King West, Yorkville, Liberty Village, Toronto',
           latitude: '43.7015',
           longitude: '-79.3984',
@@ -832,12 +937,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rating: 4.8,
           distance: 5,
           acceptsInsurance: true,
+          isFree: false,
           licenseNumber: 'College of Psychologists of Ontario',
         },
         {
           id: '2',
           name: 'Nuvista Mental Health',
+          type: 'therapist',
           specialty: 'Anxiety, Depression, Family & Veterans Services',
+          description: 'Comprehensive mental health services including veteran support',
           address: 'Near Islington Subway, Etobicoke, Toronto',
           latitude: '43.6467',
           longitude: '-79.5247',
@@ -945,26 +1053,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userLat = parseFloat(lat as string);
       const userLng = parseFloat(lng as string);
       
-      const therapistsWithDistance = therapistData.map(therapist => ({
-        ...therapist,
-        distance: Math.round(calculateDistance(
+      const resourcesWithDistance = allResources.map((resource: any) => ({
+        ...resource,
+        distance: resource.isOnline ? 0 : Math.round(calculateDistance(
           userLat,
           userLng,
-          parseFloat(therapist.latitude),
-          parseFloat(therapist.longitude)
+          parseFloat(resource.latitude),
+          parseFloat(resource.longitude)
         ))
       }));
       
-      // Filter by distance and sort
-      const filteredTherapists = therapistsWithDistance.filter(
-        t => t.distance <= distanceNum
-      ).sort((a, b) => a.distance - b.distance);
+      // Filter by resource type if specified
+      let filtered = filterType === 'all' 
+        ? resourcesWithDistance 
+        : resourcesWithDistance.filter((r: any) => r.type === filterType);
       
-      res.json(filteredTherapists);
+      // Filter by distance (crisis resources always included)
+      filtered = filtered.filter((r: any) => 
+        r.type === 'crisis' || r.isOnline || r.distance <= distanceNum
+      );
+      
+      // Sort: crisis first, then by distance
+      filtered.sort((a: any, b: any) => {
+        if (a.type === 'crisis' && b.type !== 'crisis') return -1;
+        if (a.type !== 'crisis' && b.type === 'crisis') return 1;
+        return a.distance - b.distance;
+      });
+      
+      res.json(filtered);
     } catch (error) {
-      console.error("Error fetching therapists:", error);
-      res.status(500).json({ message: "Failed to fetch therapists" });
+      console.error("Error fetching support resources:", error);
+      res.status(500).json({ message: "Failed to fetch support resources" });
     }
+  });
+  
+  // Keep old therapists endpoint for backward compatibility
+  app.get('/api/therapists', isSoftAuthenticated, async (req, res) => {
+    // Redirect to support-resources with therapist filter
+    req.query.resourceType = 'therapist';
+    return app._router.handle(
+      Object.assign(req, { url: '/api/support-resources', originalUrl: '/api/support-resources' }), 
+      res, 
+      () => {}
+    );
   });
 
   app.post('/api/therapists', isSoftAuthenticated, async (req, res) => {
