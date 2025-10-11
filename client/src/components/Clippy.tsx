@@ -121,8 +121,8 @@ export default function Clippy({ onHintClick }: ClippyProps) {
         size="icon"
         className={`
           h-14 w-14 rounded-full shadow-lg
-          ${isEnabled ? 'animate-bounce' : 'opacity-50'}
-          ${isDancing ? 'animate-spin' : ''}
+          ${isEnabled ? 'clippy-bounce' : 'opacity-50'}
+          ${isDancing ? 'clippy-dance' : ''}
           transition-all duration-300
         `}
         onClick={handleClick}

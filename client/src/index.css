@@ -215,6 +215,64 @@
   }
 }
 
+/* Clippy 2.0 Animations */
+@keyframes clippy-bounce {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(5deg);
+  }
+}
+
+@keyframes clippy-dance {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-15deg) scale(1.1);
+  }
+  50% {
+    transform: rotate(15deg) scale(0.95);
+  }
+  75% {
+    transform: rotate(-10deg) scale(1.05);
+  }
+}
+
+@keyframes clippy-wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  50% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+.clippy-bounce {
+  animation: clippy-bounce 2s ease-in-out infinite;
+}
+
+.clippy-dance {
+  animation: clippy-dance 1s ease-in-out;
+}
+
+.clippy-wiggle {
+  animation: clippy-wiggle 0.5s ease-in-out;
+}
+
 /**
  * Using the elevate system.
  * Automatic contrast adjustment.

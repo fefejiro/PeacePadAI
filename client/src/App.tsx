@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import MoodCheckIn from "@/components/MoodCheckIn";
+import Clippy from "@/components/Clippy";
 import LandingPage from "@/pages/landing";
 import ChatPage from "@/pages/chat";
 import DashboardPage from "@/pages/dashboard";
@@ -87,6 +89,8 @@ export default function App() {
               </div>
             </SidebarProvider>
           </AuthWrapper>
+          <MoodCheckIn />
+          <Clippy />
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
