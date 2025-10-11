@@ -16,8 +16,9 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 - **Technology Stack**: Node.js, Express.js, TypeScript, ES Modules, Drizzle ORM, PostgreSQL (Neon serverless).
 - **API Design**: RESTful API, Replit Auth middleware, consistent error handling, request/response logging.
-- **Data Models**: Users, Guest Sessions, Usage Metrics, Messages (with AI tone analysis), Notes, Tasks, Child Updates, Pets, Expenses, Events (with AI conflict detection), Sessions.
+- **Data Models**: Users, Guest Sessions, Usage Metrics, Messages (with AI tone analysis and recipientId for 1:1 conversations), Notes, Tasks, Child Updates, Pets, Expenses, Events (with AI conflict detection), Sessions.
 - **Soft Authentication**: Guest entry with optional display name, unique localStorage session ID (14-day persistence), auto-generated guest IDs, no email/password required.
+- **Conversation Scoping**: Messages include recipientId for proper 1:1 conversation privacy; auto-selected for 2-user scenarios, explicit selection required for 3+ users; retrieval filtered by `WHERE senderId = userId OR recipientId = userId`.
 
 ### Progressive Web App (PWA)
 - **Configuration**: `manifest.json`, service worker for offline support, "Add to Home Screen" capability, standalone display mode.

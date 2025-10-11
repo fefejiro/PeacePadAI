@@ -173,14 +173,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const sessionId = req.user.sessionId;
       
-      // Find other users to determine recipient
-      const otherUsers = await storage.getOtherUsers(userId);
-      const recipientId = otherUsers.length > 0 ? otherUsers[0].id : null;
+      // Determine recipientId: use provided value or auto-select if only 2 users
+      let recipientId = req.body.recipientId;
+      
+      if (!recipientId) {
+        // Auto-select only if exactly 2 users total (1:1 co-parenting)
+        const otherUsers = await storage.getOtherUsers(userId);
+        if (otherUsers.length === 1) {
+          recipientId = otherUsers[0].id;
+        } else if (otherUsers.length === 0) {
+          // No other users - message has no recipient (broadcast/note scenario)
+          recipientId = null;
+        } else {
+          // Multiple users - require explicit recipient selection
+          return res.status(400).json({ 
+            message: "Multiple users found. Please specify recipientId to send message." 
+          });
+        }
+      } else {
+        // Validate provided recipientId exists and is not the sender
+        if (recipientId === userId) {
+          return res.status(400).json({ message: "Cannot send message to yourself" });
+        }
+        const recipient = await storage.getUser(recipientId);
+        if (!recipient) {
+          return res.status(400).json({ message: "Invalid recipient" });
+        }
+      }
       
       const parsed = insertMessageSchema.parse({
         ...req.body,
         senderId: userId,
-        recipientId, // Set the recipient for 1:1 conversations
+        recipientId,
       });
 
       const { tone, summary, emoji, rewordingSuggestion} = await analyzeTone(parsed.content);
