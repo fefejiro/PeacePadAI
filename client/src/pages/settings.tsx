@@ -21,6 +21,10 @@ const EMOJI_OPTIONS = [
 export default function SettingsPage() {
   const [toneAnalysis, setToneAnalysis] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [hintsEnabled, setHintsEnabled] = useState(() => {
+    const stored = localStorage.getItem("hints_enabled");
+    return stored !== null ? stored === "true" : true; // Default ON
+  });
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,6 +110,17 @@ export default function SettingsPage() {
     } else {
       copySessionLink();
     }
+  };
+
+  const handleHintsToggle = (enabled: boolean) => {
+    setHintsEnabled(enabled);
+    localStorage.setItem("hints_enabled", String(enabled));
+    toast({
+      title: enabled ? "Hints enabled" : "Hints disabled",
+      description: enabled 
+        ? "You'll see helpful tips throughout the app" 
+        : "Tips are now hidden",
+    });
   };
 
   return (
