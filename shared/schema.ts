@@ -55,6 +55,7 @@ export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   content: text("content").notNull(),
   senderId: varchar("sender_id").notNull().references(() => users.id),
+  recipientId: varchar("recipient_id").references(() => users.id), // For 1:1 conversations
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   tone: text("tone"),
   toneSummary: text("tone_summary"),
