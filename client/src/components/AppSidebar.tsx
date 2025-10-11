@@ -57,25 +57,42 @@ export function AppSidebar() {
   const [location, setLocation] = useLocation();
 
   const handleLogout = async () => {
+    console.log("[Logout] Starting logout process...");
     try {
       // 1. Call logout endpoint to destroy server session
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      // 2. Always clear client-side data regardless of API success
+      console.log("[Logout] Calling /api/auth/logout...");
+      const response = await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      console.log("[Logout] Logout response:", response.status, response.statusText);
+      
+      // 2. Clear client-side data
+      console.log("[Logout] Clearing localStorage...");
       localStorage.removeItem("peacepad_session_id");
       
-      // 3. Clear React Query cache
+      // 3. Clear React Query cache and set auth to null immediately
+      console.log("[Logout] Clearing React Query cache...");
+      queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.clear();
       
-      // 4. Redirect to landing page (which will trigger auth check)
+      // 4. Navigate using wouter and then force reload
+      console.log("[Logout] Navigating to landing...");
       setLocation("/");
       
-      // 5. Force page reload to ensure complete state reset
+      // 5. Force page reload as backup
+      console.log("[Logout] Forcing page reload...");
       setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
+        window.location.replace("/");
+      }, 50);
+    } catch (error) {
+      console.error("[Logout] Error during logout:", error);
+      
+      // Even on error, clear local state and reload
+      localStorage.removeItem("peacepad_session_id");
+      queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.clear();
+      setLocation("/");
+      setTimeout(() => {
+        window.location.replace("/");
+      }, 50);
     }
   };
 

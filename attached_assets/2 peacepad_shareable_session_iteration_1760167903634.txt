@@ -1,0 +1,56 @@
+
+🧩 PeacePadAI — “Shareable Call Session ID Iteration”
+
+🎯 Goal
+Introduce a shareable session ID and link feature for PeacePadAI’s real-time audio/video calls, similar to Microsoft Teams or Zoom. This will allow users to share active call sessions easily and let others join through a simple join interface.
+
+📞 1. Session ID & Link Generation
+Description:
+When a user starts a new call (audio or video), the app should automatically generate a unique session ID and join link.
+
+Requirements:
+- Each call session gets a unique session_id (UUID-based).
+- Display the session ID clearly during the call (e.g., top corner or info button).
+- Create a shareable join link such as:
+  https://peace-pad-ai-2rqkkxbq5g.replit.app/join/<session_id>
+- Include a “Copy Link” and “Share” button (integrating with native sharing for mobile).
+
+🌐 2. Join Flow (Like Teams/Zoom)
+Description:
+When a person clicks a shared session link, they are redirected to a Join Page.
+
+Requirements:
+- The page shows:
+  - “Enter your name” field (default Guest### if blank).
+  - Camera preview toggle (on/off).
+  - Microphone toggle (mute/unmute).
+  - “Join Session” button to connect to the ongoing call.
+- Connection happens using WebRTC peer discovery via the same session ID.
+
+🔒 3. Permissions & Stability
+Requirements:
+- Ensure smooth camera and mic permission prompts before joining.
+- Maintain stable connection handoff even if multiple users join.
+- Display error message if session ID is invalid or expired.
+
+🧠 4. Integration
+Backend:
+- Extend WebSocket signaling server to accept new join requests using session_id.
+- Store active sessions temporarily in memory (or Redis if supported).
+- Add cleanup logic to remove inactive sessions.
+
+Frontend:
+- Update call component UI to include:
+  - Session ID display
+  - “Share” & “Copy Link” buttons
+  - Conditional rendering for Join Page vs. Active Call
+
+🧩 5. Deliverables
+- [ ] Working session link and join interface
+- [ ] Session ID visible and shareable
+- [ ] Functional toggles for camera and mic
+- [ ] Smooth redirect for shared links
+- [ ] Graceful error handling for invalid sessions
+
+✅ Summary for Replit Prompt
+Implement a shareable session link and ID system for PeacePadAI calls. Each call should generate a unique session_id and a join link that can be shared via text or social media. When another person clicks the link, they should land on a Join Page where they can enter a name, toggle camera/mic, and join the session in progress. Maintain connection stability and display errors gracefully if the link is invalid.
