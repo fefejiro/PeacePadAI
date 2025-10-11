@@ -172,9 +172,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const sessionId = req.user.sessionId;
+      
+      // Find other users to determine recipient
+      const otherUsers = await storage.getOtherUsers(userId);
+      const recipientId = otherUsers.length > 0 ? otherUsers[0].id : null;
+      
       const parsed = insertMessageSchema.parse({
         ...req.body,
         senderId: userId,
+        recipientId, // Set the recipient for 1:1 conversations
       });
 
       const { tone, summary, emoji, rewordingSuggestion} = await analyzeTone(parsed.content);

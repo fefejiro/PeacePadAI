@@ -43,13 +43,14 @@ import {
   type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getUserByGuestId(guestId: string): Promise<User | undefined>;
+  getOtherUsers(currentUserId: string): Promise<User[]>;
   
   // Guest session operations
   getGuestSession(sessionId: string): Promise<GuestSession | undefined>;
@@ -144,6 +145,12 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getOtherUsers(currentUserId: string): Promise<User[]> {
+    const { ne } = await import("drizzle-orm");
+    const otherUsers = await db.select().from(users).where(ne(users.id, currentUserId));
+    return otherUsers;
+  }
+
   // Guest session operations
   async getGuestSession(sessionId: string): Promise<GuestSession | undefined> {
     const [session] = await db.select().from(guestSessions).where(eq(guestSessions.sessionId, sessionId));
@@ -209,15 +216,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessagesByUser(userId: string): Promise<any[]> {
-    // TODO: This needs proper conversation/session scoping with recipientId
-    // Current implementation shows only user's sent messages as a privacy safeguard
-    // For proper co-parent chat, schema needs: recipientId or conversationId field
-    // Then filter: WHERE (senderId = userId OR recipientId = userId)
+    // Get all messages where user is either sender OR recipient (1:1 conversation)
     const result = await db
       .select({
         id: messages.id,
         content: messages.content,
         senderId: messages.senderId,
+        recipientId: messages.recipientId,
         timestamp: messages.timestamp,
         tone: messages.tone,
         toneSummary: messages.toneSummary,
@@ -236,7 +241,12 @@ export class DatabaseStorage implements IStorage {
       })
       .from(messages)
       .leftJoin(users, eq(messages.senderId, users.id))
-      .where(eq(messages.senderId, userId))
+      .where(
+        or(
+          eq(messages.senderId, userId),
+          eq(messages.recipientId, userId)
+        )
+      )
       .orderBy(messages.timestamp);
     
     return result;
