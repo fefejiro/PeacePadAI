@@ -39,11 +39,6 @@ const menuItems = [
     icon: MapPin,
   },
   {
-    title: "Therapist Directory",
-    url: "/therapist-directory",
-    icon: Users,
-  },
-  {
     title: "Audit Trail",
     url: "/audit-trail",
     icon: FileText,
