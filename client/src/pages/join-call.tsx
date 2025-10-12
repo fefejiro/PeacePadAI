@@ -229,6 +229,22 @@ export default function JoinCallPage() {
   };
 
   const handleJoinCall = async () => {
+    // Check authentication before joining
+    if (!isAuthenticated) {
+      // Store session code in localStorage for after auth
+      localStorage.setItem('pending_join_code', sessionCode);
+      
+      toast({
+        title: "Authentication Required",
+        description: "Please create a guest profile to join the call",
+        variant: "destructive",
+      });
+      
+      // Redirect to home to create guest session
+      setLocation("/");
+      return;
+    }
+    
     // Update display name if user entered one
     if (displayName.trim() && displayName !== user?.displayName) {
       sessionStorage.setItem('call_display_name', displayName.trim());
@@ -265,26 +281,6 @@ export default function JoinCallPage() {
           <CardContent className="pt-6 flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Loading...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Join Call</CardTitle>
-            <CardDescription>
-              You need to be signed in to join a call
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setLocation("/")} className="w-full" data-testid="button-go-home">
-              Go to Home
-            </Button>
           </CardContent>
         </Card>
       </div>
