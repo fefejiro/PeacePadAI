@@ -41,7 +41,11 @@ Preferred communication style: Simple, everyday language.
 
 ### WebRTC Real-Time Communication
 - **WebSocket Signaling Server**: Unified server for chat and WebRTC signaling, handles multiple connections, ICE candidate exchange.
-- **Voice/Video Calling**: WebRTC peer connections, STUN server configuration, audio/video modes, call controls (mute, camera, end call), optional call recording (WebM).
+- **Session-Based Multi-User Calls**: Session rooms support 2-12 participants; users join sessions via 6-digit code, server manages session user lists, broadcasts peer-joined/peer-left events.
+- **Role-Based Negotiation**: Existing session members create offers to newcomers, newcomers wait to receive offers and send answers (prevents SDP glare in multi-user scenarios).
+- **Media-Ready Gating**: Async getUserMedia initialization protected by `isMediaReady` flag; peer connections queued in `pendingPeersRef` if media not ready, processed after initialization to ensure tracks are always added before SDP negotiation.
+- **Offer Caching System**: Incoming offers cached in `pendingOffersRef` if peer connection doesn't exist yet; offers applied and answered immediately after peer connection creation, preventing dropped negotiations from race conditions.
+- **Voice/Video Calling**: WebRTC peer connections (Map for multiple peers), STUN server configuration, audio/video modes, call controls (mute, camera, end call), optional call recording (WebM).
 - **Unauthenticated Join Flow**: Session lookup endpoint is public (no auth required); unauthenticated users can access shared call links, view session details and preview; when joining, stores pending_join_code in localStorage, redirects to landing for guest creation, auto-shows guest entry form, then auto-redirects to call preview after authentication.
 - **Manual Join**: "Join Call" sidebar option allows manual 6-digit session code entry for both authenticated and unauthenticated users.
 
