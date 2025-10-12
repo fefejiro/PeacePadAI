@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { getRandomReflectionPrompt, getMoodResponse } from "@/data/empathetic-prompts";
 
 type MoodOption = "positive" | "neutral" | "negative";
 
@@ -12,10 +13,18 @@ const MOOD_OPTIONS: { value: MoodOption; emoji: string; label: string }[] = [
   { value: "negative", emoji: "😞", label: "Difficult" },
 ];
 
-export default function MoodCheckIn() {
+interface MoodCheckInProps {
+  isDormant?: boolean;
+}
+
+export default function MoodCheckIn({ isDormant = false }: MoodCheckInProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [note, setNote] = useState("");
+  const [showResponse, setShowResponse] = useState(false);
+  
+  // Get random empathetic prompt
+  const prompt = useMemo(() => getRandomReflectionPrompt(), []);
 
   useEffect(() => {
     // Check if mood check-in has been shown today
@@ -24,12 +33,28 @@ export default function MoodCheckIn() {
     
     if (lastCheckIn === today) return;
 
-    // Show check-in after 2 minutes of session (give user time to interact)
-    const timer = setTimeout(() => {
-      setIsOpen(true);
-    }, 2 * 60 * 1000);
+    // Smart timing: wait for dormant period before showing
+    // Check every 30 seconds if user becomes dormant
+    const checkInterval = setInterval(() => {
+      const activityState = localStorage.getItem("peacepad_activity_state");
+      const isDormantNow = activityState === "dormant";
+      
+      if (isDormantNow) {
+        setIsOpen(true);
+        clearInterval(checkInterval);
+      }
+    }, 30 * 1000); // Check every 30 seconds
 
-    return () => clearTimeout(timer);
+    // Fallback: Show after 10 minutes regardless (in case user is always active)
+    const fallbackTimer = setTimeout(() => {
+      setIsOpen(true);
+      clearInterval(checkInterval);
+    }, 10 * 60 * 1000);
+
+    return () => {
+      clearInterval(checkInterval);
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   const handleSubmit = () => {
@@ -51,8 +76,14 @@ export default function MoodCheckIn() {
     // Mark as completed for today
     localStorage.setItem("last_mood_checkin", new Date().toDateString());
     
-    setIsOpen(false);
-    resetForm();
+    // Show supportive response before closing
+    setShowResponse(true);
+    
+    // Close after showing response
+    setTimeout(() => {
+      setIsOpen(false);
+      resetForm();
+    }, 3000);
   };
 
   const handleSkip = () => {
@@ -64,72 +95,87 @@ export default function MoodCheckIn() {
   const resetForm = () => {
     setSelectedMood(null);
     setNote("");
+    setShowResponse(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md" data-testid="mood-checkin-dialog">
         <DialogHeader>
-          <DialogTitle className="text-xl">How are you feeling?</DialogTitle>
+          <DialogTitle className="text-xl">{prompt.title}</DialogTitle>
           <DialogDescription>
-            Take a moment to reflect on your experience today
+            {prompt.description}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
-          {/* Mood Options */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Your mood right now</Label>
-            <div className="grid grid-cols-3 gap-3">
-              {MOOD_OPTIONS.map((option) => (
+          {!showResponse ? (
+            <>
+              {/* Mood Options */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Your mood right now</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {MOOD_OPTIONS.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={selectedMood === option.value ? "default" : "outline"}
+                      className="h-24 flex flex-col gap-2 text-center"
+                      onClick={() => setSelectedMood(option.value)}
+                      data-testid={`button-mood-${option.value}`}
+                    >
+                      <span className="text-3xl">{option.emoji}</span>
+                      <span className="text-sm">{option.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Optional Note */}
+              <div className="space-y-2">
+                <Label htmlFor="mood-note" className="text-sm font-medium">
+                  Anything you'd like to note? (Optional)
+                </Label>
+                <Textarea
+                  id="mood-note"
+                  placeholder="What made you feel this way..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="resize-none h-20"
+                  data-testid="textarea-mood-note"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
                 <Button
-                  key={option.value}
-                  variant={selectedMood === option.value ? "default" : "outline"}
-                  className="h-24 flex flex-col gap-2 text-center"
-                  onClick={() => setSelectedMood(option.value)}
-                  data-testid={`button-mood-${option.value}`}
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleSkip}
+                  data-testid="button-skip-checkin"
                 >
-                  <span className="text-3xl">{option.emoji}</span>
-                  <span className="text-sm">{option.label}</span>
+                  Skip
                 </Button>
-              ))}
+                <Button
+                  className="flex-1"
+                  onClick={handleSubmit}
+                  disabled={!selectedMood}
+                  data-testid="button-submit-checkin"
+                >
+                  Submit
+                </Button>
+              </div>
+            </>
+          ) : (
+            /* Supportive Response */
+            <div className="py-6 px-4 bg-muted/50 rounded-lg text-center space-y-3" data-testid="mood-response">
+              <p className="text-lg font-medium text-foreground">
+                {selectedMood && getMoodResponse(selectedMood)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Thank you for taking time to reflect
+              </p>
             </div>
-          </div>
-
-          {/* Optional Note */}
-          <div className="space-y-2">
-            <Label htmlFor="mood-note" className="text-sm font-medium">
-              Anything you'd like to note? (Optional)
-            </Label>
-            <Textarea
-              id="mood-note"
-              placeholder="What made you feel this way..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="resize-none h-20"
-              data-testid="textarea-mood-note"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={handleSkip}
-              data-testid="button-skip-checkin"
-            >
-              Skip
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleSubmit}
-              disabled={!selectedMood}
-              data-testid="button-submit-checkin"
-            >
-              Submit
-            </Button>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

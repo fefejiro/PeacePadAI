@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useActivity } from "@/components/ActivityProvider";
 
 type MessageWithSender = Message & {
   senderDisplayName?: string;
@@ -35,6 +36,7 @@ export default function ChatInterface() {
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackActivity, endActivity } = useActivity();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -187,6 +189,9 @@ export default function ChatInterface() {
   };
 
   const handleSend = () => {
+    // Track messaging activity
+    trackActivity('messaging');
+    
     if (selectedFile) {
       const messageType = selectedFile.type.startsWith('image/') ? 'image' :
                          selectedFile.type.startsWith('video/') ? 'video' :
@@ -756,7 +761,13 @@ export default function ChatInterface() {
 
               <Textarea
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  // Track typing activity
+                  if (e.target.value.trim()) {
+                    trackActivity('messaging');
+                  }
+                }}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 className="resize-none border-0 text-base focus-visible:ring-0 min-h-[40px] max-h-[120px] flex-1 self-center"

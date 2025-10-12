@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import MoodCheckIn from "@/components/MoodCheckIn";
 import Clippy from "@/components/Clippy";
+import { ActivityProvider } from "@/components/ActivityProvider";
 import LandingPage from "@/pages/landing";
 import ChatPage from "@/pages/chat";
 import DashboardPage from "@/pages/dashboard";
@@ -73,25 +74,27 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <AuthWrapper>
-            <SidebarProvider style={style as React.CSSProperties}>
-              <div className="flex h-screen w-full">
-                <ConditionalSidebar />
-                <div className="flex flex-col flex-1 min-w-0">
-                  <header className="flex items-center justify-between p-3 sm:p-2 border-b sticky top-0 z-50 bg-background">
-                    <ConditionalSidebarTrigger />
-                    <ThemeToggle />
-                  </header>
-                  <main className="flex-1 overflow-auto">
-                    <Router />
-                  </main>
+          <ActivityProvider>
+            <AuthWrapper>
+              <SidebarProvider style={style as React.CSSProperties}>
+                <div className="flex h-screen w-full">
+                  <ConditionalSidebar />
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <header className="flex items-center justify-between p-3 sm:p-2 border-b sticky top-0 z-50 bg-background">
+                      <ConditionalSidebarTrigger />
+                      <ThemeToggle />
+                    </header>
+                    <main className="flex-1 overflow-auto">
+                      <Router />
+                    </main>
+                  </div>
                 </div>
-              </div>
-            </SidebarProvider>
-          </AuthWrapper>
-          <MoodCheckIn />
-          <Clippy />
-          <Toaster />
+              </SidebarProvider>
+            </AuthWrapper>
+            <MoodCheckIn />
+            <Clippy />
+            <Toaster />
+          </ActivityProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

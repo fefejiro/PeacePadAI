@@ -1,0 +1,73 @@
+# PeacePad – Introductory Slideshow & Enhanced Onboarding
+
+## 🎯 Goal
+Create a **mini slideshow** on the **PeacePad home (landing) page** that provides a quick, engaging introduction to the app’s purpose, values, and key features — including **shared expenses**, **scheduling**, and **pet care tracking**. This slideshow will only appear for **first-time visitors** or when **cookies/localStorage are cleared**.
+
+---
+
+## 🪄 Feature Description
+**Component:** `LandingIntroSlideshow`  
+**Trigger:** Displays automatically for new users before the soft login/auth screen appears.  
+**Logic:** Controlled by a flag, e.g. `localStorage.hasSeenIntro = true`.
+
+---
+
+## 📽️ Slideshow Structure (7 Slides Total)
+
+### 🖼️ Slide 1 – Welcome to PeacePadAI
+- Tagline: “Your peaceful digital companion for better communication and care.”  
+- Background: Calm gradient or soft animation (waves, heartbeat, or AI pulse).  
+- Optional subtle intro tone or voiceover.
+
+### 💬 Slide 2 – What PeacePad Does
+- “PeacePad helps you communicate better, manage shared responsibilities, and support emotional well-being.”  
+- Icons: 💬 Chat, 🎧 Audio, 🎥 Video, ❤️ Emotion AI bubble.
+
+### 🌈 Slide 3 – The Mission
+- “PeacePad’s goal is to make co-parenting, family, and personal communication more peaceful, balanced, and emotionally aware.”  
+- Visual: Gentle animated timeline or family silhouettes connecting hearts.
+
+### 🗓️ Slide 4 – Smart Scheduling & Shared Expenses
+- “Plan, share, and stay organized — all in one place.”  
+- Subpoints:  
+  - 📅 Scheduling: Create and manage shared calendars for kids, family, or personal events.  
+  - 💸 Shared Expenses: Log, split, and track costs transparently (e.g., groceries, childcare, activities).  
+- Visual: Calendar + coin icon animation.
+
+### 🐾 Slide 5 – Pet Care & Household Harmony
+- “Because every family member — even the furry ones — matters.”  
+- Features:  
+  - 🐕 Pet profiles (vet visits, reminders, shared care logs).  
+  - 🍼 Family task reminders (feeding, grooming, playtime).  
+- Visual: Pet paw animation or checklist cards.
+
+### 🧘 Slide 6 – Find Peace & Support
+- “PeacePad connects you with nearby therapists, counsellors, and family coaches.”  
+- Visual: Map pins, chat bubbles, or glowing heart pulse animation.
+
+### 🚀 Slide 7 – Start Your Journey
+- CTA: “Continue to PeacePad” (proceeds to Soft Login/Authentication).  
+- Footer note: “This slideshow will only appear the first time you visit.”
+
+---
+
+## 🧠 Behavior & Flow
+- After user completes slideshow → `localStorage.hasSeenIntro = true`.  
+- Next visits skip directly to Soft Auth/Login.  
+- If cookies or cache are cleared, slideshow reappears.
+
+---
+
+## 🧰 Technical Implementation
+- Use `react-slick` or `swiper.js` for smooth, mobile-friendly transitions.  
+- Optimize for Android/iPhone responsive screens.  
+- Lightweight animations (Lottie or CSS-based).  
+- Include “Skip Intro” button for quicker access to login.  
+- Optional sound toggle for narration/ambient music.
+
+---
+
+## 🎯 Outcome
+- First-time users understand PeacePad’s purpose and main features.  
+- Adds emotional connection before onboarding.  
+- Encourages higher engagement and retention from the start.
