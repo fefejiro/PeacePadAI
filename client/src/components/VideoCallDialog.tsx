@@ -193,7 +193,7 @@ export default function VideoCallDialog({
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
 
-      // Immediately disable tracks based on preview settings
+      // Set initial track states based on preview settings
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = initialMicEnabled;
@@ -646,7 +646,7 @@ export default function VideoCallDialog({
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${isVideoOff ? 'opacity-0' : 'opacity-100'}`}
             />
             {isVideoOff && (
               <div className="absolute inset-0 flex items-center justify-center bg-muted">

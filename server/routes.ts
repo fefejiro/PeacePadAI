@@ -628,7 +628,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/call-sessions/:code', isSoftAuthenticated, async (req, res) => {
+  // Public endpoint - no auth required to view session details
+  app.get('/api/call-sessions/:code', async (req, res) => {
     try {
       const { code } = req.params;
       const session = await storage.getCallSessionByCode(code);

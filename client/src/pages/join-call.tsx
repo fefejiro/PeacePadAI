@@ -48,9 +48,9 @@ export default function JoinCallPage() {
     }
   }, [user]);
 
-  // If code in URL, fetch session and show preview mode
+  // If code in URL, fetch session and show preview mode (no auth required for fetching session)
   useEffect(() => {
-    if (params?.code && isAuthenticated && !callSession) {
+    if (params?.code && !callSession && !authLoading) {
       setSessionCode(params.code);
       // Fetch the session data
       const fetchSession = async () => {
@@ -62,7 +62,12 @@ export default function JoinCallPage() {
           if (response.ok) {
             const session = await response.json();
             setCallSession(session);
-            setShowPreview(true);
+            
+            // If user is authenticated, show preview directly
+            // If not, they'll need to enter guest info first (handled by redirect in render)
+            if (isAuthenticated) {
+              setShowPreview(true);
+            }
           } else {
             setError("Session not found. Please check the code.");
           }
@@ -74,7 +79,7 @@ export default function JoinCallPage() {
       
       fetchSession();
     }
-  }, [params?.code, isAuthenticated, callSession]);
+  }, [params?.code, callSession, authLoading, isAuthenticated]);
 
   // Start media preview with explicit parameters
   const startMediaPreview = async (videoEnabled: boolean, audioEnabled: boolean) => {
