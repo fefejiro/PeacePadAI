@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Brain, Calendar, Shield, TrendingUp, Users } from "lucide-react";
@@ -8,9 +9,28 @@ import heroImage from "@assets/stock_images/peaceful_diverse_fam_f2239163.jpg";
 
 export default function LandingPage() {
   const [showGuestEntry, setShowGuestEntry] = useState(false);
+  const [, setLocation] = useLocation();
+
+  // Check for pending join code on mount
+  useEffect(() => {
+    const pendingCode = localStorage.getItem('pending_join_code');
+    if (pendingCode) {
+      // Auto-show guest entry if there's a pending call to join
+      setShowGuestEntry(true);
+    }
+  }, []);
 
   const handleAuthenticated = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    
+    // Check for pending join code and redirect
+    const pendingCode = localStorage.getItem('pending_join_code');
+    if (pendingCode) {
+      // Clear the pending code
+      localStorage.removeItem('pending_join_code');
+      // Redirect to join with the code
+      setLocation(`/join/${pendingCode}`);
+    }
   };
 
   if (showGuestEntry) {

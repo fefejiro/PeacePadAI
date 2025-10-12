@@ -1,0 +1,59 @@
+# PeacePad – Message Sending & Delivery Issue (Refined)
+
+## Problem Summary
+Message sending (text, audio, and video) sometimes fails to display or propagate correctly between users. Messages occasionally don’t appear in the sender’s own chat thread, and no delivery is seen on the other user’s end.
+
+---
+
+## ✅ Expected Behavior
+
+### 1. Local Echo (Single-User or Pre-Join Mode)
+- When a user sends a message, it should appear instantly in the chat window — even if no other user has joined the session yet.
+- This confirms that the message component renders properly and is stored (e.g., via local state and backend persistence).
+- On refresh, the same messages should reappear (fetched from backend or session storage).
+
+### 2. Real-Time Sync (Multi-User Session)
+- When both users are in the same session, each sent message should instantly broadcast to both sides through WebSocket.
+- Delivery should be reliable for text, audio, and video types.
+- The receiving user should see the message appear with proper sender labeling and timestamp.
+- Both sides should maintain message history consistency when reloaded.
+
+---
+
+## 🧰 What to Double-Check
+1. **Socket Connection**
+   - Ensure `socket.emit()` and `socket.on()` events for `message`, `newMessage`, or similar events are consistently named and mapped on both frontend and backend.
+   - Confirm socket connection remains open during media sends (audio/video).
+
+2. **Backend and Database Sync**
+   - Verify that messages are correctly saved to the backend (e.g., Firestore, Supabase, or MongoDB).
+   - Ensure message objects include sender ID, timestamp, and message type (text/audio/video).
+
+3. **Media Handling**
+   - Validate that file uploads complete before emitting socket events.
+   - Ensure returned URLs for uploaded media are valid and render properly in the chat bubble.
+
+4. **UI Rendering**
+   - Check that messages appear immediately after send (optimistic rendering) while awaiting backend confirmation.
+   - On confirmation, update message status (e.g., “sent”, “delivered”, “seen”).
+
+5. **Reversion Tracking**
+   - Compare current codebase against previous commits where this issue was fixed.
+   - Check if any merge, deployment, or update reverted WebSocket or DB sync logic.
+
+---
+
+## 🧭 Debugging Steps
+- Log outgoing and incoming socket events in the browser console.
+- Test both solo (local echo) and dual-user (shared session) chats.
+- Use `socket.connected` and `socket.id` to verify live session state.
+- Check browser network tab for failed POST or WebSocket responses.
+- Monitor backend logs for dropped events.
+
+---
+
+## 🎯 Success Criteria
+- Text, audio, and video messages send instantly and render correctly.
+- Messages persist on reload.
+- Multi-user chat sessions reflect real-time updates bi-directionally.
+- Message metadata (timestamp, sender) and delivery indicators work properly.
