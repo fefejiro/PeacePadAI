@@ -42,6 +42,8 @@ Preferred communication style: Simple, everyday language.
 ### WebRTC Real-Time Communication
 - **WebSocket Signaling Server**: Unified server for chat and WebRTC signaling, handles multiple connections, ICE candidate exchange.
 - **Voice/Video Calling**: WebRTC peer connections, STUN server configuration, audio/video modes, call controls (mute, camera, end call), optional call recording (WebM).
+- **Unauthenticated Join Flow**: Session lookup endpoint is public (no auth required); unauthenticated users can access shared call links, view session details and preview; when joining, stores pending_join_code in localStorage, redirects to landing for guest creation, auto-shows guest entry form, then auto-redirects to call preview after authentication.
+- **Manual Join**: "Join Call" sidebar option allows manual 6-digit session code entry for both authenticated and unauthenticated users.
 
 ### Emotional Intelligence Features (PeacePadAI)
 - **Clippy 2.0 Animated Mascot**: Interactive paperclip assistant with idle bounce and dance animations, provides contextual hints, responds to user actions.
