@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users, User } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users, User, PhoneIncoming } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -22,6 +22,11 @@ const menuItems = [
     title: "Chat",
     url: "/",
     icon: MessageCircle,
+  },
+  {
+    title: "Join Call",
+    url: "/join",
+    icon: PhoneIncoming,
   },
   {
     title: "Dashboard",
