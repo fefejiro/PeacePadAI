@@ -38,16 +38,19 @@ export default function VideoCallDialog({
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [isMediaReady, setIsMediaReady] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map()); // Support multiple peers
   const wsRef = useRef<WebSocket | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
-  const pendingOfferRef = useRef<{ offer: RTCSessionDescriptionInit; from: string } | null>(null);
+  const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map()); // Track remote streams by userId
+  const pendingPeersRef = useRef<Array<{ peerId: string; shouldOffer: boolean }>>([]); // Peers waiting for media
+  const pendingOffersRef = useRef<Map<string, RTCSessionDescriptionInit>>(new Map()); // Offers waiting for peer connection
 
   // Create shareable session code when call starts or use provided code
   useEffect(() => {
@@ -83,6 +86,23 @@ export default function VideoCallDialog({
     createCallSession();
   }, [isOpen, user, callType, isIncoming, sessionCodeProp]);
 
+  // Join call session when sessionCode is available
+  useEffect(() => {
+    if (!isOpen || !user || !wsRef.current) return;
+    
+    const code = sessionCode || sessionCodeProp;
+    if (!code) return;
+    
+    if (wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: "join-session",
+        payload: { sessionCode: code },
+      }));
+      console.log(`Joining call session: ${code}`);
+      initializeLocalMedia();
+    }
+  }, [isOpen, user, sessionCode, sessionCodeProp]);
+
   useEffect(() => {
     if (!isOpen || !user) return;
 
@@ -97,13 +117,24 @@ export default function VideoCallDialog({
     ws.onopen = () => {
       console.log("WebRTC signaling connected");
       
-      if (!isIncoming && recipientId) {
+      // Check if we have session code ready
+      const code = sessionCode || sessionCodeProp;
+      if (code) {
+        ws.send(JSON.stringify({
+          type: "join-session",
+          payload: { sessionCode: code },
+        }));
+        console.log(`Joining call session: ${code}`);
+        initializeLocalMedia();
+      }
+      // Legacy 1:1 call
+      else if (!isIncoming && recipientId) {
         ws.send(JSON.stringify({
           type: "call-start",
           to: recipientId,
           payload: { callType },
         }));
-        initializeCall();
+        initializeLocalMedia();
       }
     };
 
@@ -111,18 +142,41 @@ export default function VideoCallDialog({
       const message = JSON.parse(event.data);
       
       switch (message.type) {
+        case "session-users":
+          // Got list of existing users in the session
+          // I'm the newcomer, so I should wait for offers from existing members
+          const existingUsers = message.payload.users || [];
+          console.log("Existing users in session (I'm the newcomer):", existingUsers);
+          for (const peer of existingUsers) {
+            await createPeerConnection(peer.userId, false); // false = wait for offer
+          }
+          break;
+          
+        case "peer-joined":
+          // New peer joined the session
+          // I'm an existing member, so I create the offer
+          console.log("Peer joined (I'm existing member):", message.from);
+          await createPeerConnection(message.from, true); // true = create offer
+          break;
+          
+        case "peer-left":
+          // Peer left the session
+          console.log("Peer left:", message.from);
+          closePeerConnection(message.from);
+          break;
+          
         case "offer":
           await handleOffer(message.payload, message.from);
           break;
         case "answer":
-          await handleAnswer(message.payload);
+          await handleAnswer(message.payload, message.from);
           break;
         case "ice-candidate":
-          await handleIceCandidate(message.payload);
+          await handleIceCandidate(message.payload, message.from);
           break;
         case "incoming-call":
           if (isIncoming) {
-            initializeCall();
+            initializeLocalMedia();
           }
           break;
         case "call-ended":
@@ -145,46 +199,9 @@ export default function VideoCallDialog({
     };
   }, [isOpen, user, recipientId, callType, isIncoming]);
 
-  const initializeCall = async () => {
+  // Initialize local media (camera/microphone)
+  const initializeLocalMedia = async () => {
     try {
-      const configuration = {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-        ],
-      };
-
-      // Create peer connection BEFORE getting media
-      const pc = new RTCPeerConnection(configuration);
-      peerConnectionRef.current = pc;
-
-      pc.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-          setIsConnected(true);
-          startCallTimer();
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate && wsRef.current) {
-          wsRef.current.send(JSON.stringify({
-            type: "ice-candidate",
-            to: recipientId || callerId,
-            payload: event.candidate,
-          }));
-        }
-      };
-
-      // Process pending offer if it arrived before peer connection was ready
-      if (pendingOfferRef.current) {
-        const { offer, from } = pendingOfferRef.current;
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        pendingOfferRef.current = null;
-      }
-
-      // Get user media AFTER creating peer connection
-      // Always request tracks so they can be toggled later
       const constraints = {
         audio: true,
         video: callType === "video",
@@ -208,40 +225,20 @@ export default function VideoCallDialog({
         localVideoRef.current.srcObject = stream;
       }
 
-      stream.getTracks().forEach((track) => {
-        pc.addTrack(track, stream);
-      });
-
-      // Handle outgoing call
-      if (!isIncoming) {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        
-        if (wsRef.current) {
-          wsRef.current.send(JSON.stringify({
-            type: "offer",
-            to: recipientId,
-            payload: offer,
-          }));
+      console.log("Local media initialized");
+      setIsMediaReady(true);
+      
+      // Process any pending peer connections now that media is ready
+      if (pendingPeersRef.current.length > 0) {
+        console.log(`Processing ${pendingPeersRef.current.length} pending peer connections`);
+        for (const { peerId, shouldOffer } of pendingPeersRef.current) {
+          await createPeerConnection(peerId, shouldOffer);
         }
-      } 
-      // Handle incoming call - create answer if remote description was set
-      else if (pc.remoteDescription) {
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        if (wsRef.current) {
-          wsRef.current.send(JSON.stringify({
-            type: "answer",
-            to: callerId,
-            payload: answer,
-          }));
-        }
+        pendingPeersRef.current = [];
       }
     } catch (error) {
-      console.error("Failed to initialize call:", error);
+      console.error("Failed to initialize local media:", error);
       
-      // Set error state but keep dialog open so user can still access session code
       const errorMessage = error instanceof Error && error.name === "NotAllowedError"
         ? "Camera/microphone access denied. Please allow access to join the call."
         : "Could not access camera/microphone. You can still share the session code.";
@@ -253,22 +250,131 @@ export default function VideoCallDialog({
         description: errorMessage,
         variant: "destructive",
       });
-      
-      // Don't close dialog - allow user to access session code for sharing
     }
   };
 
-  const handleOffer = async (offer: RTCSessionDescriptionInit, from: string) => {
-    if (!peerConnectionRef.current) {
-      // Store offer to process after peer connection is ready
-      pendingOfferRef.current = { offer, from };
+  // Create peer connection for a specific user
+  const createPeerConnection = async (peerId: string, shouldCreateOffer: boolean) => {
+    // If media not ready yet, queue this peer connection
+    if (!isMediaReady || !localStreamRef.current) {
+      console.log(`Media not ready, queuing peer connection for ${peerId}`);
+      pendingPeersRef.current.push({ peerId, shouldOffer: shouldCreateOffer });
       return;
     }
-
+    
+    // Avoid duplicate connections
+    if (peerConnectionsRef.current.has(peerId)) {
+      console.log(`Peer connection already exists for ${peerId}`);
+      return;
+    }
+    
     try {
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await peerConnectionRef.current.createAnswer();
-      await peerConnectionRef.current.setLocalDescription(answer);
+      const configuration = {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+        ],
+      };
+
+      const pc = new RTCPeerConnection(configuration);
+      peerConnectionsRef.current.set(peerId, pc);
+
+      // Handle incoming tracks
+      pc.ontrack = (event) => {
+        console.log("Received track from", peerId);
+        if (event.streams[0]) {
+          remoteStreamsRef.current.set(peerId, event.streams[0]);
+          
+          // Display first remote stream
+          if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+            setIsConnected(true);
+            startCallTimer();
+          }
+        }
+      };
+
+      // Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate && wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: "ice-candidate",
+            to: peerId,
+            payload: event.candidate,
+          }));
+        }
+      };
+
+      // Add local tracks (guaranteed to exist at this point)
+      localStreamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+      console.log(`Added ${localStreamRef.current.getTracks().length} local tracks to peer ${peerId}`);
+
+      // Check for pending offer for this peer
+      const pendingOffer = pendingOffersRef.current.get(peerId);
+      if (pendingOffer) {
+        console.log(`Processing pending offer from ${peerId}`);
+        await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        
+        if (wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: "answer",
+            to: peerId,
+            payload: answer,
+          }));
+        }
+        console.log("Sent answer to", peerId, "(from pending offer)");
+        pendingOffersRef.current.delete(peerId);
+      }
+      // Create offer if we should (and no pending offer to answer)
+      else if (shouldCreateOffer) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        if (wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: "offer",
+            to: peerId,
+            payload: offer,
+          }));
+        }
+        console.log("Sent offer to", peerId);
+      }
+    } catch (error) {
+      console.error(`Failed to create peer connection for ${peerId}:`, error);
+    }
+  };
+
+  // Close peer connection
+  const closePeerConnection = (peerId: string) => {
+    const pc = peerConnectionsRef.current.get(peerId);
+    if (pc) {
+      pc.close();
+      peerConnectionsRef.current.delete(peerId);
+    }
+    remoteStreamsRef.current.delete(peerId);
+    console.log(`Closed connection to ${peerId}`);
+  };
+
+  const handleOffer = async (offer: RTCSessionDescriptionInit, from: string) => {
+    try {
+      let pc = peerConnectionsRef.current.get(from);
+      
+      // If peer connection doesn't exist yet (media not ready), cache the offer
+      if (!pc) {
+        console.log(`Peer connection not ready for ${from}, caching offer`);
+        pendingOffersRef.current.set(from, offer);
+        await createPeerConnection(from, false); // Will process offer once peer is created
+        return;
+      }
+
+      // Apply offer and create answer
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
 
       if (wsRef.current) {
         wsRef.current.send(JSON.stringify({
@@ -277,19 +383,23 @@ export default function VideoCallDialog({
           payload: answer,
         }));
       }
+      console.log("Sent answer to", from);
     } catch (error) {
       console.error("Failed to handle offer:", error);
     }
   };
 
-  const handleAnswer = async (answer: RTCSessionDescriptionInit) => {
-    if (!peerConnectionRef.current) return;
-    await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+  const handleAnswer = async (answer: RTCSessionDescriptionInit, from: string) => {
+    const pc = peerConnectionsRef.current.get(from);
+    if (!pc) return;
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    console.log("Set remote description from", from);
   };
 
-  const handleIceCandidate = async (candidate: RTCIceCandidateInit) => {
-    if (!peerConnectionRef.current) return;
-    await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+  const handleIceCandidate = async (candidate: RTCIceCandidateInit, from: string) => {
+    const pc = peerConnectionsRef.current.get(from);
+    if (!pc) return;
+    await pc.addIceCandidate(new RTCIceCandidate(candidate));
   };
 
   const toggleMute = () => {
@@ -515,8 +625,16 @@ export default function VideoCallDialog({
       localStreamRef.current.getTracks().forEach((track) => track.stop());
     }
     
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
+    // Close all peer connections
+    peerConnectionsRef.current.forEach((pc) => {
+      pc.close();
+    });
+    peerConnectionsRef.current.clear();
+    remoteStreamsRef.current.clear();
+    
+    // Leave session before closing WebSocket
+    if (wsRef.current && sessionCode) {
+      wsRef.current.send(JSON.stringify({ type: "leave-session" }));
     }
     
     if (wsRef.current) {

@@ -10,9 +10,11 @@ interface Client {
   sessionId: string;
   userId: string;
   connectionId: string;
+  callSessionCode?: string; // Track which call session the user is in
 }
 
 const clients = new Map<string, Client>();
+const callSessions = new Map<string, Set<string>>(); // sessionCode -> Set of connectionIds
 
 export function broadcastNewMessage() {
   clients.forEach((client) => {
@@ -57,68 +59,142 @@ export function setupWebRTCSignaling(server: Server) {
     ws.on("message", async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
-        const { type, to, payload } = message;
+        const { type, to, payload, sessionCode: msgSessionCode } = message;
 
         switch (type) {
+          case "join-session":
+            // User joins a call session
+            const callSessionCode = payload.sessionCode;
+            client.callSessionCode = callSessionCode;
+            
+            if (!callSessions.has(callSessionCode)) {
+              callSessions.set(callSessionCode, new Set());
+            }
+            callSessions.get(callSessionCode)!.add(connectionId);
+            
+            console.log(`User ${userId} joined call session ${callSessionCode}`);
+            
+            // Notify all other users in the session
+            const sessionClients = callSessions.get(callSessionCode);
+            if (sessionClients) {
+              sessionClients.forEach((clientId) => {
+                const otherClient = clients.get(clientId);
+                if (otherClient && otherClient.connectionId !== connectionId && otherClient.ws.readyState === WebSocket.OPEN) {
+                  otherClient.ws.send(JSON.stringify({
+                    type: "peer-joined",
+                    from: userId,
+                    payload: { userId },
+                  }));
+                }
+              });
+            }
+            
+            // Send list of existing users in session to the new joiner
+            if (sessionClients) {
+              const existingUsers = Array.from(sessionClients)
+                .map(id => clients.get(id))
+                .filter(c => c && c.connectionId !== connectionId)
+                .map(c => ({ userId: c!.userId, connectionId: c!.connectionId }));
+              
+              ws.send(JSON.stringify({
+                type: "session-users",
+                payload: { users: existingUsers },
+              }));
+            }
+            break;
+
           case "offer":
           case "answer":
           case "ice-candidate":
-            // Send to all connections of the recipient user
-            clients.forEach((client) => {
-              if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
-                client.ws.send(JSON.stringify({
-                  type,
-                  from: userId,
-                  payload,
-                }));
-              }
-            });
+            // For session-based calls, send to specific user in the session
+            if (to) {
+              clients.forEach((client) => {
+                if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
+                  client.ws.send(JSON.stringify({
+                    type,
+                    from: userId,
+                    payload,
+                  }));
+                }
+              });
+            }
             break;
 
           case "call-start":
             await trackUsage(sessionId, "callsInitiated", 1);
             
-            // Send to all connections of the recipient user
-            clients.forEach((client) => {
-              if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
-                client.ws.send(JSON.stringify({
-                  type: "incoming-call",
-                  from: userId,
-                  callType: payload.callType,
-                }));
-              }
-            });
-            
-            // Send push notification to recipient
-            try {
-              const caller = await storage.getUser(userId);
-              const callerName = caller?.displayName || 'Someone';
-              const callType = payload.callType === 'video' ? 'video' : 'audio';
-              
-              await sendPushNotification(to, {
-                title: 'Incoming Call',
-                body: `${callerName} is calling you (${callType} call)`,
-                data: {
-                  type: 'incoming-call',
-                  from: userId,
-                  callType: payload.callType,
-                },
+            // Send to all connections of the recipient user (for direct calls)
+            if (to) {
+              clients.forEach((client) => {
+                if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
+                  client.ws.send(JSON.stringify({
+                    type: "incoming-call",
+                    from: userId,
+                    callType: payload.callType,
+                  }));
+                }
               });
-            } catch (error) {
-              console.error('Failed to send push notification:', error);
+              
+              // Send push notification to recipient
+              try {
+                const caller = await storage.getUser(userId);
+                const callerName = caller?.displayName || 'Someone';
+                const callType = payload.callType === 'video' ? 'video' : 'audio';
+                
+                await sendPushNotification(to, {
+                  title: 'Incoming Call',
+                  body: `${callerName} is calling you (${callType} call)`,
+                  data: {
+                    type: 'incoming-call',
+                    from: userId,
+                    callType: payload.callType,
+                  },
+                });
+              } catch (error) {
+                console.error('Failed to send push notification:', error);
+              }
             }
             break;
 
           case "call-end":
             // Send to all connections of the recipient user
-            clients.forEach((client) => {
-              if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
-                client.ws.send(JSON.stringify({
-                  type: "call-ended",
-                  from: userId,
-                }));
+            if (to) {
+              clients.forEach((client) => {
+                if (client.userId === to && client.ws.readyState === WebSocket.OPEN) {
+                  client.ws.send(JSON.stringify({
+                    type: "call-ended",
+                    from: userId,
+                  }));
+                }
+              });
+            }
+            break;
+
+          case "leave-session":
+            // User leaves a call session
+            if (client.callSessionCode) {
+              const sessionClients = callSessions.get(client.callSessionCode);
+              if (sessionClients) {
+                sessionClients.delete(connectionId);
+                
+                // Notify others in session
+                sessionClients.forEach((clientId) => {
+                  const otherClient = clients.get(clientId);
+                  if (otherClient && otherClient.ws.readyState === WebSocket.OPEN) {
+                    otherClient.ws.send(JSON.stringify({
+                      type: "peer-left",
+                      from: userId,
+                    }));
+                  }
+                });
+                
+                // Clean up empty sessions
+                if (sessionClients.size === 0) {
+                  callSessions.delete(client.callSessionCode);
+                }
               }
-            });
+              client.callSessionCode = undefined;
+            }
             break;
 
           default:
@@ -130,12 +206,48 @@ export function setupWebRTCSignaling(server: Server) {
     });
 
     ws.on("close", () => {
+      // Clean up from call session if user was in one
+      if (client.callSessionCode) {
+        const sessionClients = callSessions.get(client.callSessionCode);
+        if (sessionClients) {
+          sessionClients.delete(connectionId);
+          
+          // Notify others in session
+          sessionClients.forEach((clientId) => {
+            const otherClient = clients.get(clientId);
+            if (otherClient && otherClient.ws.readyState === WebSocket.OPEN) {
+              otherClient.ws.send(JSON.stringify({
+                type: "peer-left",
+                from: userId,
+              }));
+            }
+          });
+          
+          // Clean up empty sessions
+          if (sessionClients.size === 0) {
+            callSessions.delete(client.callSessionCode);
+          }
+        }
+      }
+      
       clients.delete(connectionId);
       console.log(`WebRTC client disconnected: ${userId} (${connectionId})`);
     });
 
     ws.on("error", (error) => {
       console.error("WebSocket error:", error);
+      
+      // Clean up from call session if user was in one
+      if (client.callSessionCode) {
+        const sessionClients = callSessions.get(client.callSessionCode);
+        if (sessionClients) {
+          sessionClients.delete(connectionId);
+          if (sessionClients.size === 0) {
+            callSessions.delete(client.callSessionCode);
+          }
+        }
+      }
+      
       clients.delete(connectionId);
     });
   });
