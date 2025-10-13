@@ -88,14 +88,15 @@ export default function VideoCallDialog({
     createCallSession();
   }, [isOpen, user, callType, isIncoming, sessionCodeProp]);
 
-  // Join call session when sessionCode is available
+  // Join call session when sessionCode changes and WebSocket is ready
   useEffect(() => {
     if (!isOpen || !user || !wsRef.current) return;
     
     const code = sessionCode || sessionCodeProp;
     if (!code) return;
     
-    if (wsRef.current.readyState === WebSocket.OPEN) {
+    // Only send if WebSocket is open and we haven't initialized media yet
+    if (wsRef.current.readyState === WebSocket.OPEN && !isMediaReady) {
       wsRef.current.send(JSON.stringify({
         type: "join-session",
         payload: { sessionCode: code },
@@ -103,7 +104,7 @@ export default function VideoCallDialog({
       console.log(`Joining call session: ${code}`);
       initializeLocalMedia();
     }
-  }, [isOpen, user, sessionCode, sessionCodeProp]);
+  }, [isOpen, user, sessionCode, sessionCodeProp, isMediaReady]);
 
   useEffect(() => {
     if (!isOpen || !user) return;
@@ -203,6 +204,12 @@ export default function VideoCallDialog({
 
   // Initialize local media (camera/microphone)
   const initializeLocalMedia = async () => {
+    // Prevent duplicate initialization
+    if (isMediaReady || localStreamRef.current) {
+      console.log("Media already initialized, skipping");
+      return;
+    }
+    
     try {
       const constraints = {
         audio: true,
