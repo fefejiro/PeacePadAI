@@ -299,6 +299,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contact routes
+  app.get('/api/contacts', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const userContacts = await storage.getContacts(userId);
+      
+      // Fetch user info for each contact's peerUserId
+      const contactsWithUsers = await Promise.all(
+        userContacts.map(async (contact) => {
+          const peerUser = await storage.getUser(contact.peerUserId);
+          return {
+            ...contact,
+            peerUser: peerUser ? {
+              id: peerUser.id,
+              displayName: peerUser.displayName,
+              profileImageUrl: peerUser.profileImageUrl,
+              phoneNumber: peerUser.phoneNumber,
+            } : null
+          };
+        })
+      );
+      
+      res.json(contactsWithUsers);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+      res.status(500).json({ message: "Failed to fetch contacts" });
+    }
+  });
+
+  app.post('/api/contacts', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { peerUserId, allowAudio, allowVideo, allowSms, allowRecording, allowAiTone, nickname } = req.body;
+
+      // Validate required fields
+      if (!peerUserId) {
+        return res.status(400).json({ message: "peerUserId is required" });
+      }
+
+      // Check if contact already exists
+      const existingContact = await storage.getContactWithUser(userId, peerUserId);
+      if (existingContact) {
+        return res.status(400).json({ message: "Contact already exists" });
+      }
+
+      // Verify peer user exists
+      const peerUser = await storage.getUser(peerUserId);
+      if (!peerUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const contact = await storage.createContact({
+        userId,
+        peerUserId,
+        allowAudio: allowAudio ?? true,
+        allowVideo: allowVideo ?? true,
+        allowSms: allowSms ?? false,
+        allowRecording: allowRecording ?? false,
+        allowAiTone: allowAiTone ?? true,
+        nickname: nickname ?? null,
+      });
+
+      res.json(contact);
+    } catch (error) {
+      console.error("Error creating contact:", error);
+      res.status(500).json({ message: "Failed to create contact" });
+    }
+  });
+
+  app.patch('/api/contacts/:id', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const { allowAudio, allowVideo, allowSms, allowRecording, allowAiTone, nickname } = req.body;
+
+      // Verify contact exists and belongs to user
+      const existingContacts = await storage.getContacts(userId);
+      const contact = existingContacts.find(c => c.id === id);
+      
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      const updates: any = {};
+      if (allowAudio !== undefined) updates.allowAudio = allowAudio;
+      if (allowVideo !== undefined) updates.allowVideo = allowVideo;
+      if (allowSms !== undefined) updates.allowSms = allowSms;
+      if (allowRecording !== undefined) updates.allowRecording = allowRecording;
+      if (allowAiTone !== undefined) updates.allowAiTone = allowAiTone;
+      if (nickname !== undefined) updates.nickname = nickname;
+
+      const updatedContact = await storage.updateContact(id, updates);
+      res.json(updatedContact);
+    } catch (error) {
+      console.error("Error updating contact:", error);
+      res.status(500).json({ message: "Failed to update contact" });
+    }
+  });
+
+  app.delete('/api/contacts/:id', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      // Verify contact exists and belongs to user
+      const existingContacts = await storage.getContacts(userId);
+      const contact = existingContacts.find(c => c.id === id);
+      
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      await storage.deleteContact(id);
+      res.json({ message: "Contact deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({ message: "Failed to delete contact" });
+    }
+  });
+
   // Note routes
   app.get('/api/notes', isSoftAuthenticated, async (req: any, res) => {
     try {

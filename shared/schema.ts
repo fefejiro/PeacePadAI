@@ -45,6 +45,7 @@ export const contacts = pgTable("contacts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id), // Owner of the contact
   peerUserId: varchar("peer_user_id").notNull().references(() => users.id), // The contact person
+  nickname: varchar("nickname"), // Optional custom nickname for the contact
   allowAudio: boolean("allow_audio").notNull().default(true), // Permission for audio calls
   allowVideo: boolean("allow_video").notNull().default(true), // Permission for video calls
   allowSms: boolean("allow_sms").notNull().default(false), // Permission to send SMS
