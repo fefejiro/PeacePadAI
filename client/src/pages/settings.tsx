@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check } from "lucide-react";
+import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone } from "lucide-react";
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
@@ -46,9 +46,10 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
 
   const updateProfile = useMutation({
-    mutationFn: async (data: { profileImageUrl?: string; displayName?: string }) => {
+    mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string }) => {
       const res = await apiRequest("PATCH", "/api/user/profile", data);
       return await res.json();
     },
@@ -168,6 +169,21 @@ export default function SettingsPage() {
     });
   };
 
+  const handlePhoneNumberSave = () => {
+    // Basic validation for phone number format
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    if (phoneNumber && !phoneRegex.test(phoneNumber)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updateProfile.mutate({ phoneNumber });
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
@@ -231,6 +247,42 @@ export default function SettingsPage() {
                   </Button>
                 ))}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Contact Information</h2>
+            <CardDescription>Add your phone number for contact sharing</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone-number">Phone Number</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone-number"
+                    type="tel"
+                    placeholder="+1 (555) 123-4567"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-phone-number"
+                  />
+                </div>
+                <Button
+                  onClick={handlePhoneNumberSave}
+                  disabled={updateProfile.isPending}
+                  data-testid="button-save-phone"
+                >
+                  {updateProfile.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your phone number will be visible to your contacts for easy communication
+              </p>
             </div>
           </CardContent>
         </Card>

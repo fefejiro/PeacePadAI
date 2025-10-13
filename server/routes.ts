@@ -161,11 +161,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/user/profile', isSoftAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { profileImageUrl, displayName } = req.body;
+      const { profileImageUrl, displayName, phoneNumber } = req.body;
       
       const updateData: any = {};
       if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
       if (displayName !== undefined) updateData.displayName = displayName;
+      if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
       
       const updatedUser = await storage.upsertUser({
         id: userId,
