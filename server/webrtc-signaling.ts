@@ -197,6 +197,26 @@ export function setupWebRTCSignaling(server: Server) {
             }
             break;
 
+          case "ai-consent":
+            // Broadcast AI listening consent status to all users in the same call session
+            if (client.callSessionCode) {
+              const sessionClients = callSessions.get(client.callSessionCode);
+              if (sessionClients) {
+                sessionClients.forEach((clientId) => {
+                  const otherClient = clients.get(clientId);
+                  // Send to all OTHER clients in the session (not the sender)
+                  if (otherClient && otherClient.connectionId !== connectionId && otherClient.ws.readyState === WebSocket.OPEN) {
+                    otherClient.ws.send(JSON.stringify({
+                      type: "ai-consent",
+                      from: userId,
+                      payload: payload,
+                    }));
+                  }
+                });
+              }
+            }
+            break;
+
           default:
             console.log("Unknown message type:", type);
         }
