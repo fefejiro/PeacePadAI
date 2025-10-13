@@ -196,24 +196,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const sessionId = req.user.sessionId;
       
-      // Determine recipientId: use provided value or auto-select most recent other user
+      // Determine recipientId: use provided value or auto-select
       let recipientId = req.body.recipientId;
       
       if (!recipientId) {
         const otherUsers = await storage.getOtherUsers(userId);
         if (otherUsers.length === 0) {
-          // No other users - message has no recipient (broadcast/note scenario)
-          recipientId = null;
+          // No other users - message to yourself (WhatsApp-like solo chat)
+          recipientId = userId;
         } else {
           // Auto-select most recent other user for co-parenting demo
-          // In production, this would require explicit selection UI for 3+ users
           recipientId = otherUsers[0].id;
         }
       } else {
-        // Validate provided recipientId exists and is not the sender
-        if (recipientId === userId) {
-          return res.status(400).json({ message: "Cannot send message to yourself" });
-        }
+        // Validate provided recipientId exists (allow self-messaging)
         const recipient = await storage.getUser(recipientId);
         if (!recipient) {
           return res.status(400).json({ message: "Invalid recipient" });
