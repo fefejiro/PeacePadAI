@@ -5,18 +5,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Brain, Calendar, Shield, TrendingUp, Users } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import GuestEntry from "@/components/GuestEntry";
+import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
 import heroImage from "@assets/stock_images/peaceful_diverse_fam_f2239163.jpg";
 
 export default function LandingPage() {
   const [showGuestEntry, setShowGuestEntry] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const [, setLocation] = useLocation();
 
-  // Check for pending join code on mount
+  // Check for intro on first mount
   useEffect(() => {
+    const hasSeenIntro = localStorage.getItem('hasSeenIntro');
     const pendingCode = localStorage.getItem('pending_join_code');
+    
     if (pendingCode) {
-      // Auto-show guest entry if there's a pending call to join
+      // Auto-show guest entry if there's a pending call to join (skip intro)
       setShowGuestEntry(true);
+    } else if (!hasSeenIntro) {
+      // Show intro slideshow for first-time visitors
+      setShowIntro(true);
     }
   }, []);
 
@@ -33,6 +40,16 @@ export default function LandingPage() {
     }
   };
 
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+  };
+
+  // Show intro slideshow for first-time visitors
+  if (showIntro) {
+    return <LandingIntroSlideshow onComplete={handleIntroComplete} />;
+  }
+
+  // Show guest entry after intro or when joining with code
   if (showGuestEntry) {
     return <GuestEntry onAuthenticated={handleAuthenticated} />;
   }
