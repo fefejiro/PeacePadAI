@@ -9,6 +9,7 @@ import {
   events,
   guestSessions,
   usageMetrics,
+  contacts,
   callSessions,
   callRecordings,
   therapists,
@@ -35,6 +36,8 @@ import {
   type InsertGuestSession,
   type UsageMetric,
   type InsertUsageMetric,
+  type Contact,
+  type InsertContact,
   type CallSession,
   type InsertCallSession,
   type CallRecording,
@@ -49,7 +52,7 @@ import {
   type InsertSessionMoodSummary,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -73,6 +76,13 @@ export interface IStorage {
   getMessages(): Promise<Message[]>;
   getMessagesByUser(userId: string): Promise<any[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  
+  // Contact operations
+  getContacts(userId: string): Promise<Contact[]>;
+  getContactWithUser(userId: string, peerUserId: string): Promise<Contact | undefined>;
+  createContact(contact: InsertContact): Promise<Contact>;
+  updateContact(id: string, updates: Partial<InsertContact>): Promise<Contact>;
+  deleteContact(id: string): Promise<void>;
   
   // Note operations
   getNotes(userId: string): Promise<Note[]>;
@@ -271,6 +281,38 @@ export class DatabaseStorage implements IStorage {
   async createMessage(messageData: InsertMessage): Promise<Message> {
     const [message] = await db.insert(messages).values(messageData).returning();
     return message;
+  }
+
+  // Contact operations
+  async getContacts(userId: string): Promise<Contact[]> {
+    const result = await db.select().from(contacts).where(eq(contacts.userId, userId));
+    return result;
+  }
+
+  async getContactWithUser(userId: string, peerUserId: string): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts)
+      .where(and(
+        eq(contacts.userId, userId),
+        eq(contacts.peerUserId, peerUserId)
+      ));
+    return contact;
+  }
+
+  async createContact(contactData: InsertContact): Promise<Contact> {
+    const [contact] = await db.insert(contacts).values(contactData).returning();
+    return contact;
+  }
+
+  async updateContact(id: string, updates: Partial<InsertContact>): Promise<Contact> {
+    const [contact] = await db.update(contacts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contacts.id, id))
+      .returning();
+    return contact;
+  }
+
+  async deleteContact(id: string): Promise<void> {
+    await db.delete(contacts).where(eq(contacts.id, id));
   }
 
   // Note operations
