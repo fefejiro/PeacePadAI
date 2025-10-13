@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { User, Search, Phone, Video, MessageSquare, Mic, UserPlus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Contact {
   id: string;
@@ -36,10 +37,15 @@ interface ContactSelectorProps {
 export function ContactSelector({ onSelectContact, selectedContactId }: ContactSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
+    enabled: !!user,
   });
+
+  // Debug logging
+  console.log("[ContactSelector] User:", user?.id, "Contacts loaded:", contacts.length, contacts);
 
   const filteredContacts = contacts.filter((contact) => {
     if (!contact.peerUser) return false;

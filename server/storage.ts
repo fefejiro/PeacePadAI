@@ -291,8 +291,31 @@ export class DatabaseStorage implements IStorage {
 
   // Contact operations
   async getContacts(userId: string): Promise<Contact[]> {
-    const result = await db.select().from(contacts).where(eq(contacts.userId, userId));
-    return result;
+    const result = await db
+      .select({
+        id: contacts.id,
+        userId: contacts.userId,
+        peerUserId: contacts.peerUserId,
+        nickname: contacts.nickname,
+        allowAudio: contacts.allowAudio,
+        allowVideo: contacts.allowVideo,
+        allowSms: contacts.allowSms,
+        allowRecording: contacts.allowRecording,
+        allowAiTone: contacts.allowAiTone,
+        createdAt: contacts.createdAt,
+        updatedAt: contacts.updatedAt,
+        peerUser: {
+          id: users.id,
+          displayName: users.displayName,
+          profileImageUrl: users.profileImageUrl,
+          phoneNumber: users.phoneNumber,
+        },
+      })
+      .from(contacts)
+      .leftJoin(users, eq(contacts.peerUserId, users.id))
+      .where(eq(contacts.userId, userId));
+    
+    return result as any; // Type assertion needed due to nested object
   }
 
   async getContactWithUser(userId: string, peerUserId: string): Promise<Contact | undefined> {
