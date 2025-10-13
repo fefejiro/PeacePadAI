@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2 } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
 import { ContactSelector } from "./ContactSelector";
@@ -56,6 +56,13 @@ export default function ChatInterface() {
   const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [tonePreview, setTonePreview] = useState<{
+    tone: string;
+    summary: string;
+    emoji: string;
+    rewordingSuggestion: string | null;
+    originalMessage: string;
+  } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { trackActivity, endActivity } = useActivity();
@@ -121,6 +128,7 @@ export default function ChatInterface() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setMessage("");
+      setTonePreview(null); // Clear preview after sending
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -138,6 +146,27 @@ export default function ChatInterface() {
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // AI-first: Preview tone BEFORE sending
+  const previewTone = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await apiRequest("POST", "/api/messages/preview", { content });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      // Only set preview if message hasn't changed (prevent stale previews from race conditions)
+      if (message.trim() === data.originalMessage.trim()) {
+        setTonePreview(data);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to analyze message tone. Please try again.",
         variant: "destructive",
       });
     },
@@ -792,12 +821,61 @@ export default function ChatInterface() {
                 <Camera className="h-5 w-5" />
               </Button>
 
+              {/* AI Tone Preview Card */}
+              {tonePreview && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-card border rounded-lg p-3 shadow-lg" data-testid="tone-preview-card">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{tonePreview.emoji}</span>
+                      <div>
+                        <p className="font-medium text-sm capitalize">Tone: {tonePreview.tone}</p>
+                        <p className="text-xs text-muted-foreground">{tonePreview.summary}</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setTonePreview(null)}
+                      className="h-6 w-6 shrink-0"
+                      data-testid="button-close-preview"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {tonePreview.rewordingSuggestion && (
+                    <div className="mt-3 p-2 bg-primary/5 rounded border border-primary/20">
+                      <p className="text-xs font-medium text-primary mb-1">AI Suggests:</p>
+                      <p className="text-sm">{tonePreview.rewordingSuggestion}</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setMessage(tonePreview.rewordingSuggestion || "");
+                          setTonePreview(null);
+                        }}
+                        className="mt-2 h-7 text-xs"
+                        data-testid="button-use-rewrite"
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Use This Instead
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Textarea
                 value={message}
                 onChange={(e) => {
-                  setMessage(e.target.value);
+                  const newMessage = e.target.value;
+                  setMessage(newMessage);
+                  // Clear stale preview when user edits away from analyzed text
+                  if (tonePreview && newMessage.trim() !== tonePreview.originalMessage) {
+                    setTonePreview(null);
+                  }
                   // Track typing activity
-                  if (e.target.value.trim()) {
+                  if (newMessage.trim()) {
                     trackActivity('messaging');
                   }
                 }}
@@ -807,6 +885,23 @@ export default function ChatInterface() {
                 data-testid="input-message"
                 disabled={sendTextMessage.isPending || sendMediaMessage.isPending || hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
               />
+
+              {/* AI Check Tone Button */}
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  if (message.trim()) {
+                    previewTone.mutate(message.trim());
+                  }
+                }}
+                disabled={!message.trim() || previewTone.isPending || hasAnyMediaReady}
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
+                data-testid="button-check-tone"
+                title="Check tone with AI"
+              >
+                <Sparkles className={`h-5 w-5 ${previewTone.isPending ? 'animate-pulse' : ''}`} />
+              </Button>
 
               <Button
                 size="icon"
@@ -836,7 +931,9 @@ export default function ChatInterface() {
               ? "Recording audio... Click stop to review"
               : isRecordingVideo
               ? "Recording video... Click stop to review"
-              : "AI will analyze your message tone after sending"}
+              : previewTone.isPending
+              ? "AI is analyzing your message..."
+              : "Click ✨ to check your message tone before sending"}
           </p>
         </div>
       </div>

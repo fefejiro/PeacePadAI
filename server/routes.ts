@@ -215,6 +215,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Preview tone analysis without sending (AI-first feature)
+  app.post('/api/messages/preview', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { content } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      const { tone, summary, emoji, rewordingSuggestion } = await analyzeTone(content);
+      
+      res.json({ 
+        tone, 
+        summary, 
+        emoji, 
+        rewordingSuggestion,
+        originalMessage: content
+      });
+    } catch (error) {
+      console.error("Error previewing tone:", error);
+      res.status(500).json({ message: "Failed to analyze message tone" });
+    }
+  });
+
   app.post('/api/messages', isSoftAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
