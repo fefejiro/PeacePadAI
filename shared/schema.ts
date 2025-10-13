@@ -200,6 +200,17 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Session mood summaries for AI listening feature (7-day TTL)
+export const sessionMoodSummaries = pgTable("session_mood_summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => callSessions.id),
+  participants: text("participants").array().notNull(), // Array of participant user IDs
+  emotionsTimeline: jsonb("emotions_timeline").notNull().default('[]'), // Array of {timestamp, emotion, confidence}
+  summary: text("summary"), // AI-generated summary of emotional journey
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull().default(sql`NOW() + INTERVAL '7 days'`), // Auto-delete after 7 days
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -250,3 +261,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+export const insertSessionMoodSummarySchema = createInsertSchema(sessionMoodSummaries).omit({ id: true, createdAt: true, expiresAt: true });
+export type InsertSessionMoodSummary = z.infer<typeof insertSessionMoodSummarySchema>;
+export type SessionMoodSummary = typeof sessionMoodSummaries.$inferSelect;

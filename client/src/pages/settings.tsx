@@ -37,6 +37,10 @@ export default function SettingsPage() {
     const stored = localStorage.getItem("mood_checkins_enabled");
     return stored !== null ? stored === "true" : false; // Default OFF
   });
+  const [aiListeningEnabled, setAiListeningEnabled] = useState(() => {
+    const stored = localStorage.getItem("ai_listening_enabled");
+    return stored !== null ? stored === "true" : false; // Default OFF
+  });
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -151,6 +155,17 @@ export default function SettingsPage() {
     setMoodCheckInsEnabled(enabled);
     localStorage.setItem("mood_checkins_enabled", String(enabled));
     window.location.reload(); // Reload to apply changes
+  };
+
+  const handleAiListeningToggle = (enabled: boolean) => {
+    setAiListeningEnabled(enabled);
+    localStorage.setItem("ai_listening_enabled", String(enabled));
+    toast({
+      title: enabled ? "AI Listening enabled" : "AI Listening disabled",
+      description: enabled
+        ? "AI will analyze emotional tone during calls when both participants have it enabled"
+        : "AI listening is now disabled",
+    });
   };
 
   return (
@@ -303,6 +318,20 @@ export default function SettingsPage() {
                 checked={moodCheckInsEnabled}
                 onCheckedChange={handleMoodCheckInsToggle}
                 data-testid="switch-mood-checkins-enabled"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="ai-listening-enabled">AI Listening (Calls)</Label>
+                <p className="text-sm text-muted-foreground">
+                  Continuous emotional tone analysis during video/audio calls
+                </p>
+              </div>
+              <Switch
+                id="ai-listening-enabled"
+                checked={aiListeningEnabled}
+                onCheckedChange={handleAiListeningToggle}
+                data-testid="switch-ai-listening-enabled"
               />
             </div>
           </CardContent>
