@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import MoodCheckIn from "@/components/MoodCheckIn";
 import Clippy from "@/components/Clippy";
+import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
 import LandingPage from "@/pages/landing";
 import ChatPage from "@/pages/chat";
@@ -91,6 +92,7 @@ export default function App() {
                 </div>
               </SidebarProvider>
             </AuthWrapper>
+            <TransitionPrompt />
             <MoodCheckIn />
             <Clippy />
             <Toaster />

@@ -45,15 +45,8 @@ export default function MoodCheckIn({ isDormant = false }: MoodCheckInProps) {
       }
     }, 30 * 1000); // Check every 30 seconds
 
-    // Fallback: Show after 10 minutes regardless (in case user is always active)
-    const fallbackTimer = setTimeout(() => {
-      setIsOpen(true);
-      clearInterval(checkInterval);
-    }, 10 * 60 * 1000);
-
     return () => {
       clearInterval(checkInterval);
-      clearTimeout(fallbackTimer);
     };
   }, []);
 

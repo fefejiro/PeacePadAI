@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle, Copy, Check, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useActivity } from "@/components/ActivityProvider";
 
 interface VideoCallDialogProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function VideoCallDialog({
 }: VideoCallDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackActivity, endActivity } = useActivity();
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(!initialMicEnabled);
   const [isVideoOff, setIsVideoOff] = useState(callType === "audio" || !initialCameraEnabled);
@@ -227,6 +229,9 @@ export default function VideoCallDialog({
 
       console.log("Local media initialized");
       setIsMediaReady(true);
+      
+      // Track call activity
+      trackActivity('call');
       
       // Process any pending peer connections now that media is ready
       if (pendingPeersRef.current.length > 0) {
@@ -640,6 +645,9 @@ export default function VideoCallDialog({
     if (wsRef.current) {
       wsRef.current.close();
     }
+    
+    // End call activity tracking
+    endActivity('call');
   };
 
   return (
