@@ -10,14 +10,14 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users, User, PhoneIncoming } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Settings, LogOut, MapPin, Calendar, FileText, Users, User, PhoneIncoming, DollarSign, CheckSquare } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 
-const menuItems = [
+const communicateItems = [
   {
     title: "Chat",
     url: "/",
@@ -28,6 +28,9 @@ const menuItems = [
     url: "/join",
     icon: PhoneIncoming,
   },
+];
+
+const organizeItems = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -39,14 +42,22 @@ const menuItems = [
     icon: Calendar,
   },
   {
-    title: "Find Support",
-    url: "/therapist-locator",
-    icon: MapPin,
+    title: "Tasks",
+    url: "/tasks",
+    icon: CheckSquare,
   },
   {
-    title: "Audit Trail",
-    url: "/audit-trail",
-    icon: FileText,
+    title: "Expenses",
+    url: "/expenses",
+    icon: DollarSign,
+  },
+];
+
+const supportItems = [
+  {
+    title: "Find Support",
+    url: "/therapist-directory",
+    icon: MapPin,
   },
   {
     title: "Settings",
@@ -135,13 +146,49 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Communicate</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {communicateItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location === item.url}>
-                    <a href={item.url} data-testid={`link-${item.title.toLowerCase()}`}>
+                    <a href={item.url} data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Organize</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {organizeItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={location === item.url}>
+                    <a href={item.url} data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Support</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {supportItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={location === item.url}>
+                    <a href={item.url} data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}>
                       <item.icon />
                       <span>{item.title}</span>
                     </a>

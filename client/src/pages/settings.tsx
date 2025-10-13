@@ -25,6 +25,18 @@ export default function SettingsPage() {
     const stored = localStorage.getItem("hints_enabled");
     return stored !== null ? stored === "true" : true; // Default ON
   });
+  const [clippyEnabled, setClippyEnabled] = useState(() => {
+    const stored = localStorage.getItem("clippy_enabled");
+    return stored !== null ? stored === "true" : false; // Default OFF
+  });
+  const [affirmationsEnabled, setAffirmationsEnabled] = useState(() => {
+    const stored = localStorage.getItem("affirmations_enabled");
+    return stored !== null ? stored === "true" : false; // Default OFF
+  });
+  const [moodCheckInsEnabled, setMoodCheckInsEnabled] = useState(() => {
+    const stored = localStorage.getItem("mood_checkins_enabled");
+    return stored !== null ? stored === "true" : false; // Default OFF
+  });
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +135,24 @@ export default function SettingsPage() {
     });
   };
 
+  const handleClippyToggle = (enabled: boolean) => {
+    setClippyEnabled(enabled);
+    localStorage.setItem("clippy_enabled", String(enabled));
+    window.location.reload(); // Reload to apply changes
+  };
+
+  const handleAffirmationsToggle = (enabled: boolean) => {
+    setAffirmationsEnabled(enabled);
+    localStorage.setItem("affirmations_enabled", String(enabled));
+    window.location.reload(); // Reload to apply changes
+  };
+
+  const handleMoodCheckInsToggle = (enabled: boolean) => {
+    setMoodCheckInsEnabled(enabled);
+    localStorage.setItem("mood_checkins_enabled", String(enabled));
+    window.location.reload(); // Reload to apply changes
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
@@ -214,7 +244,7 @@ export default function SettingsPage() {
               <div className="space-y-0.5">
                 <Label htmlFor="hints-enabled">Hints & Tips</Label>
                 <p className="text-sm text-muted-foreground">
-                  Show helpful guidance with Clippy assistant
+                  Show helpful contextual guidance
                 </p>
               </div>
               <Switch
@@ -222,6 +252,57 @@ export default function SettingsPage() {
                 checked={hintsEnabled}
                 onCheckedChange={handleHintsToggle}
                 data-testid="switch-hints-enabled"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Wellness Features (Optional)</h2>
+            <CardDescription>Additional emotional support tools - all disabled by default for a focused experience</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="clippy-enabled">Clippy Assistant</Label>
+                <p className="text-sm text-muted-foreground">
+                  Animated paperclip mascot with helpful hints
+                </p>
+              </div>
+              <Switch
+                id="clippy-enabled"
+                checked={clippyEnabled}
+                onCheckedChange={handleClippyToggle}
+                data-testid="switch-clippy-enabled"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="affirmations-enabled">Daily Affirmations</Label>
+                <p className="text-sm text-muted-foreground">
+                  Positive messages for peaceful co-parenting
+                </p>
+              </div>
+              <Switch
+                id="affirmations-enabled"
+                checked={affirmationsEnabled}
+                onCheckedChange={handleAffirmationsToggle}
+                data-testid="switch-affirmations-enabled"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="mood-checkins-enabled">Mood Check-ins</Label>
+                <p className="text-sm text-muted-foreground">
+                  Emotional reflection prompts during quiet moments
+                </p>
+              </div>
+              <Switch
+                id="mood-checkins-enabled"
+                checked={moodCheckInsEnabled}
+                onCheckedChange={handleMoodCheckInsToggle}
+                data-testid="switch-mood-checkins-enabled"
               />
             </div>
           </CardContent>

@@ -16,6 +16,8 @@ import LandingPage from "@/pages/landing";
 import ChatPage from "@/pages/chat";
 import DashboardPage from "@/pages/dashboard";
 import SchedulingPage from "@/pages/scheduling";
+import TasksPage from "@/pages/tasks";
+import ExpensesPage from "@/pages/expenses";
 import SettingsPage from "@/pages/settings";
 import TherapistLocatorPage from "@/pages/therapist-locator";
 import TherapistDirectoryPage from "@/pages/therapist-directory";
@@ -43,6 +45,8 @@ function Router() {
         <Route path="/chat" component={ChatPage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/scheduling" component={SchedulingPage} />
+        <Route path="/tasks" component={TasksPage} />
+        <Route path="/expenses" component={ExpensesPage} />
         <Route path="/therapist-locator" component={TherapistLocatorPage} />
         <Route path="/therapist-directory" component={TherapistDirectoryPage} />
         <Route path="/audit-trail" component={AuditTrailPage} />
@@ -71,6 +75,10 @@ export default function App() {
     "--sidebar-width-icon": "3rem",
   };
 
+  // Check localStorage for wellness feature settings (default OFF)
+  const clippyEnabled = localStorage.getItem("clippy_enabled") === "true";
+  const moodCheckInsEnabled = localStorage.getItem("mood_checkins_enabled") === "true";
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -92,9 +100,9 @@ export default function App() {
                 </div>
               </SidebarProvider>
             </AuthWrapper>
-            <TransitionPrompt />
-            <MoodCheckIn />
-            <Clippy />
+            {moodCheckInsEnabled && <TransitionPrompt />}
+            {moodCheckInsEnabled && <MoodCheckIn />}
+            {clippyEnabled && <Clippy />}
             <Toaster />
           </ActivityProvider>
         </TooltipProvider>
