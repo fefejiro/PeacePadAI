@@ -84,6 +84,7 @@ export function AppSidebar() {
       // 2. Clear client-side data
       console.log("[Logout] Clearing localStorage...");
       localStorage.removeItem("peacepad_session_id");
+      localStorage.removeItem("pending_join_code"); // Clear any pending call joins
       
       // 3. Clear React Query cache and set auth to null immediately
       console.log("[Logout] Clearing React Query cache...");
@@ -104,6 +105,7 @@ export function AppSidebar() {
       
       // Even on error, clear local state and reload
       localStorage.removeItem("peacepad_session_id");
+      localStorage.removeItem("pending_join_code"); // Clear any pending call joins
       queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.clear();
       setLocation("/");
