@@ -72,32 +72,32 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   
   // Note operations
-  getNotes(): Promise<Note[]>;
+  getNotes(userId: string): Promise<Note[]>;
   createNote(note: InsertNote): Promise<Note>;
   updateNote(id: string, note: Partial<InsertNote>): Promise<Note>;
   deleteNote(id: string): Promise<void>;
   
   // Task operations
-  getTasks(): Promise<Task[]>;
+  getTasks(userId: string): Promise<Task[]>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: string, task: Partial<InsertTask>): Promise<Task>;
   deleteTask(id: string): Promise<void>;
   
   // Child update operations
-  getChildUpdates(): Promise<ChildUpdate[]>;
+  getChildUpdates(userId: string): Promise<ChildUpdate[]>;
   createChildUpdate(update: InsertChildUpdate): Promise<ChildUpdate>;
   deleteChildUpdate(id: string): Promise<void>;
   
   // Pet operations
-  getPets(): Promise<Pet[]>;
+  getPets(userId: string): Promise<Pet[]>;
   createPet(pet: InsertPet): Promise<Pet>;
   
   // Expense operations
-  getExpenses(): Promise<Expense[]>;
+  getExpenses(userId: string): Promise<Expense[]>;
   createExpense(expense: InsertExpense): Promise<Expense>;
   
   // Event operations
-  getEvents(): Promise<Event[]>;
+  getEvents(userId: string): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   
   // Call session operations
@@ -266,8 +266,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Note operations
-  async getNotes(): Promise<Note[]> {
-    return await db.select().from(notes).orderBy(desc(notes.createdAt));
+  async getNotes(userId: string): Promise<Note[]> {
+    return await db.select().from(notes)
+      .where(eq(notes.createdBy, userId))
+      .orderBy(desc(notes.createdAt));
   }
 
   async createNote(noteData: InsertNote): Promise<Note> {
@@ -289,8 +291,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Task operations
-  async getTasks(): Promise<Task[]> {
-    return await db.select().from(tasks).orderBy(tasks.createdAt);
+  async getTasks(userId: string): Promise<Task[]> {
+    return await db.select().from(tasks)
+      .where(eq(tasks.createdBy, userId))
+      .orderBy(tasks.createdAt);
   }
 
   async createTask(taskData: InsertTask): Promise<Task> {
@@ -312,8 +316,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Child update operations
-  async getChildUpdates(): Promise<ChildUpdate[]> {
-    return await db.select().from(childUpdates).orderBy(desc(childUpdates.createdAt));
+  async getChildUpdates(userId: string): Promise<ChildUpdate[]> {
+    return await db.select().from(childUpdates)
+      .where(eq(childUpdates.createdBy, userId))
+      .orderBy(desc(childUpdates.createdAt));
   }
 
   async createChildUpdate(updateData: InsertChildUpdate): Promise<ChildUpdate> {
@@ -326,8 +332,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Pet operations
-  async getPets(): Promise<Pet[]> {
-    return await db.select().from(pets).orderBy(desc(pets.createdAt));
+  async getPets(userId: string): Promise<Pet[]> {
+    return await db.select().from(pets)
+      .where(eq(pets.createdBy, userId))
+      .orderBy(desc(pets.createdAt));
   }
 
   async createPet(petData: InsertPet): Promise<Pet> {
@@ -336,8 +344,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Expense operations
-  async getExpenses(): Promise<Expense[]> {
-    return await db.select().from(expenses).orderBy(desc(expenses.createdAt));
+  async getExpenses(userId: string): Promise<Expense[]> {
+    return await db.select().from(expenses)
+      .where(eq(expenses.paidBy, userId))
+      .orderBy(desc(expenses.createdAt));
   }
 
   async createExpense(expenseData: InsertExpense): Promise<Expense> {
@@ -346,8 +356,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Event operations
-  async getEvents(): Promise<Event[]> {
-    return await db.select().from(events).orderBy(events.startDate);
+  async getEvents(userId: string): Promise<Event[]> {
+    return await db.select().from(events)
+      .where(eq(events.createdBy, userId))
+      .orderBy(events.startDate);
   }
 
   async createEvent(eventData: InsertEvent): Promise<Event> {

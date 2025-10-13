@@ -302,9 +302,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Note routes
-  app.get('/api/notes', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/notes', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const notes = await storage.getNotes();
+      const userId = req.user.id;
+      const notes = await storage.getNotes(userId);
       res.json(notes);
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -348,9 +349,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task routes
-  app.get('/api/tasks', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/tasks', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const tasks = await storage.getTasks();
+      const userId = req.user.id;
+      const tasks = await storage.getTasks(userId);
       res.json(tasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -394,9 +396,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Child update routes
-  app.get('/api/child-updates', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/child-updates', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const updates = await storage.getChildUpdates();
+      const userId = req.user.id;
+      const updates = await storage.getChildUpdates(userId);
       res.json(updates);
     } catch (error) {
       console.error("Error fetching child updates:", error);
@@ -430,9 +433,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Pet routes
-  app.get('/api/pets', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/pets', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const pets = await storage.getPets();
+      const userId = req.user.id;
+      const pets = await storage.getPets(userId);
       res.json(pets);
     } catch (error) {
       console.error("Error fetching pets:", error);
@@ -456,9 +460,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expense routes
-  app.get('/api/expenses', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/expenses', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const expenses = await storage.getExpenses();
+      const userId = req.user.id;
+      const expenses = await storage.getExpenses(userId);
       res.json(expenses);
     } catch (error) {
       console.error("Error fetching expenses:", error);
@@ -533,9 +538,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Event routes
-  app.get('/api/events', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/events', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const events = await storage.getEvents();
+      const userId = req.user.id;
+      const events = await storage.getEvents(userId);
       res.json(events);
     } catch (error) {
       console.error("Error fetching events:", error);

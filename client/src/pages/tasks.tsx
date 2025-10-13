@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckSquare, Plus, Circle, CheckCircle2 } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import type { Task } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -18,6 +18,7 @@ import {
 
 export default function TasksPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -35,8 +36,11 @@ export default function TasksPage() {
       const res = await apiRequest("POST", "/api/tasks", data);
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    onSuccess: async (newTask: Task) => {
+      // Optimistically update the cache with the new task
+      queryClient.setQueryData<Task[]>(["/api/tasks"], (oldTasks = []) => {
+        return [...oldTasks, newTask];
+      });
       setDialogOpen(false);
       setTitle("");
       setDueDate("");
@@ -56,8 +60,13 @@ export default function TasksPage() {
       const res = await apiRequest("PATCH", `/api/tasks/${id}`, { completed });
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    onSuccess: async (updatedTask: Task) => {
+      // Optimistically update the task in cache
+      queryClient.setQueryData<Task[]>(["/api/tasks"], (oldTasks = []) => {
+        return oldTasks.map(task => 
+          task.id === updatedTask.id ? updatedTask : task
+        );
+      });
     },
   });
 
