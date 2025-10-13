@@ -93,6 +93,7 @@ Preferred communication style: Simple, everyday language.
 - **Toggle Completion**: Click checkboxes to mark tasks complete/incomplete
 - **Visual Indicators**: Checkboxes for incomplete tasks, checkmarks for completed tasks with strikethrough
 - **API Support**: GET /api/tasks, POST /api/tasks, PATCH /api/tasks/:id for updates
+- **Optimistic Updates**: UI immediately reflects changes using setQueryData for instant feedback; no refetch delays
 
 ### Find Support Directory (Support Resources)
 - **Comprehensive Resource Database**: Multi-category support system including Crisis (24/7 helplines), Therapists (licensed professionals), Government Services (free mental health programs), Family Services (community-based support), and Legal Resources (family law assistance).
@@ -104,6 +105,7 @@ Preferred communication style: Simple, everyday language.
   - Legal: Family law resources, free legal clinics, mediation services (FLIC, Pro Bono Ontario, JFCY, etc.)
 - **Free & Low-Cost Services**: All resources tagged with `isFree` flag; crisis and government services always free; family services include sliding scale options.
 - **Geocoding & Location Detection**: OpenStreetMap Nominatim API for addresses and postal codes, Canadian postal code fallback, country detection, "Use My Location" feature.
+- **Partial Postal Code Support**: 3-character Canadian FSA (Forward Sortation Area) search enabled (e.g., "L1N"); FSA lookup table maps common Ontario prefixes (L, M, K, N) to approximate coordinates; returns city/area name for user-friendly display; falls back to Nominatim for unlisted FSAs.
 - **Distance Calculation**: Haversine formula for accurate geographic distance, server-side km calculation, client-side miles-to-km conversion.
 - **Unit Handling**: km for Canadian locations, miles for US/Other; slider range adjusts based on location.
 - **Filter System**: Tab-based filtering by resource type (All, Crisis, Therapists, Family Services, Legal); crisis resources always shown regardless of distance.
