@@ -56,6 +56,7 @@ export default function ContactsPage() {
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
+    enabled: !!user, // Only fetch when user is authenticated
   });
 
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery<UserData[]>({
@@ -73,11 +74,25 @@ export default function ContactsPage() {
       });
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+    onSuccess: async (newContact) => {
+      // Fetch the peer user info to add to the new contact
+      const peerUser = allUsers.find(u => u.id === selectedUserId);
+      const contactWithUser = {
+        ...newContact,
+        peerUser: peerUser || null
+      };
+      
+      // Optimistically update the query data
+      queryClient.setQueryData<Contact[]>(["/api/contacts"], (old = []) => {
+        return [...old, contactWithUser];
+      });
+      
       setIsAddDialogOpen(false);
       setSelectedUserId("");
       toast({ title: "Contact added successfully" });
+      
+      // Refetch to get server's version of the data
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
     },
     onError: () => {
       toast({
@@ -100,8 +115,8 @@ export default function ContactsPage() {
       });
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+    onSuccess: async () => {
+      await queryClient.resetQueries({ queryKey: ["/api/contacts"] });
       setEditingContactId(null);
       toast({ title: "Contact updated successfully" });
     },
@@ -119,8 +134,8 @@ export default function ContactsPage() {
       const res = await apiRequest("DELETE", `/api/contacts/${contactId}`);
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+    onSuccess: async () => {
+      await queryClient.resetQueries({ queryKey: ["/api/contacts"] });
       toast({ title: "Contact deleted successfully" });
     },
     onError: () => {

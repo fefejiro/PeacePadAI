@@ -69,6 +69,15 @@ Preferred communication style: Simple, everyday language.
 - **Task Fields**: Title, Due Date, Completion Status.
 - **Separated Views**: "To Do" and "Completed" sections.
 
+### Contact Management (AppClose-style Architecture)
+- **Contact CRUD**: Full create, read, update, delete operations for contacts.
+- **Permission System**: Per-contact permissions (audio/video/SMS/recording/AI tone analysis).
+- **Nickname Support**: Optional custom nicknames for contacts.
+- **Phone Number Privacy**: User-level `sharePhoneWithContacts` toggle (default: false).
+  - Phone numbers only visible when: (1) Mutual contact relationship AND (2) Peer has opted in to share.
+- **Contact Selector**: Integrated into ChatInterface with search and permission indicators.
+- **Auth-Gated Queries**: Contacts query enabled only after authentication (`enabled: !!user`).
+
 ### Find Support Directory
 - **Comprehensive Resource Database**: Multi-category support system (Crisis, Therapists, Government, Family, Legal).
 - **Free & Low-Cost Services**: Resources tagged with `isFree` flag.
