@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   displayName: varchar("display_name"),
+  phoneNumber: varchar("phone_number"), // Optional phone number for contact info
   isGuest: boolean("is_guest").notNull().default(true),
   guestId: varchar("guest_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -37,6 +38,20 @@ export const guestSessions = pgTable("guest_sessions", {
   lastActive: timestamp("last_active").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Contacts table for managing relationships and permissions
+export const contacts = pgTable("contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id), // Owner of the contact
+  peerUserId: varchar("peer_user_id").notNull().references(() => users.id), // The contact person
+  allowAudio: boolean("allow_audio").notNull().default(true), // Permission for audio calls
+  allowVideo: boolean("allow_video").notNull().default(true), // Permission for video calls
+  allowSms: boolean("allow_sms").notNull().default(false), // Permission to send SMS
+  allowRecording: boolean("allow_recording").notNull().default(false), // Permission for call recording
+  allowAiTone: boolean("allow_ai_tone").notNull().default(false), // Permission for AI tone analysis
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Usage metrics tracking
@@ -223,6 +238,7 @@ export const insertEventSchema = createInsertSchema(events).omit({ id: true, cre
 export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
 export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({ id: true, createdAt: true });
 export const insertUsageMetricSchema = createInsertSchema(usageMetrics).omit({ id: true, lastUpdated: true });
+export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
@@ -242,6 +258,8 @@ export type InsertGuestSession = z.infer<typeof insertGuestSessionSchema>;
 export type GuestSession = typeof guestSessions.$inferSelect;
 export type InsertUsageMetric = z.infer<typeof insertUsageMetricSchema>;
 export type UsageMetric = typeof usageMetrics.$inferSelect;
+export type InsertContact = z.infer<typeof insertContactSchema>;
+export type Contact = typeof contacts.$inferSelect;
 export const insertCallSessionSchema = createInsertSchema(callSessions).omit({ id: true, createdAt: true });
 export type InsertCallSession = z.infer<typeof insertCallSessionSchema>;
 export type CallSession = typeof callSessions.$inferSelect;

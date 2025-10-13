@@ -1,0 +1,199 @@
+# PeacePadAI — Communication Architecture & Privacy Disclosure Plan (for Replit)
+
+## 🎯 Objective
+Replicate and enhance the AppClose-style communication model (text, audio, video) while embedding optional AI listening and tone interpretation — designed for reliability, privacy, and app‑store compliance.
+
+---
+
+## 🧩 Core Communication Architecture
+
+### 1) Messaging Engine
+**Goal:** Reliable, timestamped, exportable, and audit‑ready messages.
+
+**Design**
+- Transport: WebSocket (Socket.IO) for real‑time updates.
+- Storage: PostgreSQL (via Drizzle ORM) for messages, conversations, participants.
+- Idempotency: `client_msg_id` (uuid) from client prevents duplicate inserts.
+- Status pipeline: `queued → sent → delivered → read → failed`.
+- Attachments: Pre‑signed S3/Supabase URLs; generate thumbnails for images/video.
+- Integrity: Messages immutable (no edit/delete), system messages for joins/leaves.
+- Solo mode: Local echo + persistence so users see their own messages even if alone.
+
+**Server socket events**
+- `msg:send` → validate & store → emit `msg:new` to recipients.
+- `msg:ack` → advance status to delivered for sender.
+- `msg:read` → broadcast read receipts for targeted ids.
+
+**REST**
+- `POST /attachments/sign` → { uploadUrl, fileUrl, thumbUrl? }
+- `GET /conversations/:id/messages?cursor=…`
+
+**Client UX**
+- Optimistic render; retry on failure with backoff.
+- Read/delivered ticks; inline previews; offline queue in IndexedDB.
+
+---
+
+### 2) Audio/Video Calls
+**Goal:** Permission‑based WebRTC with call logs and optional recording/transcripts only on full consent.
+
+**Signaling & Flow**
+- WebRTC with Socket.IO signaling: `webrtc:offer/answer/candidate`.
+- STUN/TURN: Google STUN + coturn TURN for NAT traversal.
+- Session links: short share codes like `PP-84XZ1` → `/call/PP-84XZ1`.
+- Pre‑join screen: name, camera/mic toggles, consent checkboxes (Recording, Tone AI).
+
+**Permissions per contact (AppClose‑style)**
+- `contacts.allow_audio`, `contacts.allow_video` enforced server‑side before issuing offers.
+
+**Logging**
+- `calls` table: attempted/missed/completed/failed with timestamps.
+- `call_participants`: join/leave times + per‑participant consent flags.
+
+**Recording/Transcripts/Tone (optional)**
+- Activated only when **ALL** active participants consent to each respective feature.
+- Client‑side MediaRecorder or server SFU later (future phase) → upload to S3.
+- Whisper‑style STT for transcripts; tone analysis on transcript or live segments.
+
+---
+
+### 3) Presence & Notifications
+- Presence heartbeat (`presence:update`) for online/typing.
+- Web Push for web; later native push via Capacitor (FCM/APNs).
+- Quiet hours and per‑conversation mute.
+
+---
+
+### 4) Export & Integrity
+- Conversation export (PDF/CSV) with ISO timestamps, sender, status.
+- Call history export (attempts, joins, durations).
+
+---
+
+## 🧱 Data Model (minimal)
+
+**users**
+- id (uuid), display_name, avatar_url, soft_auth_session_id, created_at
+
+**contacts**
+- id, user_id, peer_user_id, allow_audio (bool), allow_video (bool), allow_recording (bool), allow_ai_tone (bool), created_at
+
+**conversations**
+- id, type (“direct”|“group”), created_at
+
+**conversation_participants**
+- conversation_id, user_id, role (“owner”|“member”)
+
+**messages**
+- id, conversation_id, sender_id, kind (“text”|“image”|“video”|“audio”|“file”|“system”),
+  body, media_url, media_thumb_url, status, client_msg_id, created_at
+
+**calls**
+- id, host_user_id, conversation_id?, session_code, started_at, ended_at, status
+
+**call_participants**
+- call_id, user_id, join_time, leave_time, consent_recording (bool), consent_ai_tone (bool)
+
+**call_artifacts** (when consented)
+- call_id, type (“recording”|“transcript”|“summary”), url, created_at
+
+**deliverability_events**
+- id, message_id, event (“sent”|“ack”|“delivered”|“read”|“retry”|“fail”), at
+
+---
+
+## 🔒 Privacy & Compliance (for Store Listings and Policy)
+
+**Data Collected**
+- Display name (nickname or guest ID), session ID (temporary), messages/media (encrypted at rest), call logs.
+- Tone/recording/transcripts only when **explicitly consented** by **all** participants.
+
+**Data NOT Collected**
+- Phone numbers, GPS location, device contacts, background listening without UI indicator.
+
+**Purpose of Processing**
+- Facilitate co-parenting communication, enable optional tone support, and provide records for accountability.
+
+**Retention**
+- Messages/call logs per policy (e.g., 30–90 days configurable).
+- Media auto-delete after 7 days unless user saves/export.
+- Users can export conversations/call logs on demand.
+
+**Consent UX**
+- Pre-join checkboxes for Recording and Tone AI.
+- Banner indicator when active: “AI Listening enabled” / “Recording enabled”.
+- Mid-call revoke: disabling immediately stops respective feature.
+
+**Security**
+- Signed, short-lived media URLs; HTTPS only; CSRF on REST; JWT for sockets.
+- Data region pinned (Canada-friendly option).
+
+---
+
+## 🎨 UX Essentials
+
+- Paperclip action bar: Photo | Video | Audio | File.
+- Media capture flows with preview + trim before send.
+- Profile avatar/emoji shown in header/chat bubbles.
+- Call session share links; pre-join gate; consent choices persisted per contact.
+- Animated “Clippy” hint mascot (toggleable) and first-run intro slideshow.
+
+---
+
+## ⚙️ Tech Summary (Implementation Picks)
+
+| Component | Tech |
+|---|---|
+| Frontend | React + Vite, Zustand/Redux |
+| Realtime | Socket.IO (WebSocket) |
+| Calls | WebRTC + STUN/TURN (coturn) |
+| Storage | Postgres (Drizzle) |
+| Media | S3/Supabase (signed URLs) |
+| STT/Tone | Whisper-style STT + sentiment model (optional) |
+| Push | Web Push; later FCM/APNs via Capacitor |
+| PWA | manifest + service worker |
+| Mobile | Capacitor wrappers (Android/iOS) |
+
+---
+
+## 🧪 Test Matrix (must pass)
+
+**Messaging**
+- Offline/online resend; idempotent delivery; read receipts.
+- Image (10 MB) & video (25 MB) attach: upload → preview → render.
+
+**Calls**
+- iOS ↔ Android over LTE/Wi-Fi; symmetric NAT via TURN.
+- Offer-before-media race handled (queue until `getUserMedia`).
+- Consent gates: any decline → no recording/tone artifacts created.
+
+**Exports**
+- Conversation PDF/CSV consistent across clients; timestamps match UTC/Local rules.
+
+**PWA/Mobile**
+- Installable; receives push when closed; deep links `/call/<code>` open pre-join.
+
+---
+
+## 🚀 Developer TODO (incremental PRs)
+
+1. DB schema + migrations (tables above).  
+2. Socket/REST scaffolding + soft-auth session middleware.  
+3. Messaging pipeline (ack/retry/offline queue + attachments).  
+4. WebRTC signaling + ICE config + TURN provisioning.  
+5. Call logs + share link + pre-join consent UI.  
+6. Recording/transcript/tone behind feature flags & consent.  
+7. Exports (PDF/CSV).  
+8. PWA + Capacitor setup for mobile.  
+9. Metrics/logging (message latency, ICE failures, TURN usage).  
+
+**Acceptance:** All items in the test matrix pass on iPhone (iOS 17/18) and mid‑range Android over LTE + Wi‑Fi.
+
+---
+
+## 🧭 Roadmap
+- v1: Stable chat & calling w/ logs and per‑contact call permissions.  
+- v2: Optional recording + transcripts + tone AI.  
+- v3: Exports & legal‑friendly reports.  
+- v4: Family/shared spaces & roles.  
+- v5: Mobile store polish (Capacitor + PWA deploy).  
