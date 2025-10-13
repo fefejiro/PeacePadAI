@@ -58,11 +58,21 @@ Preferred communication style: Simple, everyday language.
 - **Daily Affirmations**: JSON-driven affirmation library with themes (patience, peace, multicultural, communication, coparenting), gradient banner display, dismissible with daily rotation.
 - **Smart Mood Check-Ins**: Activity-aware emotional reflection system; ActivityProvider tracks messaging/call/navigation activity with 3-minute dormant threshold; localStorage-based state ('active'/'dormant'); MoodCheckIn NEVER interrupts during active sessions, only shows via 30s polling when dormant; empathetic prompts library with reflection, breathing, and transition phrases; TransitionPrompt shows 4s supportive message when moving active→dormant before mood dialog; emoji-based mood selection with personalized responses; once-per-day check-ins; no fallback timer to prevent interruptions.
 
-### Therapist Directory
+### Find Support Directory (Support Resources)
+- **Comprehensive Resource Database**: Multi-category support system including Crisis (24/7 helplines), Therapists (licensed professionals), Government Services (free mental health programs), Family Services (community-based support), and Legal Resources (family law assistance).
+- **Resource Types & Classification**: 
+  - Crisis: 24/7 emergency support and helplines (988, Kids Help Phone, Crisis Text Line, etc.)
+  - Therapists: Licensed mental health professionals with ratings, insurance acceptance, and specialties
+  - Government: Free/low-cost public services (CAMH, Ontario Mental Health Helpline, CMHA Toronto, etc.)
+  - Family Services: Community-based family support and parenting programs (Family Service Toronto, YWCA, Woodgreen, etc.)
+  - Legal: Family law resources, free legal clinics, mediation services (FLIC, Pro Bono Ontario, JFCY, etc.)
+- **Free & Low-Cost Services**: All resources tagged with `isFree` flag; crisis and government services always free; family services include sliding scale options.
 - **Geocoding & Location Detection**: OpenStreetMap Nominatim API for addresses and postal codes, Canadian postal code fallback, country detection, "Use My Location" feature.
 - **Distance Calculation**: Haversine formula for accurate geographic distance, server-side km calculation, client-side miles-to-km conversion.
 - **Unit Handling**: km for Canadian locations, miles for US/Other; slider range adjusts based on location.
+- **Filter System**: Tab-based filtering by resource type (All, Crisis, Therapists, Family Services, Legal); crisis resources always shown regardless of distance.
 - **Maps Integration**: "Get Directions" links to native Apple Maps (iOS) or Google Maps (Android/Desktop).
+- **Multi-Language Support**: Resources include language availability (English, French, 100+ languages via interpretation for some services).
 
 ### Security Considerations
 - **Authentication Security**: Secure session cookies (httpOnly, secure), 14-day TTL, session encryption, CSRF protection.
