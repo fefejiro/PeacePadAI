@@ -160,8 +160,8 @@ export default function MoodCheckIn({ isDormant = false }: MoodCheckInProps) {
             </>
           ) : (
             /* Supportive Response */
-            <div className="py-6 px-4 bg-muted/50 rounded-lg text-center space-y-3" data-testid="mood-response">
-              <p className="text-lg font-medium text-foreground">
+            <div className="py-6 px-4 bg-muted/50 rounded-lg text-center space-y-3" data-testid="mood-support-response">
+              <p className="text-lg font-medium text-foreground" data-testid="text-mood-response">
                 {selectedMood && getMoodResponse(selectedMood)}
               </p>
               <p className="text-sm text-muted-foreground">

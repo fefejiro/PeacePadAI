@@ -53,7 +53,7 @@ Preferred communication style: Simple, everyday language.
 - **Clippy 2.0 Animated Mascot**: Interactive paperclip assistant with idle bounce and dance animations, provides contextual hints, responds to user actions.
 - **Contextual Hints System**: User-controlled hints toggle in Settings, localStorage-based state management, helpful guidance for first-time features.
 - **Daily Affirmations**: JSON-driven affirmation library with themes (patience, peace, multicultural, communication, coparenting), gradient banner display, dismissible with daily rotation.
-- **Mood Check-Ins**: Post-session emotional reflection modal, emoji-based mood selection (positive/neutral/negative), optional note field, anonymous mood history tracking.
+- **Smart Mood Check-Ins**: Activity-aware emotional reflection system; ActivityProvider tracks messaging/call/navigation activity with 3-minute dormant threshold; localStorage-based state ('active'/'dormant'); MoodCheckIn NEVER interrupts during active sessions, only shows via 30s polling when dormant; empathetic prompts library with reflection, breathing, and transition phrases; TransitionPrompt shows 4s supportive message when moving active→dormant before mood dialog; emoji-based mood selection with personalized responses; once-per-day check-ins; no fallback timer to prevent interruptions.
 
 ### Therapist Directory
 - **Geocoding & Location Detection**: OpenStreetMap Nominatim API for addresses and postal codes, Canadian postal code fallback, country detection, "Use My Location" feature.
