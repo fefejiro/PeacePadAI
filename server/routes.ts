@@ -55,6 +55,27 @@ const chatUpload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for images, videos, documents
 });
 
+// Configure multer for expense receipts
+const receiptsDir = path.join(process.cwd(), 'uploads', 'receipts');
+if (!fs.existsSync(receiptsDir)) {
+  fs.mkdirSync(receiptsDir, { recursive: true });
+}
+
+const receiptUploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, receiptsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const receiptUpload = multer({ 
+  storage: receiptUploadStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for receipts (images/PDFs)
+});
+
 async function analyzeTone(content: string): Promise<{ 
   tone: string; 
   summary: string; 
@@ -253,6 +274,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error uploading chat attachment:", error);
       res.status(400).json({ message: error.message || "Failed to upload file" });
+    }
+  });
+
+  // Receipt upload endpoint for expenses
+  app.post('/api/receipt-upload', isSoftAuthenticated, receiptUpload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const fileUrl = `/uploads/receipts/${file.filename}`;
+      
+      // Return file information to be used when creating the expense
+      res.json({
+        receiptUrl: fileUrl,
+        fileName: file.originalname,
+        fileSize: file.size.toString(),
+      });
+    } catch (error: any) {
+      console.error("Error uploading receipt:", error);
+      res.status(400).json({ message: error.message || "Failed to upload receipt" });
     }
   });
 

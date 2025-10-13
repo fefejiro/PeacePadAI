@@ -39,6 +39,10 @@ export default function SchedulingDashboard() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [childName, setChildName] = useState("");
+  const [recurring, setRecurring] = useState("none");
+  const [notes, setNotes] = useState("");
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -56,6 +60,10 @@ export default function SchedulingDashboard() {
       startDate: string;
       endDate?: string;
       description?: string;
+      location?: string;
+      childName?: string;
+      recurring?: string;
+      notes?: string;
     }) => {
       const res = await apiRequest("POST", "/api/events", data);
       return await res.json();
@@ -78,6 +86,10 @@ export default function SchedulingDashboard() {
       setStartDate("");
       setEndDate("");
       setDescription("");
+      setLocation("");
+      setChildName("");
+      setRecurring("none");
+      setNotes("");
       toast({ title: "Event created successfully" });
     },
     onError: (error: any) => {
@@ -104,6 +116,10 @@ export default function SchedulingDashboard() {
       startDate,
       endDate: endDate || undefined,
       description: description || undefined,
+      location: location || undefined,
+      childName: childName || undefined,
+      recurring: recurring !== "none" ? recurring : undefined,
+      notes: notes || undefined,
     });
   };
 
@@ -207,6 +223,51 @@ export default function SchedulingDashboard() {
                   data-testid="input-event-description"
                 />
               </div>
+              <div>
+                <Label htmlFor="location">Location (Optional)</Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g., School, Home, Park"
+                  data-testid="input-event-location"
+                />
+              </div>
+              <div>
+                <Label htmlFor="child-name">Child Name (Optional)</Label>
+                <Input
+                  id="child-name"
+                  value={childName}
+                  onChange={(e) => setChildName(e.target.value)}
+                  placeholder="Which child this relates to"
+                  data-testid="input-child-name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="recurring">Recurring (Optional)</Label>
+                <Select value={recurring} onValueChange={setRecurring}>
+                  <SelectTrigger data-testid="select-recurring">
+                    <SelectValue placeholder="Select recurring pattern" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (One-time event)</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Biweekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any additional notes or reminders"
+                  data-testid="input-event-notes"
+                />
+              </div>
               <Button
                 onClick={handleCreateEvent}
                 disabled={createEvent.isPending}
@@ -284,8 +345,26 @@ export default function SchedulingDashboard() {
                             ` - ${new Date(event.endDate).toLocaleString()}`}
                         </span>
                       </div>
+                      {event.childName && (
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <span className="font-medium">Child:</span> {event.childName}
+                        </p>
+                      )}
+                      {event.location && (
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <span className="font-medium">Location:</span> {event.location}
+                        </p>
+                      )}
+                      {event.recurring && event.recurring !== "none" && (
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <span className="font-medium">Recurring:</span> {event.recurring}
+                        </p>
+                      )}
                       {event.description && (
-                        <p className="text-sm text-muted-foreground">{event.description}</p>
+                        <p className="text-sm text-muted-foreground mb-1">{event.description}</p>
+                      )}
+                      {event.notes && (
+                        <p className="text-sm text-muted-foreground italic">{event.notes}</p>
                       )}
                     </div>
                   </div>

@@ -109,10 +109,14 @@ export const pets = pgTable("pets", {
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
-  type: text("type").notNull(),
+  type: text("type").notNull(), // pickup, dropoff, custody_switch, appointment, other
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date"),
   description: text("description"),
+  location: text("location"), // Location for pickup/dropoff
+  childName: text("child_name"), // Which child this relates to
+  recurring: text("recurring"), // none, daily, weekly, biweekly, monthly
+  notes: text("notes"), // Additional notes
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -124,7 +128,11 @@ export const expenses = pgTable("expenses", {
   category: text("category").notNull(),
   paidBy: varchar("paid_by").notNull().references(() => users.id),
   splitWith: varchar("split_with").references(() => users.id),
-  status: text("status").notNull().default("pending"),
+  status: text("status").notNull().default("pending"), // pending, paid, settled
+  receiptUrl: text("receipt_url"), // URL to uploaded receipt image/PDF
+  fileName: text("file_name"), // Original file name of receipt
+  fileSize: text("file_size"), // File size in bytes
+  splitPercentage: text("split_percentage").default("50"), // Default 50/50 split
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

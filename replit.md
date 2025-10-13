@@ -4,7 +4,7 @@
 PeacePad is an AI-powered co-parenting communication platform designed to foster constructive dialogue between separated parents. It utilizes AI for tone analysis to reduce tension and promote effective communication. Inspired by applications like Linear, Headspace, and Notion, PeacePad offers a calming and accessible interface, providing real-time messaging, shared task management, collaborative note-taking, and child update tracking. The platform aims to facilitate smoother co-parenting relationships and has potential for broader market adoption in family communication tools.
 
 ### Onboarding Experience
-- **Introductory Slideshow**: 7-slide welcome experience for first-time visitors; covers platform purpose (peaceful communication), key features (chat, scheduling, expenses, pet care), mission (emotional intelligence), and therapist directory; uses embla-carousel with smooth transitions, skip button, progress indicators, and localStorage "hasSeenIntro" flag to show once per visitor; mobile-optimized with responsive design; automatically bypassed for users with pending call join codes.
+- **Streamlined Introductory Slideshow**: 3-slide welcome experience for first-time visitors (down from 7 for faster onboarding); covers Welcome message, Key Features overview (chat, scheduling, expenses, support), and Get Started CTA; uses embla-carousel with smooth transitions, skip button, progress indicators, and localStorage "hasSeenIntro" flag to show once per visitor; mobile-optimized with responsive design; automatically bypassed for users with pending call join codes.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -52,11 +52,47 @@ Preferred communication style: Simple, everyday language.
 - **Unauthenticated Join Flow**: Session lookup endpoint is public (no auth required); unauthenticated users can access shared call links, view session details and preview; when joining, stores pending_join_code in localStorage, redirects to landing for guest creation, auto-shows guest entry form, then auto-redirects to call preview after authentication.
 - **Manual Join**: "Join Call" sidebar option allows manual 6-digit session code entry for both authenticated and unauthenticated users.
 
-### Emotional Intelligence Features (PeacePadAI)
-- **Clippy 2.0 Animated Mascot**: Interactive paperclip assistant with idle bounce and dance animations, provides contextual hints, responds to user actions.
-- **Contextual Hints System**: User-controlled hints toggle in Settings, localStorage-based state management, helpful guidance for first-time features.
-- **Daily Affirmations**: JSON-driven affirmation library with themes (patience, peace, multicultural, communication, coparenting), gradient banner display, dismissible with daily rotation.
-- **Smart Mood Check-Ins**: Activity-aware emotional reflection system; ActivityProvider tracks messaging/call/navigation activity with 3-minute dormant threshold; localStorage-based state ('active'/'dormant'); MoodCheckIn NEVER interrupts during active sessions, only shows via 30s polling when dormant; empathetic prompts library with reflection, breathing, and transition phrases; TransitionPrompt shows 4s supportive message when moving active→dormant before mood dialog; emoji-based mood selection with personalized responses; once-per-day check-ins; no fallback timer to prevent interruptions.
+### Emotional Intelligence Features (PeacePadAI) - OPT-IN
+**All wellness features are now opt-in (default OFF)** - Users must enable them in Settings to maintain a streamlined, communication-focused experience:
+- **Clippy 2.0 Animated Mascot** (Opt-in): Interactive paperclip assistant with idle bounce and dance animations, provides contextual hints, responds to user actions; controlled by `clippy_enabled` localStorage flag.
+- **Contextual Hints System** (Opt-in): User-controlled hints toggle in Settings, localStorage-based state management, helpful guidance for first-time features.
+- **Daily Affirmations** (Opt-in): JSON-driven affirmation library with themes (patience, peace, multicultural, communication, coparenting), gradient banner display, dismissible with daily rotation; controlled by `affirmations_enabled` localStorage flag.
+- **Smart Mood Check-Ins** (Opt-in): Activity-aware emotional reflection system; ActivityProvider tracks messaging/call/navigation activity with 3-minute dormant threshold; localStorage-based state ('active'/'dormant'); MoodCheckIn NEVER interrupts during active sessions, only shows via 30s polling when dormant; empathetic prompts library with reflection, breathing, and transition phrases; TransitionPrompt shows 4s supportive message when moving active→dormant before mood dialog; emoji-based mood selection with personalized responses; once-per-day check-ins; no fallback timer to prevent interruptions; controlled by `mood_checkins_enabled` localStorage flag.
+
+### Navigation & Organization
+- **Sidebar Structure**: Reorganized into 3 clear sections for intuitive navigation:
+  - **Communicate**: Chat (1:1 messaging with AI tone analysis), Join Call (6-digit code video/audio calls)
+  - **Organize**: Dashboard (overview), Scheduling (custody calendar), Tasks (shared to-dos), Expenses (expense tracking with receipts)
+  - **Support**: Find Support (therapist/resource directory), Settings (preferences, wellness toggles)
+- **Removed from Main Nav**: Audit Trail (accessible via direct link when needed)
+
+### Shared Custody Calendar (Enhanced)
+- **Event Management**: Create, view, and manage custody schedules with AI conflict detection
+- **Event Types**: Pickup, Drop-off, School, Medical, Activity, Other (color-coded for visual clarity)
+- **Enhanced Fields**:
+  - **Location**: Track pickup/dropoff locations (e.g., "School", "Home", "Park")
+  - **Child Name**: Associate events with specific children for multi-child families
+  - **Recurring Patterns**: Support for Daily, Weekly, Biweekly, Monthly recurring events
+  - **Notes**: Additional context and reminders for each event
+- **AI Conflict Detection**: Automatically identifies scheduling overlaps and provides resolution suggestions
+- **Visual Timeline**: Color-coded event cards sorted chronologically with status indicators
+
+### Expense Tracking (Enhanced)
+- **Receipt Upload**: Upload receipt images/PDFs (10MB limit) with automatic storage in `/uploads/receipts/`
+- **Automatic Splitting**: Configurable split percentages (50/50, 60/40, 70/30, 80/20, 100%)
+- **Payment Status Tracking**: Pending, Paid, Settled status with visual indicators
+- **Categories**: Childcare, Medical, Education, Activities, Food, Clothing, Other
+- **Receipt Viewing**: Direct links to view uploaded receipt files
+- **Schema Fields**: `receiptUrl`, `fileName`, `fileSize`, `splitPercentage` (default 50%)
+- **Visual Status**: Color-coded cards with status icons (pending=amber, paid=green, settled=blue)
+
+### Shared Tasks & To-Dos
+- **Task Management**: Create, view, and manage shared co-parenting tasks
+- **Task Fields**: Title, Due Date (optional), Completion Status
+- **Separated Views**: "To Do" section for active tasks, "Completed" section for finished items
+- **Toggle Completion**: Click checkboxes to mark tasks complete/incomplete
+- **Visual Indicators**: Checkboxes for incomplete tasks, checkmarks for completed tasks with strikethrough
+- **API Support**: GET /api/tasks, POST /api/tasks, PATCH /api/tasks/:id for updates
 
 ### Find Support Directory (Support Resources)
 - **Comprehensive Resource Database**: Multi-category support system including Crisis (24/7 helplines), Therapists (licensed professionals), Government Services (free mental health programs), Family Services (community-based support), and Legal Resources (family law assistance).
