@@ -5,6 +5,8 @@ import { Phone, Video, Mic, MicOff, VideoOff, PhoneOff, Circle, Copy, Check, Sha
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivity } from "@/components/ActivityProvider";
+import { MoodRing } from "@/components/MoodRing";
+import { SessionMoodTracker } from "@/lib/sessionMoodTracker";
 
 interface VideoCallDialogProps {
   isOpen: boolean;
@@ -42,6 +44,13 @@ export default function VideoCallDialog({
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [isMediaReady, setIsMediaReady] = useState(false);
   
+  // AI Listening state
+  const [aiListeningEnabled, setAiListeningEnabled] = useState(false);
+  const [remoteAiConsent, setRemoteAiConsent] = useState(false);
+  const [currentMood, setCurrentMood] = useState<'calm' | 'cooperative' | 'neutral' | 'frustrated' | 'tense' | 'defensive'>('neutral');
+  const [moodConfidence, setMoodConfidence] = useState(0);
+  const [sessionSummary, setSessionSummary] = useState<string | null>(null);
+  
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map()); // Support multiple peers
@@ -53,6 +62,8 @@ export default function VideoCallDialog({
   const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map()); // Track remote streams by userId
   const pendingPeersRef = useRef<Array<{ peerId: string; shouldOffer: boolean }>>([]); // Peers waiting for media
   const pendingOffersRef = useRef<Map<string, RTCSessionDescriptionInit>>(new Map()); // Offers waiting for peer connection
+  const moodTrackerRef = useRef<SessionMoodTracker | null>(null);
+  const aiConsentRef = useRef<boolean>(false); // Ref to store latest consent value (avoids closure issues)
 
   // Create shareable session code when call starts or use provided code
   useEffect(() => {
@@ -87,6 +98,61 @@ export default function VideoCallDialog({
 
     createCallSession();
   }, [isOpen, user, callType, isIncoming, sessionCodeProp]);
+
+  // Check AI listening setting from localStorage
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const aiEnabled = localStorage.getItem('ai_listening_enabled') === 'true';
+    setAiListeningEnabled(aiEnabled);
+    aiConsentRef.current = aiEnabled; // Update ref for WebSocket handlers
+    console.log('[AI Listening] Loaded consent from localStorage:', aiEnabled);
+  }, [isOpen]);
+
+  // Broadcast AI consent whenever it changes
+  useEffect(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!sessionCode && !sessionCodeProp) return;
+    
+    // Update ref and broadcast
+    aiConsentRef.current = aiListeningEnabled;
+    console.log('[AI Listening] Broadcasting consent status:', aiListeningEnabled);
+    wsRef.current.send(JSON.stringify({
+      type: "ai-consent",
+      payload: { aiListeningEnabled },
+    }));
+  }, [aiListeningEnabled, sessionCode, sessionCodeProp]);
+
+  // Start/stop AI listening based on dual consent
+  useEffect(() => {
+    if (!isConnected || !localStreamRef.current || !sessionCode || !user) return;
+    
+    const bothConsented = aiListeningEnabled && remoteAiConsent;
+    
+    if (bothConsented && !moodTrackerRef.current) {
+      console.log("Starting AI listening - both participants consented");
+      
+      // Initialize SessionMoodTracker
+      moodTrackerRef.current = new SessionMoodTracker({
+        sessionId: sessionCode,
+        userId: user.id,
+        onEmotionUpdate: (emotionSnapshot) => {
+          setCurrentMood(emotionSnapshot.emotion);
+          setMoodConfidence(emotionSnapshot.confidence);
+        },
+        onError: (error) => {
+          console.error('Mood tracking error:', error);
+        }
+      });
+      
+      moodTrackerRef.current.startTracking(localStreamRef.current);
+    } else if (!bothConsented && moodTrackerRef.current) {
+      console.log("Stopping AI listening - consent withdrawn");
+      moodTrackerRef.current.stopTracking();
+      moodTrackerRef.current = null;
+      setCurrentMood('neutral');
+    }
+  }, [isConnected, aiListeningEnabled, remoteAiConsent, sessionCode, user]);
 
   // Join call session when sessionCode changes and WebSocket is ready
   useEffect(() => {
@@ -153,6 +219,17 @@ export default function VideoCallDialog({
           for (const peer of existingUsers) {
             await createPeerConnection(peer.userId, false); // false = wait for offer
           }
+          
+          // Broadcast AI consent after successfully joining session
+          // This ensures: (1) WebSocket is connected, (2) user joined session, (3) localStorage loaded
+          // Use ref to get latest value (avoids closure over stale state)
+          console.log('[AI Listening] Broadcasting consent after session join:', aiConsentRef.current);
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: "ai-consent",
+              payload: { aiListeningEnabled: aiConsentRef.current },
+            }));
+          }
           break;
           
         case "peer-joined":
@@ -160,6 +237,15 @@ export default function VideoCallDialog({
           // I'm an existing member, so I create the offer
           console.log("Peer joined (I'm existing member):", message.from);
           await createPeerConnection(message.from, true); // true = create offer
+          
+          // Broadcast AI consent to newcomer (use ref for latest value)
+          console.log('[AI Listening] Broadcasting consent to new peer:', aiConsentRef.current);
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: "ai-consent",
+              payload: { aiListeningEnabled: aiConsentRef.current },
+            }));
+          }
           break;
           
         case "peer-left":
@@ -184,6 +270,11 @@ export default function VideoCallDialog({
           break;
         case "call-ended":
           endCall();
+          break;
+        case "ai-consent":
+          // Receive remote participant's AI consent status
+          console.log("Received AI consent:", message.payload.aiListeningEnabled);
+          setRemoteAiConsent(message.payload.aiListeningEnabled);
           break;
       }
     };
@@ -609,9 +700,26 @@ export default function VideoCallDialog({
     }
   };
 
-  const endCall = () => {
+  const endCall = async () => {
     if (isRecording) {
       stopRecording();
+    }
+    
+    // Generate session summary if AI listening was active
+    if (moodTrackerRef.current) {
+      try {
+        const summary = await moodTrackerRef.current.generateSummary();
+        setSessionSummary(summary);
+        
+        // Display summary to user
+        toast({
+          title: "Session Summary",
+          description: summary,
+          duration: 8000,
+        });
+      } catch (error) {
+        console.error('Failed to generate session summary:', error);
+      }
     }
     
     if (wsRef.current && (recipientId || callerId)) {
@@ -631,6 +739,12 @@ export default function VideoCallDialog({
     
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+    }
+    
+    // Cleanup mood tracker
+    if (moodTrackerRef.current) {
+      moodTrackerRef.current.cleanup();
+      moodTrackerRef.current = null;
     }
     
     if (localStreamRef.current) {
@@ -784,6 +898,18 @@ export default function VideoCallDialog({
             {isVideoOff && (
               <div className="absolute inset-0 flex items-center justify-center bg-muted">
                 <VideoOff className="h-12 w-12 text-muted-foreground" />
+              </div>
+            )}
+            
+            {/* AI Listening Mood Ring */}
+            {aiListeningEnabled && remoteAiConsent && (
+              <div className="absolute bottom-3 left-3">
+                <MoodRing 
+                  emotion={currentMood} 
+                  confidence={moodConfidence} 
+                  isActive={true}
+                  showLabel={false}
+                />
               </div>
             )}
           </div>
