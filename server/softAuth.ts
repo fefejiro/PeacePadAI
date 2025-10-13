@@ -117,7 +117,17 @@ export async function setupSoftAuth(app: Express) {
 
   // Logout endpoint
   app.post("/api/auth/logout", (req: any, res) => {
-    req.session.destroy(() => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error("Session destroy error:", err);
+      }
+      // Clear the session cookie explicitly
+      res.clearCookie("connect.sid", {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
       res.json({ success: true });
     });
   });

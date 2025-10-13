@@ -76,42 +76,35 @@ export function AppSidebar() {
   const handleLogout = async () => {
     console.log("[Logout] Starting logout process...");
     try {
-      // 1. Call logout endpoint to destroy server session
-      console.log("[Logout] Calling /api/auth/logout...");
-      const response = await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-      console.log("[Logout] Logout response:", response.status, response.statusText);
-      
-      // 2. Clear client-side data
-      console.log("[Logout] Clearing localStorage...");
-      localStorage.removeItem("peacepad_session_id");
-      localStorage.removeItem("pending_join_code"); // Clear any pending call joins
-      
-      // 3. Clear React Query cache and set auth to null immediately
+      // 1. Clear React Query cache FIRST to prevent any refetches during logout
       console.log("[Logout] Clearing React Query cache...");
       queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.clear();
       
-      // 4. Navigate using wouter and then force reload
+      // 2. Call logout endpoint to destroy server session and clear cookie
+      console.log("[Logout] Calling /api/auth/logout...");
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      
+      // 3. Clear client-side localStorage
+      console.log("[Logout] Clearing localStorage...");
+      localStorage.removeItem("peacepad_session_id");
+      localStorage.removeItem("pending_join_code");
+      
+      // 4. Invalidate all queries to force refetch with new auth state
+      console.log("[Logout] Invalidating queries...");
+      await queryClient.invalidateQueries();
+      
+      // 5. Navigate to landing page - React will handle the re-render
       console.log("[Logout] Navigating to landing...");
       setLocation("/");
-      
-      // 5. Force page reload as backup
-      console.log("[Logout] Forcing page reload...");
-      setTimeout(() => {
-        window.location.replace("/");
-      }, 50);
     } catch (error) {
       console.error("[Logout] Error during logout:", error);
       
-      // Even on error, clear local state and reload
-      localStorage.removeItem("peacepad_session_id");
-      localStorage.removeItem("pending_join_code"); // Clear any pending call joins
+      // Even on error, clear local state
       queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.clear();
+      localStorage.removeItem("peacepad_session_id");
+      localStorage.removeItem("pending_join_code");
+      await queryClient.invalidateQueries();
       setLocation("/");
-      setTimeout(() => {
-        window.location.replace("/");
-      }, 50);
     }
   };
 
