@@ -47,9 +47,10 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
+  const [sharePhoneWithContacts, setSharePhoneWithContacts] = useState(user?.sharePhoneWithContacts ?? false);
 
   const updateProfile = useMutation({
-    mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string }) => {
+    mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string; sharePhoneWithContacts?: boolean }) => {
       const res = await apiRequest("PATCH", "/api/user/profile", data);
       return await res.json();
     },
@@ -283,6 +284,23 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">
                 Your phone number will be visible to your contacts for easy communication
               </p>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="space-y-0.5">
+                <Label htmlFor="share-phone">Share Phone Number with Mutual Contacts</Label>
+                <p className="text-sm text-muted-foreground">
+                  Only contacts who have also added you will see your phone number
+                </p>
+              </div>
+              <Switch
+                id="share-phone"
+                checked={sharePhoneWithContacts}
+                onCheckedChange={(checked) => {
+                  setSharePhoneWithContacts(checked);
+                  updateProfile.mutate({ sharePhoneWithContacts: checked });
+                }}
+                data-testid="switch-share-phone"
+              />
             </div>
           </CardContent>
         </Card>

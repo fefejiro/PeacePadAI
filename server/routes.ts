@@ -157,16 +157,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all users (for contact selection) - phone numbers excluded for privacy
+  app.get('/api/users', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Return only basic user info for privacy - NO phone numbers to non-contacts
+      const basicUserInfo = users.map((u) => ({
+        id: u.id,
+        displayName: u.displayName,
+        profileImageUrl: u.profileImageUrl,
+      }));
+      res.json(basicUserInfo);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   // Update user profile
   app.patch('/api/user/profile', isSoftAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { profileImageUrl, displayName, phoneNumber } = req.body;
+      const { profileImageUrl, displayName, phoneNumber, sharePhoneWithContacts } = req.body;
       
       const updateData: any = {};
       if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
       if (displayName !== undefined) updateData.displayName = displayName;
       if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+      if (sharePhoneWithContacts !== undefined) updateData.sharePhoneWithContacts = sharePhoneWithContacts;
       
       const updatedUser = await storage.upsertUser({
         id: userId,
@@ -307,16 +325,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userContacts = await storage.getContacts(userId);
       
       // Fetch user info for each contact's peerUserId
+      // Only show phone numbers if: (1) relationship is mutual AND (2) peer has opted in to share
       const contactsWithUsers = await Promise.all(
         userContacts.map(async (contact) => {
           const peerUser = await storage.getUser(contact.peerUserId);
+          // Check if the peer has also added this user as a contact (mutual relationship)
+          const mutualContact = await storage.getContactWithUser(contact.peerUserId, userId);
+          const isMutual = !!mutualContact;
+          // Check if peer has opted in to share their phone number
+          const hasOptedIn = peerUser?.sharePhoneWithContacts ?? false;
+          
           return {
             ...contact,
             peerUser: peerUser ? {
               id: peerUser.id,
               displayName: peerUser.displayName,
               profileImageUrl: peerUser.profileImageUrl,
-              phoneNumber: peerUser.phoneNumber,
+              // Only expose phone number if relationship is mutual AND peer has opted in
+              phoneNumber: (isMutual && hasOptedIn) ? peerUser.phoneNumber : null,
             } : null
           };
         })

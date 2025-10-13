@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   displayName: varchar("display_name"),
   phoneNumber: varchar("phone_number"), // Optional phone number for contact info
+  sharePhoneWithContacts: boolean("share_phone_with_contacts").notNull().default(false), // User must opt-in to share phone
   isGuest: boolean("is_guest").notNull().default(true),
   guestId: varchar("guest_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
