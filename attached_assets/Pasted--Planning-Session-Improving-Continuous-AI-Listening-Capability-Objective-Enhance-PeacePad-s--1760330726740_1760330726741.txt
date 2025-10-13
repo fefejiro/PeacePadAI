@@ -1,0 +1,58 @@
+🧠 Planning Session: Improving Continuous AI Listening Capability
+
+🎯 Objective
+
+Enhance PeacePad’s AI intermediary to continuously and contextually listen during both chat and call sessions — enabling it to interpret tone, emotional state, and conversational flow more naturally without interrupting the user experience.
+
+⸻
+
+🧩 Feature Overview
+
+PeacePad’s purpose is to promote empathy and understanding in communication.
+To achieve this, the listening AI should:
+	•	Continuously monitor voice and text inputs during live calls or chats.
+	•	Detect emotion shifts, tone, or sentiment patterns (calm, frustrated, sad, angry, etc.).
+	•	Summarize mood dynamics at session end for emotional tracking and analytics.
+	•	Operate as a non-intrusive background listener, not disrupting ongoing conversations.
+
+⸻
+
+🧱 Design & Architecture Notes for Replit
+
+1. AI Listening Engine
+	•	Use continuous audio stream capture (e.g., via WebRTC MediaStream API).
+	•	Apply speech-to-text (e.g., Whisper, Vosk, or Google Speech API integration).
+	•	Analyze sentiment and tone in real-time using NLP (Hugging Face or OpenAI embeddings).
+	•	Implement periodic checkpoints (e.g., every 15 seconds or 100 tokens) to evaluate emotional state without buffering entire conversations.
+
+2. Persistence & Context Retention
+	•	Maintain a persistent listening session per call or chat, tied to a sessionID.
+	•	Use local caching (e.g., IndexedDB) or server memory (Redis/Postgres) to store:
+	•	Emotion snapshots
+	•	Conversation segments
+	•	Tone evolution timeline
+	•	Ensure real-time sync with chat UI (optional mini “mood tracker” display).
+
+3. Privacy & Transparency
+	•	Display a subtle on-screen indicator (“AI is actively listening for emotional tone 🫶🏾”).
+	•	Allow users to pause/resume listening manually.
+	•	Process all data locally when possible (edge model option).
+
+⸻
+
+🎨 User Flow
+	1.	Start of Session
+	•	User joins a call or chat → AI automatically activates listening mode.
+	•	A soft notification appears (“PeacePad is listening to help understand mood and tone”).
+	2.	During Session
+	•	AI continuously processes speech/text for tone cues.
+	•	No interruptions — all detections are silent unless major emotional shifts occur.
+	•	Optional “mood ring” animation subtly changes colors to reflect detected tone.
+	3.	End of Session
+	•	AI generates a short emotional summary, e.g.:
+“Conversation started tense but ended calm and collaborative.”
+	•	Summary stored under sessionID for later insights.
+
+⸻
+
+⚙️ Technical Implementation Suggestions
