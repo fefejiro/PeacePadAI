@@ -11,8 +11,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+// Using Replit AI Integrations for OpenAI access (no API key needed, billed to Replit credits)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
 // Configure multer for call recordings
@@ -86,7 +88,7 @@ async function analyzeTone(content: string): Promise<{
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini", // Using improved model via Replit AI integration
       messages: [
         {
           role: "system",
@@ -120,7 +122,7 @@ Rewording: [suggestion or "none"]`,
         },
       ],
       temperature: 0.3,
-      max_tokens: 150,
+      max_completion_tokens: 150,
     });
 
     const result = response.choices[0]?.message?.content || "";
@@ -137,8 +139,11 @@ Rewording: [suggestion or "none"]`,
     
     return { tone, summary, emoji, rewordingSuggestion };
   } catch (error) {
-    console.error("Error analyzing tone:", error);
-    return { tone: "neutral", summary: "Analysis unavailable", emoji: "😐", rewordingSuggestion: null };
+    console.error("Error analyzing tone with Replit AI:", error);
+    // Better error message for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Full error details:", errorMessage);
+    return { tone: "neutral", summary: "AI analysis unavailable", emoji: "😐", rewordingSuggestion: null };
   }
 }
 
