@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
 import { ContactSelector } from "./ContactSelector";
@@ -13,6 +13,16 @@ import type { Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useActivity } from "@/components/ActivityProvider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type MessageWithSender = Message & {
   senderDisplayName?: string;
@@ -63,6 +73,8 @@ export default function ChatInterface() {
     rewordingSuggestion: string | null;
     originalMessage: string;
   } | null>(null);
+  const [showToneWarning, setShowToneWarning] = useState(false);
+  const [isForceSending, setIsForceSending] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { trackActivity, endActivity } = useActivity();
@@ -242,27 +254,83 @@ export default function ChatInterface() {
     return mimeMap[baseMimeType] || baseMimeType.split('/')[1] || 'webm';
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     // Track messaging activity
     trackActivity('messaging');
     
+    // Media messages bypass tone check
     if (selectedFile) {
       const messageType = selectedFile.type.startsWith('image/') ? 'image' :
                          selectedFile.type.startsWith('video/') ? 'video' :
                          selectedFile.type.startsWith('audio/') ? 'audio' : 'document';
       sendMediaMessage.mutate({ file: selectedFile, messageType });
-    } else if (recordedAudioBlob) {
+      return;
+    }
+    
+    if (recordedAudioBlob) {
       const mimeType = recordedAudioBlob.type || 'audio/webm';
       const extension = getExtensionFromMimeType(mimeType);
       const file = new File([recordedAudioBlob], `audio-${Date.now()}.${extension}`, { type: mimeType });
       sendMediaMessage.mutate({ file, messageType: 'audio' });
-    } else if (recordedVideoBlob) {
+      return;
+    }
+    
+    if (recordedVideoBlob) {
       const mimeType = recordedVideoBlob.type || 'video/webm';
       const extension = getExtensionFromMimeType(mimeType);
       const file = new File([recordedVideoBlob], `video-${Date.now()}.${extension}`, { type: mimeType });
       sendMediaMessage.mutate({ file, messageType: 'video' });
-    } else if (message.trim()) {
-      sendTextMessage.mutate(message);
+      return;
+    }
+    
+    // Text message: Apply AI-first proactive blocking
+    if (message.trim()) {
+      // If force sending (user clicked "Send Anyway"), bypass check
+      if (isForceSending) {
+        sendTextMessage.mutate(message);
+        setIsForceSending(false);
+        return;
+      }
+      
+      // Check if we need to analyze tone
+      const needsToneCheck = !tonePreview || tonePreview.originalMessage.trim() !== message.trim();
+      
+      if (needsToneCheck) {
+        // Analyze tone before sending
+        try {
+          const res = await apiRequest("POST", "/api/messages/preview", { content: message.trim() });
+          const toneData = await res.json();
+          
+          // Check if tone is concerning
+          const concerningTones = ['hostile', 'defensive', 'frustrated'];
+          if (concerningTones.includes(toneData.tone)) {
+            // Block send and show warning
+            setTonePreview(toneData);
+            setShowToneWarning(true);
+            return;
+          }
+          
+          // Tone is safe, proceed with send
+          sendTextMessage.mutate(message);
+        } catch (error) {
+          // If tone check fails, warn user but allow send
+          toast({
+            title: "AI Check Unavailable",
+            description: "Unable to analyze message tone. Sending anyway...",
+          });
+          sendTextMessage.mutate(message);
+        }
+      } else {
+        // Already analyzed, check if concerning
+        const concerningTones = ['hostile', 'defensive', 'frustrated'];
+        if (tonePreview && concerningTones.includes(tonePreview.tone)) {
+          setShowToneWarning(true);
+          return;
+        }
+        
+        // Safe to send
+        sendTextMessage.mutate(message);
+      }
     }
   };
 
@@ -577,6 +645,69 @@ export default function ChatInterface() {
         callType={callType}
         recipientId="co-parent-id"
       />
+
+      {/* AI Proactive Blocking Warning */}
+      <AlertDialog open={showToneWarning} onOpenChange={setShowToneWarning}>
+        <AlertDialogContent data-testid="dialog-tone-warning">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              This Message May Escalate Conflict
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              {tonePreview && (
+                <>
+                  <p>
+                    AI detected a <strong className="capitalize">{tonePreview.tone}</strong> tone: "{tonePreview.summary}"
+                  </p>
+                  
+                  {tonePreview.rewordingSuggestion && (
+                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <p className="text-sm font-medium text-primary mb-2">AI Suggests:</p>
+                      <p className="text-sm text-foreground italic">"{tonePreview.rewordingSuggestion}"</p>
+                    </div>
+                  )}
+                  
+                  <p className="text-muted-foreground text-xs">
+                    Hostile messages can harm your co-parenting relationship and affect your children. Consider using the AI suggestion to communicate more constructively.
+                  </p>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel data-testid="button-edit-message">
+              Edit Message
+            </AlertDialogCancel>
+            {tonePreview?.rewordingSuggestion && (
+              <Button
+                onClick={() => {
+                  setMessage(tonePreview.rewordingSuggestion || "");
+                  setTonePreview(null);
+                  setShowToneWarning(false);
+                }}
+                variant="outline"
+                data-testid="button-use-ai-rewrite"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Use AI Rewrite
+              </Button>
+            )}
+            <AlertDialogAction
+              onClick={() => {
+                setIsForceSending(true);
+                setShowToneWarning(false);
+                // Trigger send immediately after closing dialog
+                setTimeout(() => handleSend(), 0);
+              }}
+              variant="destructive"
+              data-testid="button-send-anyway"
+            >
+              Send Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Video Recording Live Preview */}
       {isRecordingVideo && (

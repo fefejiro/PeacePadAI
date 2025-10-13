@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Smile, Meh, Frown, AlertTriangle } from "lucide-react";
 
-export type ToneType = "calm" | "cooperative" | "neutral" | "frustrated" | "defensive";
+export type ToneType = "calm" | "cooperative" | "neutral" | "frustrated" | "defensive" | "hostile";
 
 interface TonePillProps {
   tone: ToneType;
@@ -33,6 +33,11 @@ const toneConfig = {
     icon: AlertTriangle,
     color: "bg-chart-5/10 text-chart-5 border-chart-5/20",
     label: "Defensive",
+  },
+  hostile: {
+    icon: AlertTriangle,
+    color: "bg-destructive/10 text-destructive border-destructive/20",
+    label: "Hostile",
   },
 };
 
