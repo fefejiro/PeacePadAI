@@ -14,6 +14,7 @@ import {
   therapists,
   auditLogs,
   pushSubscriptions,
+  sessionMoodSummaries,
   type User,
   type UpsertUser,
   type Message,
@@ -44,6 +45,8 @@ import {
   type InsertAuditLog,
   type PushSubscription,
   type InsertPushSubscription,
+  type SessionMoodSummary,
+  type InsertSessionMoodSummary,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or } from "drizzle-orm";
@@ -124,6 +127,11 @@ export interface IStorage {
   createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
   getPushSubscriptionsByUser(userId: string): Promise<PushSubscription[]>;
   deletePushSubscription(endpoint: string): Promise<void>;
+  
+  // Session mood summary operations
+  createSessionMoodSummary(summary: InsertSessionMoodSummary): Promise<SessionMoodSummary>;
+  getSessionMoodSummary(sessionId: string): Promise<SessionMoodSummary | undefined>;
+  getSessionMoodSummariesByUser(userId: string): Promise<SessionMoodSummary[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -500,6 +508,24 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(endpoint: string): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  // Session mood summary operations
+  async createSessionMoodSummary(summary: InsertSessionMoodSummary): Promise<SessionMoodSummary> {
+    const [moodSummary] = await db.insert(sessionMoodSummaries).values(summary).returning();
+    return moodSummary;
+  }
+
+  async getSessionMoodSummary(sessionId: string): Promise<SessionMoodSummary | undefined> {
+    const [summary] = await db.select().from(sessionMoodSummaries)
+      .where(eq(sessionMoodSummaries.sessionId, sessionId));
+    return summary;
+  }
+
+  async getSessionMoodSummariesByUser(userId: string): Promise<SessionMoodSummary[]> {
+    // Get summaries where user is a participant
+    const summaries = await db.select().from(sessionMoodSummaries);
+    return summaries.filter(s => s.participants.includes(userId));
   }
 }
 

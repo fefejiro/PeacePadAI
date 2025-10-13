@@ -5,6 +5,8 @@ import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
 import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
 import { setupWebRTCSignaling, broadcastNewMessage } from "./webrtc-signaling";
 import OpenAI from "openai";
+import { transcribeFromBase64 } from "./whisperService";
+import { analyzeEmotion, generateSessionSummary } from "./emotionAnalyzer";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -567,9 +569,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI conflict detection for events
-  app.get('/api/events/analyze', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/events/analyze', isSoftAuthenticated, async (req: any, res) => {
     try {
-      const events = await storage.getEvents();
+      const userId = req.user.id;
+      const events = await storage.getEvents(userId);
       const conflicts: string[] = [];
       const suggestions: string[] = [];
 
@@ -1586,6 +1589,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // AI Listening - Emotion analysis from audio
+  app.post('/api/analyze-emotion', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId, audioData, mimeType, timestamp } = req.body;
+      
+      if (!audioData) {
+        return res.status(400).json({ message: "Audio data required" });
+      }
+
+      // Transcribe audio using Whisper
+      const transcription = await transcribeFromBase64(audioData, mimeType);
+      
+      if (!transcription.text || transcription.text.trim().length === 0) {
+        return res.json({
+          emotion: 'neutral',
+          confidence: 0,
+          summary: 'No speech detected',
+        });
+      }
+
+      // Analyze emotion from transcript
+      const emotionResult = await analyzeEmotion(transcription.text);
+
+      res.json(emotionResult);
+    } catch (error) {
+      console.error("Error analyzing emotion:", error);
+      res.status(500).json({ 
+        emotion: 'neutral',
+        confidence: 0,
+        summary: 'Analysis failed',
+      });
+    }
+  });
+
+  // AI Listening - Generate session summary
+  app.post('/api/session-summary', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId, emotionTimeline } = req.body;
+      
+      if (!emotionTimeline || emotionTimeline.length === 0) {
+        return res.json({ 
+          summary: 'No emotional data recorded for this session.' 
+        });
+      }
+
+      const summary = await generateSessionSummary(emotionTimeline);
+
+      // Save to database
+      await storage.createSessionMoodSummary({
+        sessionId,
+        participants: [req.user.id], // Will be updated with actual participants
+        emotionsTimeline: emotionTimeline,
+        summary,
+      });
+
+      res.json({ summary });
+    } catch (error) {
+      console.error("Error generating session summary:", error);
+      res.status(500).json({ 
+        summary: 'Your conversation showed thoughtful communication. Keep building on these positive interactions.' 
+      });
+    }
+  });
+
+  // Get session mood summary
+  app.get('/api/session-mood/:sessionId', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      const summary = await storage.getSessionMoodSummary(sessionId);
+      
+      if (!summary) {
+        return res.status(404).json({ message: "Summary not found" });
+      }
+
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching session mood:", error);
+      res.status(500).json({ message: "Failed to fetch session mood" });
     }
   });
 
