@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2 } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
+import { ContactSelector } from "./ContactSelector";
 import { type ToneType } from "./TonePill";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -20,8 +21,29 @@ type MessageWithSender = Message & {
   senderProfileImage?: string;
 };
 
+interface Contact {
+  id: string;
+  userId: string;
+  peerUserId: string;
+  nickname: string | null;
+  allowAudio: boolean;
+  allowVideo: boolean;
+  allowSms: boolean;
+  allowRecording: boolean;
+  allowAiTone: boolean;
+  createdAt: string;
+  updatedAt: string;
+  peerUser: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    phoneNumber: string | null;
+  } | null;
+}
+
 export default function ChatInterface() {
   const [message, setMessage] = useState("");
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [callType, setCallType] = useState<"audio" | "video">("audio");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
@@ -92,7 +114,8 @@ export default function ChatInterface() {
 
   const sendTextMessage = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiRequest("POST", "/api/messages", { content });
+      const recipientId = selectedContact?.peerUserId;
+      const res = await apiRequest("POST", "/api/messages", { content, recipientId });
       return await res.json();
     },
     onSuccess: () => {
@@ -136,6 +159,7 @@ export default function ChatInterface() {
       if (!uploadRes.ok) throw new Error('Failed to upload file');
       const fileData = await uploadRes.json();
 
+      const recipientId = selectedContact?.peerUserId;
       const res = await apiRequest("POST", "/api/messages", {
         content: file.name,
         messageType: fileData.messageType,
@@ -144,6 +168,7 @@ export default function ChatInterface() {
         fileSize: fileData.fileSize,
         mimeType: fileData.mimeType,
         duration: fileData.duration,
+        recipientId,
       });
       
       return await res.json();
@@ -442,28 +467,36 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b bg-card">
-        <h2 className="text-lg font-semibold text-foreground">Chat</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={startAudioCall}
-            className="h-9 w-9 flex items-center justify-center"
-            data-testid="button-start-audio-call"
-          >
-            <Phone className="h-5 w-5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={startVideoCall}
-            className="h-9 w-9 flex items-center justify-center"
-            data-testid="button-start-video-call"
-          >
-            <Video className="h-5 w-5" />
-          </Button>
+      <div className="flex flex-col gap-3 p-4 border-b bg-card">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Chat</h2>
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={startAudioCall}
+              className="h-9 w-9 flex items-center justify-center"
+              data-testid="button-start-audio-call"
+              disabled={!selectedContact?.allowAudio}
+            >
+              <Phone className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={startVideoCall}
+              className="h-9 w-9 flex items-center justify-center"
+              data-testid="button-start-video-call"
+              disabled={!selectedContact?.allowVideo}
+            >
+              <Video className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
+        <ContactSelector
+          onSelectContact={setSelectedContact}
+          selectedContactId={selectedContact?.id}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
