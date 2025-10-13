@@ -853,11 +853,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let data: any = null;
       let isCanada = false;
       
-      // Check if it's a Canadian postal code (format: A1A 1A1 or A1A1A1)
-      const canadianPostalRegex = /^[A-Za-z]\d[A-Za-z][\s\-]?\d[A-Za-z]\d$/;
+      // Check if it's a Canadian postal code (full format: A1A 1A1 or A1A1A1, partial: A1A)
+      const canadianPostalFullRegex = /^[A-Za-z]\d[A-Za-z][\s\-]?\d[A-Za-z]\d$/;
+      const canadianPostalPartialRegex = /^[A-Za-z]\d[A-Za-z]$/;
       
-      if (canadianPostalRegex.test(addressStr.trim())) {
-        // Use Geocoder.ca for Canadian postal codes (more accurate)
+      if (canadianPostalFullRegex.test(addressStr.trim())) {
+        // Use Geocoder.ca for full Canadian postal codes (more accurate)
         const postalCode = addressStr.replace(/\s/g, '').toUpperCase();
         try {
           const geocoderUrl = `https://geocoder.ca/?postal=${postalCode}&geoit=XML&json=1`;
@@ -875,6 +876,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (geocoderError) {
           console.log("Geocoder.ca failed, falling back to Nominatim:", geocoderError);
+        }
+      } else if (canadianPostalPartialRegex.test(addressStr.trim())) {
+        // Handle partial Canadian postal code (first 3 characters like "L1N")
+        const partialPostalCode = addressStr.replace(/\s/g, '').toUpperCase();
+        
+        // Common FSA (Forward Sortation Area) to approximate coordinates mapping
+        // First letter indicates province, first 3 chars indicate general area
+        const fsaLookup: { [key: string]: { lat: number, lng: number, city: string, prov: string } } = {
+          // Ontario L-codes (GTA and surrounding)
+          'L0': { lat: 43.8, lng: -79.4, city: 'York Region', prov: 'ON' },
+          'L1': { lat: 43.9, lng: -78.9, city: 'Oshawa/Durham', prov: 'ON' },
+          'L2': { lat: 43.15, lng: -79.25, city: 'St. Catharines', prov: 'ON' },
+          'L3': { lat: 43.9, lng: -79.5, city: 'Markham/Vaughan', prov: 'ON' },
+          'L4': { lat: 44.0, lng: -79.45, city: 'Newmarket/Aurora', prov: 'ON' },
+          'L5': { lat: 43.6, lng: -79.65, city: 'Mississauga', prov: 'ON' },
+          'L6': { lat: 43.7, lng: -79.76, city: 'Brampton', prov: 'ON' },
+          'L7': { lat: 43.52, lng: -79.85, city: 'Oakville/Milton', prov: 'ON' },
+          'L8': { lat: 43.25, lng: -79.85, city: 'Hamilton', prov: 'ON' },
+          'L9': { lat: 43.73, lng: -80.0, city: 'Georgetown/Acton', prov: 'ON' },
+          // Ontario M-codes (Toronto)
+          'M1': { lat: 43.75, lng: -79.23, city: 'Scarborough East', prov: 'ON' },
+          'M2': { lat: 43.78, lng: -79.35, city: 'North York', prov: 'ON' },
+          'M3': { lat: 43.75, lng: -79.42, city: 'North York West', prov: 'ON' },
+          'M4': { lat: 43.68, lng: -79.38, city: 'East York', prov: 'ON' },
+          'M5': { lat: 43.65, lng: -79.38, city: 'Downtown Toronto', prov: 'ON' },
+          'M6': { lat: 43.68, lng: -79.45, city: 'York/Etobicoke', prov: 'ON' },
+          'M7': { lat: 43.66, lng: -79.39, city: 'Toronto Central', prov: 'ON' },
+          'M8': { lat: 43.63, lng: -79.5, city: 'Etobicoke', prov: 'ON' },
+          'M9': { lat: 43.65, lng: -79.55, city: 'Etobicoke West', prov: 'ON' },
+          // Ontario K-codes (Ottawa area)
+          'K1': { lat: 45.42, lng: -75.69, city: 'Ottawa Central', prov: 'ON' },
+          'K2': { lat: 45.35, lng: -75.75, city: 'Ottawa West', prov: 'ON' },
+          'K7': { lat: 44.23, lng: -76.48, city: 'Kingston', prov: 'ON' },
+          // Ontario N-codes (Southwestern)
+          'N1': { lat: 43.45, lng: -80.5, city: 'Guelph/Cambridge', prov: 'ON' },
+          'N2': { lat: 43.48, lng: -80.52, city: 'Waterloo', prov: 'ON' },
+          'N3': { lat: 43.27, lng: -80.82, city: 'Brantford', prov: 'ON' },
+          'N5': { lat: 42.98, lng: -81.25, city: 'London', prov: 'ON' },
+          'N6': { lat: 42.98, lng: -81.23, city: 'London East', prov: 'ON' },
+          'N7': { lat: 43.32, lng: -81.15, city: 'Stratford', prov: 'ON' },
+          'N8': { lat: 42.3, lng: -82.98, city: 'Windsor', prov: 'ON' },
+          'N9': { lat: 42.32, lng: -83.02, city: 'Windsor West', prov: 'ON' },
+        };
+        
+        // Check first 2 characters for common FSAs
+        const fsaPrefix = partialPostalCode.substring(0, 2);
+        if (fsaLookup[fsaPrefix]) {
+          const location = fsaLookup[fsaPrefix];
+          return res.json({
+            lat: location.lat,
+            lng: location.lng,
+            displayName: `${partialPostalCode} area (${location.city}, ${location.prov}, Canada)`,
+            isCanada: true
+          });
+        }
+        
+        // Fall back to Nominatim search for other postal codes
+        const searchQuery = `${partialPostalCode}, Canada`;
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&limit=3&countrycodes=ca`;
+        const response = await fetch(nominatimUrl, {
+          headers: {
+            'User-Agent': 'PeacePad-CoParenting-App'
+          }
+        });
+        
+        data = await response.json();
+        
+        if (data && data.length > 0) {
+          return res.json({
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
+            displayName: `${partialPostalCode} area, ${data[0].address?.city || data[0].address?.town || ''}, Canada`,
+            isCanada: true
+          });
         }
       }
       
