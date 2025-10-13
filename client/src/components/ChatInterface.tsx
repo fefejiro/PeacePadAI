@@ -706,7 +706,7 @@ export default function ChatInterface() {
         </div>
       )}
 
-      <div className="sticky bottom-0 p-4 bg-background border-t">
+      <div className="p-4 bg-background border-t">
         <div className="max-w-4xl mx-auto">
           {/* File Preview */}
           {selectedFile && (
@@ -836,7 +836,7 @@ export default function ChatInterface() {
                       size="icon"
                       variant="ghost"
                       onClick={() => setTonePreview(null)}
-                      className="h-6 w-6 shrink-0"
+                      className="h-8 w-8 shrink-0"
                       data-testid="button-close-preview"
                     >
                       <X className="h-4 w-4" />
@@ -854,7 +854,7 @@ export default function ChatInterface() {
                           setMessage(tonePreview.rewordingSuggestion || "");
                           setTonePreview(null);
                         }}
-                        className="mt-2 h-7 text-xs"
+                        className="mt-2 text-xs"
                         data-testid="button-use-rewrite"
                       >
                         <Check className="h-3 w-3 mr-1" />
