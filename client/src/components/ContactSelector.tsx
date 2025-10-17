@@ -92,7 +92,7 @@ export function ContactSelector({ onSelectContact, selectedContactId }: ContactS
 
   const filteredContacts = contacts.filter((contact) => {
     if (!contact.peerUser) return false;
-    const displayName = contact.nickname || contact.peerUser.displayName;
+    const displayName = contact.nickname || contact.peerUser.displayName || "";
     const phoneNumber = contact.peerUser.phoneNumber || "";
     const query = searchQuery.toLowerCase();
     return (
@@ -102,6 +102,7 @@ export function ContactSelector({ onSelectContact, selectedContactId }: ContactS
   });
 
   const filteredAvailableUsers = availableUsers.filter((user) => {
+    if (!user?.displayName) return false;
     const query = searchQuery.toLowerCase();
     return user.displayName.toLowerCase().includes(query);
   });
