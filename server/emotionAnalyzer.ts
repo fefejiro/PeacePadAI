@@ -66,7 +66,7 @@ Respond ONLY in this JSON format:
         { role: "user", content: userPrompt },
       ],
       temperature: 0.3,
-      max_completion_tokens: maxTokens,
+      max_tokens: maxTokens,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -157,7 +157,7 @@ Keep tone supportive, non-judgmental, and focused on progress.`;
         { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
-      max_completion_tokens: maxTokens,
+      max_tokens: maxTokens,
     });
 
     const summary = response.choices[0]?.message?.content?.trim() || 

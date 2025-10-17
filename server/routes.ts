@@ -139,7 +139,7 @@ Rewording: [suggestion or "none"]`,
         },
       ],
       temperature: 0.3,
-      max_completion_tokens: maxTokens,
+      max_tokens: maxTokens,
     });
 
     const result = response.choices[0]?.message?.content || "";
