@@ -1,0 +1,117 @@
+# PeacePad — Dev Mode Token-Safe Plan (for Replit)
+
+## 🎯 Objective
+Ensure that all developers and testers can interact with AI features (like message tone preview and chat analysis) **without consuming real OpenAI tokens** while working in dev mode.  
+This protects against unwanted API billing while preserving the full UX experience for tone previews and AI interaction.
+
+---
+
+## 🧠 Summary
+When PeacePad runs in development mode (`NODE_ENV !== "production"`), the system will **mock AI responses** instead of making real OpenAI API calls.  
+This allows for UI testing, feature debugging, and previewing tone/emoji suggestions **with zero cost**.
+
+---
+
+## 🧩 Implementation Steps
+
+### 1. Update `/api/messages/preview` in `routes.ts`
+
+Add this code at the start of the route handler:
+
+```ts
+app.post("/api/messages/preview", async (req, res) => {
+  // Check if running in development mode
+  if (process.env.NODE_ENV !== "production" && !process.env.ALLOW_DEV_AI) {
+    console.log("[Mock Mode] Returning simulated tone preview response");
+    return res.json({
+      tone: "neutral",
+      summary: "Mock AI tone preview (development mode)",
+      emoji: "💬",
+      suggestions: ["Your tone sounds balanced.", "Try adding empathy."],
+    });
+  }
+
+  // Production or explicitly allowed dev AI mode
+  try {
+    const { text } = req.body;
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: `Analyze tone of: ${text}` }],
+      max_completion_tokens: 128,
+    });
+
+    const tone = aiResponse.choices[0].message?.content || "neutral";
+    res.json({ tone });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Tone analysis failed" });
+  }
+});
+```
+
+✅ **What this does:**
+- In dev mode → returns **mock data** (no API calls, no tokens).  
+- In production → uses real OpenAI calls.  
+- Optional: `ALLOW_DEV_AI=true` can override to test live AI calls manually.
+
+---
+
+### 2. Configure Replit Environment Variables
+
+In the **Secrets tab** of your Replit project, set these:
+
+| Variable | Value | Description |
+|-----------|--------|-------------|
+| `NODE_ENV` | `development` | Default for Replit dev mode |
+| `ALLOW_DEV_AI` | *(blank)* | Leave empty unless real API testing needed |
+| `OPENAI_API_KEY` | *(your key)* | Used only when ALLOW_DEV_AI=true or in production |
+
+---
+
+### 3. Modify `.replit` Config File
+
+Ensure Replit switches between dev and prod automatically:
+
+```ini
+run = ["npm run dev"]
+onPublish = ["NODE_ENV=production npm run start"]
+```
+
+This ensures the app uses mock data in dev, and real AI in production.
+
+---
+
+### 4. Behavior Matrix
+
+| Mode | Tone Analysis | Token Use | Notes |
+|------|----------------|------------|--------|
+| Dev | Mock responses | 🚫 No tokens | Default mode |
+| Dev + ALLOW_DEV_AI=true | Real AI | ⚠️ Tokens used | Manual test mode |
+| Published (Prod) | Real AI | ✅ Normal usage | Public app |
+
+---
+
+### 5. Developer Notes
+
+- The frontend (`ChatInterface.tsx`) still renders tone preview boxes as if data were real.  
+- Mock API responses simulate realistic tone, emoji, and suggestions to validate design.  
+- Perfect for testing UI reactions without needing model calls.  
+- Prevents “ghost billing” during debugging or team collaboration.
+
+---
+
+## ✅ Outcome
+- Safe to test PeacePad’s AI chat and tone systems anytime.  
+- Maintains full app flow integrity.  
+- Zero hidden token costs during development.  
+- Enables controlled activation for QA or staging.  
+- Ready for integration with Replit’s “Plan Mode” testing workflow.
+
+---
+
+## 🚀 Next Steps
+1. Merge this dev-safety logic into the `/api/messages/preview` route.  
+2. Verify mock tone previews appear in chat during testing.  
+3. Confirm Replit switches to production config after publishing.  
+4. Proceed to store optimization and PWA/Capacitor mobile deployment.
+
