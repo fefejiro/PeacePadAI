@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
 import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
-import { setupWebRTCSignaling, broadcastNewMessage } from "./webrtc-signaling";
+import { setupWebRTCSignaling, broadcastNewMessage, notifyPartnershipJoin } from "./webrtc-signaling";
 import OpenAI from "openai";
 import { transcribeFromBase64 } from "./whisperService";
 import { analyzeEmotion, generateSessionSummary } from "./emotionAnalyzer";
@@ -512,6 +512,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowRecording: false,
         allowAiTone: true,
       });
+
+      // Get current user info for notification
+      const currentUser = await storage.getUser(userId);
+      
+      // Notify the co-parent that someone joined using their code
+      if (currentUser) {
+        notifyPartnershipJoin(coParent.id, currentUser.displayName || 'Someone');
+      }
 
       res.json({
         ...partnership,

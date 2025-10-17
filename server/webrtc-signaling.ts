@@ -24,6 +24,17 @@ export function broadcastNewMessage() {
   });
 }
 
+export function notifyPartnershipJoin(userId: string, partnerName: string) {
+  clients.forEach((client) => {
+    if (client.userId === userId && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({ 
+        type: "partnership-joined",
+        partnerName: partnerName 
+      }));
+    }
+  });
+}
+
 export function setupWebRTCSignaling(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
 

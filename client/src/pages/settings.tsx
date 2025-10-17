@@ -12,12 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLocation } from "wouter";
 
-const EMOJI_OPTIONS = [
-  "😊", "😎", "🤗", "😇", "🥰", "😃", "🙂", "😌",
-  "👨", "👩", "👦", "👧", "🧑", "👶", "👴", "👵",
-  "🐶", "🐱", "🐻", "🦁", "🐼", "🦊", "🐯", "🐨",
-  "🌟", "💫", "⭐", "✨", "🌈", "🎨", "🎭", "🎪"
-];
 
 export default function SettingsPage() {
   const [toneAnalysis, setToneAnalysis] = useState(true);
@@ -42,7 +36,6 @@ export default function SettingsPage() {
     const stored = localStorage.getItem("ai_listening_enabled");
     return stored !== null ? stored === "true" : false; // Default OFF
   });
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -70,26 +63,55 @@ export default function SettingsPage() {
     },
   });
 
-  const handleEmojiSelect = (emoji: string) => {
-    setSelectedEmoji(emoji);
-    updateProfile.mutate({ profileImageUrl: `emoji:${emoji}` });
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      updateProfile.mutate({ profileImageUrl: base64 });
-    };
-    reader.readAsDataURL(file);
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const res = await fetch('/api/profile-upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await res.json();
+      updateProfile.mutate({ profileImageUrl: data.url });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload profile photo",
+        variant: "destructive",
+      });
+    }
   };
 
   const currentProfileImage = user?.profileImageUrl || "";
-  const isEmoji = currentProfileImage.startsWith("emoji:");
-  const emojiValue = isEmoji ? currentProfileImage.replace("emoji:", "") : "";
 
   // Generate shareable session link - only show if session ID exists
   const sessionId = localStorage.getItem("peacepad_session_id") || "";
@@ -248,31 +270,29 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <h2 className="text-xl font-semibold">Profile Picture</h2>
-            <CardDescription>Choose an emoji or upload your own picture</CardDescription>
+            <CardDescription>Upload a photo to personalize your profile</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                {isEmoji ? (
-                  <div className="flex items-center justify-center text-4xl">{emojiValue}</div>
-                ) : currentProfileImage ? (
-                  <AvatarImage src={currentProfileImage} />
+              <Avatar className="h-24 w-24 border-2 border-border">
+                {currentProfileImage ? (
+                  <AvatarImage src={currentProfileImage} alt="Profile" />
                 ) : (
-                  <AvatarFallback>
-                    <User className="h-10 w-10" />
+                  <AvatarFallback className="bg-muted">
+                    <User className="h-12 w-12 text-muted-foreground" />
                   </AvatarFallback>
                 )}
               </Avatar>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-2">Current profile picture</p>
+              <div className="flex-1 space-y-2">
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={updateProfile.isPending}
                   data-testid="button-upload-image"
+                  className="w-full sm:w-auto"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Upload Image
+                  {currentProfileImage ? "Change Photo" : "Upload Photo"}
                 </Button>
                 <Input
                   ref={fileInputRef}
@@ -282,23 +302,9 @@ export default function SettingsPage() {
                   onChange={handleImageUpload}
                   data-testid="input-profile-image"
                 />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium mb-3 block">Or choose an emoji</Label>
-              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
-                {EMOJI_OPTIONS.map((emoji) => (
-                  <Button
-                    key={emoji}
-                    variant={selectedEmoji === emoji || emojiValue === emoji ? "default" : "outline"}
-                    className="h-12 w-12 text-2xl p-0"
-                    onClick={() => handleEmojiSelect(emoji)}
-                    data-testid={`button-emoji-${emoji}`}
-                  >
-                    {emoji}
-                  </Button>
-                ))}
+                <p className="text-xs text-muted-foreground">
+                  Recommended: Square image, max 5MB
+                </p>
               </div>
             </div>
           </CardContent>

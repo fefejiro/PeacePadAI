@@ -15,8 +15,15 @@ export default function LandingPage() {
 
   // Check for intro on first mount
   useEffect(() => {
+    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
     const hasSeenIntro = localStorage.getItem('hasSeenIntro');
     const pendingCode = localStorage.getItem('pending_join_code');
+    
+    // New users should go through onboarding instead of landing page
+    if (!hasCompletedOnboarding) {
+      setLocation('/onboarding');
+      return;
+    }
     
     if (pendingCode) {
       // Auto-show guest entry if there's a pending call to join (skip intro)
@@ -25,7 +32,7 @@ export default function LandingPage() {
       // Show intro slideshow for first-time visitors
       setShowIntro(true);
     }
-  }, []);
+  }, [setLocation]);
 
   const handleAuthenticated = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });

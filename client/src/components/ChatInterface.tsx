@@ -121,6 +121,14 @@ export default function ChatInterface() {
         const data = JSON.parse(event.data);
         if (data.type === "new-message") {
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        } else if (data.type === "partnership-joined") {
+          // Show toast notification when someone joins your partnership
+          toast({
+            title: "New Partnership! 🎉",
+            description: `${data.partnerName} joined using your invite code`,
+          });
+          // Refresh partnerships list
+          queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
