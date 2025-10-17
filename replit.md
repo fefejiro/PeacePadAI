@@ -18,9 +18,10 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 - **Technology Stack**: Node.js, Express.js, TypeScript, ES Modules, Drizzle ORM, PostgreSQL (Neon serverless).
 - **API Design**: RESTful API, Replit Auth middleware, consistent error handling.
-- **Data Models**: Users, Guest Sessions, Usage Metrics, Messages (with AI tone analysis), Notes, Tasks, Child Updates, Pets, Expenses, Events (with AI conflict detection), Sessions, Push Subscriptions.
+- **Data Models**: Users (with invite codes), Partnerships (co-parenting relationships), Guest Sessions, Usage Metrics, Messages (with AI tone analysis), Notes, Tasks, Child Updates, Pets, Expenses, Events (with AI conflict detection), Sessions, Push Subscriptions.
 - **Soft Authentication**: Guest entry with unique localStorage session ID, no email/password required.
-- **Conversation Scoping**: Messages include `recipientId` for 1:1 privacy.
+- **Partnership Model**: Each user has a unique 6-digit invite code. Users enter the same code to create a co-parenting partnership. Supports multiple partnerships (for step-parents).
+- **Conversation Scoping**: Messages include `recipientId` for 1:1 privacy between co-parents.
 
 ### AI Integration
 - **OpenAI Integration**: GPT-4o-mini (via Replit AI Integrations) for real-time message tone analysis (calm, cooperative, neutral, frustrated, defensive, hostile, with rewording suggestions) and scheduling conflict detection.
