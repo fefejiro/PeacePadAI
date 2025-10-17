@@ -497,34 +497,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get available users (excluding self and existing contacts)
-  app.get('/api/available-users', isSoftAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      // Get all users
-      const allUsers = await storage.getAllUsers();
-      
-      // Get existing contacts
-      const existingContacts = await storage.getContacts(userId);
-      const existingContactIds = new Set(existingContacts.map(c => c.peerUserId));
-      
-      // Filter out self and existing contacts
-      const availableUsers = allUsers
-        .filter(u => u.id !== userId && !existingContactIds.has(u.id))
-        .map(u => ({
-          id: u.id,
-          displayName: u.displayName,
-          profileImageUrl: u.profileImageUrl,
-          phoneNumber: null, // Don't expose phone numbers until contact is added
-        }));
-      
-      res.json(availableUsers);
-    } catch (error) {
-      console.error("Error fetching available users:", error);
-      res.status(500).json({ message: "Failed to fetch available users" });
-    }
-  });
 
   // Partnership routes
   app.get('/api/partnerships', isSoftAuthenticated, async (req: any, res) => {
