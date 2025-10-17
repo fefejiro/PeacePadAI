@@ -104,9 +104,18 @@ export async function setupSoftAuth(app: Express) {
     }
 
     try {
-      const user = await storage.getUser(req.session.userId);
+      let user = await storage.getUser(req.session.userId);
       if (!user) {
         return res.status(401).json({ message: "User not found" });
+      }
+
+      // Ensure user has an invite code (for legacy users with null or empty codes)
+      if (!user.inviteCode || user.inviteCode.trim() === '') {
+        const newCode = await storage.generateInviteCode();
+        user = await storage.upsertUser({
+          ...user,
+          inviteCode: newCode,
+        });
       }
 
       res.json({ user, sessionId: req.session.sessionId });

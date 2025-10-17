@@ -203,7 +203,7 @@ export default function SettingsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Invite code regenerated",
         description: "Your new invite code is ready to share",

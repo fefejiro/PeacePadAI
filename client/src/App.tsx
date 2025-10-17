@@ -19,7 +19,6 @@ import SchedulingPage from "@/pages/scheduling";
 import TasksPage from "@/pages/tasks";
 import ExpensesPage from "@/pages/expenses";
 import SettingsPage from "@/pages/settings";
-import ContactsPage from "@/pages/contacts";
 import TherapistLocatorPage from "@/pages/therapist-locator";
 import TherapistDirectoryPage from "@/pages/therapist-directory";
 import AuditTrailPage from "@/pages/audit-trail";
@@ -48,7 +47,6 @@ function Router() {
         <Route path="/scheduling" component={SchedulingPage} />
         <Route path="/tasks" component={TasksPage} />
         <Route path="/expenses" component={ExpensesPage} />
-        <Route path="/contacts" component={ContactsPage} />
         <Route path="/therapist-locator" component={TherapistLocatorPage} />
         <Route path="/therapist-directory" component={TherapistDirectoryPage} />
         <Route path="/audit-trail" component={AuditTrailPage} />

@@ -51,11 +51,6 @@ const organizeItems = [
     url: "/expenses",
     icon: DollarSign,
   },
-  {
-    title: "Contacts",
-    url: "/contacts",
-    icon: Users,
-  },
 ];
 
 const supportItems = [
