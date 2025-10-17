@@ -81,14 +81,15 @@ Preferred communication style: Simple, everyday language.
 - **Task Fields**: Title, Due Date, Completion Status.
 - **Separated Views**: "To Do" and "Completed" sections.
 
-### Contact Management (AppClose-style Architecture)
-- **Contact CRUD**: Full create, read, update, delete operations for contacts.
-- **Permission System**: Per-contact permissions (audio/video/SMS/recording/AI tone analysis).
-- **Nickname Support**: Optional custom nicknames for contacts.
-- **Phone Number Privacy**: User-level `sharePhoneWithContacts` toggle (default: false).
-  - Phone numbers only visible when: (1) Mutual contact relationship AND (2) Peer has opted in to share.
-- **Contact Selector**: Integrated into ChatInterface with search and permission indicators.
-- **Auth-Gated Queries**: Contacts query enabled only after authentication (`enabled: !!user`).
+### Partnership Model (Privacy-First Co-Parenting)
+- **Invite Code System**: Each user has a unique 6-digit alphanumeric invite code (auto-generated on signup).
+- **Partnership Creation**: Users enter the same invite code to create a co-parenting partnership (supports multiple partnerships for step-parents).
+- **Privacy Protection**: No user directory - connections only via invite codes, eliminating the 154-user privacy leak from the old /api/available-users endpoint.
+- **Permission System**: Partnership-level permissions (audio/video/recording/AI tone analysis) stored per partnership.
+- **Co-Parent Selector**: Dropdown in ChatInterface to switch between multiple co-parents (auto-loads first partnership).
+- **Code Management**: Users can view, copy, and regenerate their invite code from Settings.
+- **JoinPartnershipDialog**: UI component for entering a co-parent's invite code to establish partnership.
+- **Phone Number Privacy**: User-level `sharePhoneWithContacts` toggle (default: false) - phone numbers only visible to connected co-parents who have opted in.
 
 ### Find Support Directory
 - **Comprehensive Resource Database**: Multi-category support system (Crisis, Therapists, Government, Family, Legal).

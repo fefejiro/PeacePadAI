@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [, setLocation] = useLocation();
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [sharePhoneWithContacts, setSharePhoneWithContacts] = useState(user?.sharePhoneWithContacts ?? false);
+  const [inviteCodeCopied, setInviteCodeCopied] = useState(false);
 
   const updateProfile = useMutation({
     mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string; sharePhoneWithContacts?: boolean }) => {
@@ -194,6 +195,46 @@ export default function SettingsPage() {
       description: "You'll see the introduction slideshow again",
     });
     setLocation("/");
+  };
+
+  const regenerateInviteCode = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/partnerships/regenerate-code", {});
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Invite code regenerated",
+        description: "Your new invite code is ready to share",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to regenerate invite code",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const copyInviteCode = async () => {
+    if (!user?.inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(user.inviteCode);
+      setInviteCodeCopied(true);
+      toast({
+        title: "Invite code copied!",
+        description: "Share this code with your co-parent",
+      });
+      setTimeout(() => setInviteCodeCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Please copy the code manually",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -437,6 +478,63 @@ export default function SettingsPage() {
                 onCheckedChange={setNotifications}
                 data-testid="switch-notifications"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Your Invite Code</h2>
+            <CardDescription>Share this code with your co-parent to connect</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Invite Code</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Your co-parent needs this 6-character code to add you as a partner
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 px-4 py-3 bg-muted rounded-md border border-border text-center">
+                  <span className="text-2xl font-mono font-bold tracking-widest" data-testid="text-invite-code">
+                    {user?.inviteCode || "Loading..."}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={copyInviteCode}
+                    disabled={!user?.inviteCode}
+                    data-testid="button-copy-invite-code"
+                    className="flex-1 sm:flex-none min-h-10"
+                  >
+                    {inviteCodeCopied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={() => regenerateInviteCode.mutate()}
+                    disabled={regenerateInviteCode.isPending}
+                    data-testid="button-regenerate-invite-code"
+                    className="flex-1 sm:flex-none min-h-10"
+                  >
+                    {regenerateInviteCode.isPending ? "Regenerating..." : "Regenerate"}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                💡 Regenerate your code if you want to revoke access or shared it by mistake
+              </p>
             </div>
           </CardContent>
         </Card>

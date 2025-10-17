@@ -176,7 +176,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isSoftAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      
+      // Ensure user has an invite code (for legacy users)
+      if (user && !user.inviteCode) {
+        const newCode = await storage.generateInviteCode();
+        user = await storage.upsertUser({
+          ...user,
+          inviteCode: newCode,
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -229,7 +239,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/messages', isSoftAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const messages = await storage.getMessagesByUser(userId);
+      const { recipientId } = req.query;
+      
+      // Get all messages for the user
+      let messages = await storage.getMessagesByUser(userId);
+      
+      // Filter by recipient if provided (for partnership-specific conversations)
+      if (recipientId && typeof recipientId === 'string') {
+        messages = messages.filter(msg => 
+          (msg.senderId === userId && msg.recipientId === recipientId) ||
+          (msg.senderId === recipientId && msg.recipientId === userId)
+        );
+      }
+      
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);

@@ -89,8 +89,18 @@ export default function ChatInterface() {
   const recordedVideoPreviewRef = useRef<HTMLVideoElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const recipientId = selectedPartnership?.coParent?.id;
+  
   const { data: messages = [], isLoading } = useQuery<MessageWithSender[]>({
-    queryKey: ["/api/messages"],
+    queryKey: recipientId ? ["/api/messages", recipientId] : ["/api/messages"],
+    queryFn: async () => {
+      const url = recipientId 
+        ? `/api/messages?recipientId=${recipientId}`
+        : "/api/messages";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
   });
 
   // WebSocket connection for real-time message updates
