@@ -7,6 +7,7 @@ import { setupWebRTCSignaling, broadcastNewMessage } from "./webrtc-signaling";
 import OpenAI from "openai";
 import { transcribeFromBase64 } from "./whisperService";
 import { analyzeEmotion, generateSessionSummary } from "./emotionAnalyzer";
+import { aiCache, isDevMode, getMaxTokens, logTokenUsage, mockToneAnalysis, createCacheKey } from "./aiHelper";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -86,7 +87,23 @@ async function analyzeTone(content: string): Promise<{
   emoji: string; 
   rewordingSuggestion: string | null 
 }> {
+  // Dev mode protection - return mock response to avoid token usage
+  if (isDevMode()) {
+    return mockToneAnalysis(content);
+  }
+
+  // Check cache first to reduce duplicate API calls
+  const cacheKey = createCacheKey('tone', content);
+  const cached = aiCache.get<{ tone: string; summary: string; emoji: string; rewordingSuggestion: string | null }>(cacheKey);
+  
+  if (cached) {
+    logTokenUsage('analyzeTone', 150, true);
+    return cached;
+  }
+
   try {
+    const maxTokens = getMaxTokens(150);
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Using improved model via Replit AI integration
       messages: [
@@ -122,7 +139,7 @@ Rewording: [suggestion or "none"]`,
         },
       ],
       temperature: 0.3,
-      max_completion_tokens: 150,
+      max_completion_tokens: maxTokens,
     });
 
     const result = response.choices[0]?.message?.content || "";
@@ -137,10 +154,15 @@ Rewording: [suggestion or "none"]`,
     const rewording = rewordingMatch?.[1]?.trim();
     const rewordingSuggestion = rewording && rewording.toLowerCase() !== "none" ? rewording : null;
     
-    return { tone, summary, emoji, rewordingSuggestion };
+    const resultData = { tone, summary, emoji, rewordingSuggestion };
+    
+    // Cache the result
+    aiCache.set(cacheKey, resultData);
+    logTokenUsage('analyzeTone', maxTokens, false);
+    
+    return resultData;
   } catch (error) {
     console.error("Error analyzing tone with Replit AI:", error);
-    // Better error message for debugging
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Full error details:", errorMessage);
     return { tone: "neutral", summary: "AI analysis unavailable", emoji: "😐", rewordingSuggestion: null };
