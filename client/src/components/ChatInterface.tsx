@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
-import { ContactSelector } from "./ContactSelector";
+import { CoParentSelector } from "./CoParentSelector";
 import { type ToneType } from "./TonePill";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -31,19 +31,18 @@ type MessageWithSender = Message & {
   senderProfileImage?: string;
 };
 
-interface Contact {
+interface Partnership {
   id: string;
-  userId: string;
-  peerUserId: string;
-  nickname: string | null;
+  user1Id: string;
+  user2Id: string;
+  inviteCode: string;
   allowAudio: boolean;
   allowVideo: boolean;
-  allowSms: boolean;
   allowRecording: boolean;
   allowAiTone: boolean;
   createdAt: string;
   updatedAt: string;
-  peerUser: {
+  coParent: {
     id: string;
     displayName: string;
     profileImageUrl: string | null;
@@ -53,7 +52,7 @@ interface Contact {
 
 export default function ChatInterface() {
   const [message, setMessage] = useState("");
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedPartnership, setSelectedPartnership] = useState<Partnership | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [callType, setCallType] = useState<"audio" | "video">("audio");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
@@ -140,8 +139,8 @@ export default function ChatInterface() {
       return;
     }
 
-    // Skip if AI tone analysis is disabled for this contact
-    if (selectedContact && !selectedContact.allowAiTone) {
+    // Skip if AI tone analysis is disabled for this partnership
+    if (selectedPartnership && !selectedPartnership.allowAiTone) {
       return;
     }
 
@@ -156,11 +155,11 @@ export default function ChatInterface() {
     }, 1500);
 
     return () => clearTimeout(timeoutId);
-  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob, selectedContact]);
+  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob, selectedPartnership]);
 
   const sendTextMessage = useMutation({
     mutationFn: async (content: string) => {
-      const recipientId = selectedContact?.peerUserId;
+      const recipientId = selectedPartnership?.coParent?.id;
       const res = await apiRequest("POST", "/api/messages", { content, recipientId });
       return await res.json();
     },
@@ -227,7 +226,7 @@ export default function ChatInterface() {
       if (!uploadRes.ok) throw new Error('Failed to upload file');
       const fileData = await uploadRes.json();
 
-      const recipientId = selectedContact?.peerUserId;
+      const recipientId = selectedPartnership?.coParent?.id;
       const res = await apiRequest("POST", "/api/messages", {
         content: file.name,
         messageType: fileData.messageType,
@@ -312,8 +311,8 @@ export default function ChatInterface() {
     
     // Text message: Apply AI-first proactive blocking
     if (message.trim()) {
-      // If AI tone analysis is disabled for this contact, send directly
-      if (selectedContact && !selectedContact.allowAiTone) {
+      // If AI tone analysis is disabled for this partnership, send directly
+      if (selectedPartnership && !selectedPartnership.allowAiTone) {
         sendTextMessage.mutate(message);
         return;
       }
@@ -607,7 +606,7 @@ export default function ChatInterface() {
               onClick={startAudioCall}
               className="h-9 w-9 flex items-center justify-center"
               data-testid="button-start-audio-call"
-              disabled={!selectedContact?.allowAudio}
+              disabled={!selectedPartnership?.allowAudio}
             >
               <Phone className="h-5 w-5" />
             </Button>
@@ -617,15 +616,15 @@ export default function ChatInterface() {
               onClick={startVideoCall}
               className="h-9 w-9 flex items-center justify-center"
               data-testid="button-start-video-call"
-              disabled={!selectedContact?.allowVideo}
+              disabled={!selectedPartnership?.allowVideo}
             >
               <Video className="h-5 w-5" />
             </Button>
           </div>
         </div>
-        <ContactSelector
-          onSelectContact={setSelectedContact}
-          selectedContactId={selectedContact?.id}
+        <CoParentSelector
+          onSelectPartnership={setSelectedPartnership}
+          selectedPartnershipId={selectedPartnership?.id}
         />
       </div>
 
