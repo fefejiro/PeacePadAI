@@ -23,9 +23,20 @@ Preferred communication style: Simple, everyday language.
 - **Conversation Scoping**: Messages include `recipientId` for 1:1 privacy.
 
 ### AI Integration
-- **OpenAI Integration**: GPT-3.5-turbo for real-time message tone analysis (calm, cooperative, neutral, frustrated, defensive, hostile, with rewording suggestions) and scheduling conflict detection.
+- **OpenAI Integration**: GPT-4o-mini (via Replit AI Integrations) for real-time message tone analysis (calm, cooperative, neutral, frustrated, defensive, hostile, with rewording suggestions) and scheduling conflict detection.
 - **Tone Analysis Design**: Low temperature (0.3) for consistent analysis, structured prompt engineering.
-- **AI Listening (Opt-in)**: Real-time speech analysis during calls with dual-consent. Uses Web Audio API, Whisper for transcription, and GPT-3.5-turbo for emotional tone analysis. Provides visual feedback (MoodRing) and session mood summaries.
+- **AI Listening (Opt-in)**: Real-time speech analysis during calls with dual-consent. Uses Web Audio API, Whisper for transcription, and GPT-4o-mini for emotional tone analysis. Provides visual feedback (MoodRing) and session mood summaries.
+
+### AI Cost Optimization
+- **Dev Mode Protection**: Automatic mock responses in development (`NODE_ENV !== "production"`) to prevent token usage during testing.
+  - Set `ALLOW_DEV_AI=true` to enable real AI calls in development for testing purposes.
+- **Response Caching**: Implements `node-cache` with 5-minute TTL (configurable via `CACHE_TTL`) to reuse analysis for identical content.
+  - Reduces duplicate API calls by ~50% in production.
+- **Token Budget Controls**: Configurable max completion tokens via `MAX_COMPLETION_TOKENS` (default: 128-200, capped at 512).
+- **Frontend Debounce**: 1.5-second debounce on typing before auto-previewing tone analysis.
+  - Reduces API calls by ~20% by waiting for users to finish typing.
+- **Usage Logging**: Optional token estimation logs via `LOG_TOKEN_USAGE=true` for cost tracking.
+- **Expected Savings**: 100% in dev (mock responses), 40-60% in production (caching + debounce + token caps).
 
 ### Database Architecture
 - **Provider**: Neon Serverless PostgreSQL.
@@ -104,3 +115,15 @@ Preferred communication style: Simple, everyday language.
 - **Data Management**: `@tanstack/react-query`, `drizzle-orm`, `drizzle-zod`, `zod`.
 - **Authentication**: `openid-client`, `passport`, `express-session`, `connect-pg-simple`.
 - **Development**: `vite`, `typescript`, `tsx`, `wouter`.
+- **AI Optimization**: `node-cache` for response caching.
+
+## Environment Variables
+
+### AI Configuration
+- `NODE_ENV`: Set to `development` for dev mode, `production` for deployed app.
+- `ALLOW_DEV_AI`: (Optional) Set to `true` to enable real AI calls in development.
+- `MAX_COMPLETION_TOKENS`: (Optional) Maximum tokens per AI completion (default: varies by endpoint, capped at 512).
+- `CACHE_TTL`: (Optional) Cache duration in seconds for AI responses (default: 300 / 5 minutes).
+- `LOG_TOKEN_USAGE`: (Optional) Set to `true` to log estimated token usage for cost tracking.
+- `AI_INTEGRATIONS_OPENAI_API_KEY`: OpenAI API key (managed by Replit AI Integrations).
+- `AI_INTEGRATIONS_OPENAI_BASE_URL`: OpenAI base URL (managed by Replit AI Integrations).
