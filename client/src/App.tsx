@@ -13,6 +13,8 @@ import Clippy from "@/components/Clippy";
 import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
 import LandingPage from "@/pages/landing";
+import OnboardingPage from "@/pages/onboarding";
+import JoinPartnershipPage from "@/pages/join-partnership";
 import ChatPage from "@/pages/chat";
 import DashboardPage from "@/pages/dashboard";
 import SchedulingPage from "@/pages/scheduling";
@@ -51,19 +53,22 @@ function Router() {
         <Route path="/therapist-directory" component={TherapistDirectoryPage} />
         <Route path="/audit-trail" component={AuditTrailPage} />
         <Route path="/settings" component={SettingsPage} />
-        <Route path="/join/:code" component={JoinCallPage} />
-        <Route path="/join" component={JoinCallPage} />
+        <Route path="/join/:code" component={JoinPartnershipPage} />
+        <Route path="/call/:code" component={JoinCallPage} />
+        <Route path="/call" component={JoinCallPage} />
         <Route component={NotFound} />
       </Switch>
     );
   }
 
-  // Not authenticated, show landing or join call page
+  // Not authenticated, show landing, onboarding, or join partnership page
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
-      <Route path="/join/:code" component={JoinCallPage} />
-      <Route path="/join" component={JoinCallPage} />
+      <Route path="/onboarding" component={OnboardingPage} />
+      <Route path="/join/:code" component={JoinPartnershipPage} />
+      <Route path="/call/:code" component={JoinCallPage} />
+      <Route path="/call" component={JoinCallPage} />
       <Route component={LandingPage} />
     </Switch>
   );

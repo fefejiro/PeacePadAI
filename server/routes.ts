@@ -81,6 +81,27 @@ const receiptUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for receipts (images/PDFs)
 });
 
+// Configure multer for profile photos
+const profilePhotosDir = path.join(process.cwd(), 'uploads', 'profiles');
+if (!fs.existsSync(profilePhotosDir)) {
+  fs.mkdirSync(profilePhotosDir, { recursive: true });
+}
+
+const profileUploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, profilePhotosDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const profileUpload = multer({ 
+  storage: profileUploadStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for profile photos
+});
+
 async function analyzeTone(content: string): Promise<{ 
   tone: string; 
   summary: string; 
@@ -215,13 +236,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/user/profile', isSoftAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { profileImageUrl, displayName, phoneNumber, sharePhoneWithContacts } = req.body;
+      const { profileImageUrl, displayName, phoneNumber, sharePhoneWithContacts, childName, relationshipType } = req.body;
       
       const updateData: any = {};
       if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
       if (displayName !== undefined) updateData.displayName = displayName;
       if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
       if (sharePhoneWithContacts !== undefined) updateData.sharePhoneWithContacts = sharePhoneWithContacts;
+      if (childName !== undefined) updateData.childName = childName;
+      if (relationshipType !== undefined) updateData.relationshipType = relationshipType;
       
       const updatedUser = await storage.upsertUser({
         id: userId,
@@ -388,6 +411,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error uploading receipt:", error);
       res.status(400).json({ message: error.message || "Failed to upload receipt" });
+    }
+  });
+
+  // Profile photo upload endpoint
+  app.post('/api/profile-upload', isSoftAuthenticated, profileUpload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Validate file type (images only)
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ message: "Only image files are allowed" });
+      }
+      
+      const profileImageUrl = `/uploads/profiles/${file.filename}`;
+      
+      res.json({
+        profileImageUrl,
+        fileName: file.originalname,
+        fileSize: file.size.toString(),
+      });
+    } catch (error: any) {
+      console.error("Error uploading profile photo:", error);
+      res.status(400).json({ message: error.message || "Failed to upload profile photo" });
     }
   });
 

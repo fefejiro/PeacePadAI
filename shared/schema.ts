@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   isGuest: boolean("is_guest").notNull().default(true),
   guestId: varchar("guest_id").unique(),
   inviteCode: varchar("invite_code", { length: 6 }).unique(), // 6-character invite code for partnership invites
+  relationshipType: varchar("relationship_type"), // ex-spouse, separated, never-married, other
+  childName: varchar("child_name"), // Primary child's name (optional)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
