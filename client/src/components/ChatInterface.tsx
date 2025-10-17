@@ -131,6 +131,28 @@ export default function ChatInterface() {
     };
   }, [user]);
 
+  // Auto-preview tone with debounce (1.5s after typing stops)
+  useEffect(() => {
+    const hasMediaReady = selectedFile || recordedAudioBlob || recordedVideoBlob;
+    
+    // Skip auto-preview if media is attached or message is empty
+    if (!message.trim() || hasMediaReady) {
+      return;
+    }
+
+    // Skip if already previewed this exact message
+    if (tonePreview && tonePreview.originalMessage.trim() === message.trim()) {
+      return;
+    }
+
+    // Debounce: wait 1.5s after user stops typing
+    const timeoutId = setTimeout(() => {
+      previewTone.mutate(message.trim());
+    }, 1500);
+
+    return () => clearTimeout(timeoutId);
+  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob]);
+
   const sendTextMessage = useMutation({
     mutationFn: async (content: string) => {
       const recipientId = selectedContact?.peerUserId;
