@@ -12,13 +12,14 @@ Preferred communication style: Simple, everyday language.
 - **Technology Stack**: React 18, TypeScript, Vite, Wouter for routing, TanStack Query, Radix UI with shadcn/ui, Tailwind CSS.
 - **Design System**: Custom calming color palette, Inter and JetBrains Mono fonts, accessibility-first.
 - **Component Architecture**: Modular design with shared and feature-specific components.
-- **Onboarding**: Streamlined 3-slide introductory slideshow using `embla-carousel`.
+- **Onboarding**: Streamlined 3-step flow: (1) Welcome/real name + photo upload, (2) Optional child/relationship details, (3) Invite code display with QR code & shareable link.
+- **Photo Upload**: Real profile photo uploads via /api/profile-upload endpoint (5MB max, validation for image types). Replaces emoji picker system.
 - **PWA**: `manifest.json`, service worker for offline support, "Add to Home Screen", push notifications.
 
 ### Backend Architecture
 - **Technology Stack**: Node.js, Express.js, TypeScript, ES Modules, Drizzle ORM, PostgreSQL (Neon serverless).
 - **API Design**: RESTful API, Replit Auth middleware, consistent error handling.
-- **Data Models**: Users (with invite codes), Partnerships (co-parenting relationships), Guest Sessions, Usage Metrics, Messages (with AI tone analysis), Notes, Tasks, Child Updates, Pets, Expenses, Events (with AI conflict detection), Sessions, Push Subscriptions.
+- **Data Models**: Users (with invite codes, relationship_type, child_name), Partnerships (co-parenting relationships), Guest Sessions, Usage Metrics, Messages (with AI tone analysis), Notes, Tasks, Child Updates, Pets, Expenses, Events (with AI conflict detection), Sessions, Push Subscriptions.
 - **Soft Authentication**: Guest entry with unique localStorage session ID, no email/password required.
 - **Partnership Model**: Each user has a unique 6-digit invite code. Users enter the same code to create a co-parenting partnership. Supports multiple partnerships (for step-parents).
 - **Conversation Scoping**: Messages include `recipientId` for 1:1 privacy between co-parents.
@@ -49,7 +50,8 @@ Preferred communication style: Simple, everyday language.
 
 ### WebRTC Real-Time Communication
 - **WebSocket Signaling Server**: Unified server for chat and WebRTC signaling.
-- **Session-Based Multi-User Calls**: Supports 2-12 participants with 6-digit join codes.
+- **Real-Time Notifications**: Partnership join events broadcast via WebSocket with toast notifications.
+- **Session-Based Multi-User Calls**: Supports 2-12 participants with 6-digit join codes (via /call/:code).
 - **Role-Based Negotiation**: Handles SDP glare in multi-user scenarios.
 - **Media-Ready Gating**: Ensures media tracks are added before SDP negotiation.
 - **Offer Caching System**: Prevents dropped negotiations from race conditions.
@@ -88,7 +90,10 @@ Preferred communication style: Simple, everyday language.
 - **Permission System**: Partnership-level permissions (audio/video/recording/AI tone analysis) stored per partnership.
 - **Co-Parent Selector**: Dropdown in ChatInterface to switch between multiple co-parents (auto-loads first partnership).
 - **Code Management**: Users can view, copy, and regenerate their invite code from Settings.
-- **JoinPartnershipDialog**: UI component for entering a co-parent's invite code to establish partnership.
+- **Shareable Invite Links**: QR code + link (peacepad.app/join/CODE) shown in onboarding Step 3 with pre-written message template.
+- **/join/:code Flow**: Auto-joins partnership if authenticated, redirects to onboarding if not (stores code in localStorage for post-signup join).
+- **JoinPartnershipPage**: Dedicated page for handling /join/:code links with auto-join and user feedback.
+- **Real-Time Join Notifications**: WebSocket toast notifications when someone uses your invite code to create a partnership.
 - **Phone Number Privacy**: User-level `sharePhoneWithContacts` toggle (default: false) - phone numbers only visible to connected co-parents who have opted in.
 
 ### Find Support Directory
@@ -113,10 +118,11 @@ Preferred communication style: Simple, everyday language.
 - **OpenStreetMap Nominatim API**: Geocoding and location data for the support directory.
 
 ### Key NPM Packages
-- **UI/UX**: `@radix-ui/*`, `tailwindcss`, `class-variance-authority`, `lucide-react`.
+- **UI/UX**: `@radix-ui/*`, `tailwindcss`, `class-variance-authority`, `lucide-react`, `qrcode.react`.
 - **Data Management**: `@tanstack/react-query`, `drizzle-orm`, `drizzle-zod`, `zod`.
 - **Authentication**: `openid-client`, `passport`, `express-session`, `connect-pg-simple`.
 - **Development**: `vite`, `typescript`, `tsx`, `wouter`.
+- **File Upload**: `multer` for profile photos, receipts, and media attachments.
 - **AI Optimization**: `node-cache` for response caching.
 
 ## Environment Variables
