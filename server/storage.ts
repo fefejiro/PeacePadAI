@@ -10,6 +10,7 @@ import {
   guestSessions,
   usageMetrics,
   contacts,
+  partnerships,
   callSessions,
   callRecordings,
   therapists,
@@ -38,6 +39,8 @@ import {
   type InsertUsageMetric,
   type Contact,
   type InsertContact,
+  type Partnership,
+  type InsertPartnership,
   type CallSession,
   type InsertCallSession,
   type CallRecording,
@@ -84,6 +87,14 @@ export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
   updateContact(id: string, updates: Partial<InsertContact>): Promise<Contact>;
   deleteContact(id: string): Promise<void>;
+  
+  // Partnership operations
+  getPartnerships(userId: string): Promise<Partnership[]>;
+  getPartnershipByCode(inviteCode: string): Promise<Partnership | undefined>;
+  createPartnership(partnership: InsertPartnership): Promise<Partnership>;
+  getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
+  generateInviteCode(): Promise<string>;
+  regenerateInviteCode(userId: string): Promise<string>;
   
   // Note operations
   getNotes(userId: string): Promise<Note[]>;
@@ -158,6 +169,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Generate invite code for new users if not provided
+    if (!userData.inviteCode) {
+      userData.inviteCode = await this.generateInviteCode();
+    }
+    
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -342,6 +358,70 @@ export class DatabaseStorage implements IStorage {
 
   async deleteContact(id: string): Promise<void> {
     await db.delete(contacts).where(eq(contacts.id, id));
+  }
+
+  // Partnership operations
+  async getPartnerships(userId: string): Promise<Partnership[]> {
+    const result = await db
+      .select()
+      .from(partnerships)
+      .where(
+        or(
+          eq(partnerships.user1Id, userId),
+          eq(partnerships.user2Id, userId)
+        )
+      );
+    return result;
+  }
+
+  async getPartnershipByCode(inviteCode: string): Promise<Partnership | undefined> {
+    const [partnership] = await db
+      .select()
+      .from(partnerships)
+      .where(eq(partnerships.inviteCode, inviteCode));
+    return partnership;
+  }
+
+  async createPartnership(partnershipData: InsertPartnership): Promise<Partnership> {
+    const [partnership] = await db.insert(partnerships).values(partnershipData).returning();
+    return partnership;
+  }
+
+  async getUserByInviteCode(inviteCode: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.inviteCode, inviteCode));
+    return user;
+  }
+
+  async generateInviteCode(): Promise<string> {
+    // Generate a unique 6-character alphanumeric code
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    
+    // Keep generating until we find a unique one
+    let isUnique = false;
+    while (!isUnique) {
+      code = '';
+      for (let i = 0; i < 6; i++) {
+        code += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      
+      // Check if code is unique
+      const existing = await this.getUserByInviteCode(code);
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+    
+    return code;
+  }
+
+  async regenerateInviteCode(userId: string): Promise<string> {
+    const newCode = await this.generateInviteCode();
+    await db
+      .update(users)
+      .set({ inviteCode: newCode, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+    return newCode;
   }
 
   // Note operations

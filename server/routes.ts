@@ -526,6 +526,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Partnership routes
+  app.get('/api/partnerships', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const partnerships = await storage.getPartnerships(userId);
+      
+      // Fetch co-parent info for each partnership
+      const partnershipsWithUsers = await Promise.all(
+        partnerships.map(async (p) => {
+          const coParentId = p.user1Id === userId ? p.user2Id : p.user1Id;
+          const coParent = await storage.getUser(coParentId);
+          return {
+            ...p,
+            coParent: coParent ? {
+              id: coParent.id,
+              displayName: coParent.displayName,
+              profileImageUrl: coParent.profileImageUrl,
+              phoneNumber: coParent.sharePhoneWithContacts ? coParent.phoneNumber : null,
+            } : null,
+          };
+        })
+      );
+      
+      res.json(partnershipsWithUsers);
+    } catch (error) {
+      console.error("Error fetching partnerships:", error);
+      res.status(500).json({ message: "Failed to fetch partnerships" });
+    }
+  });
+
+  app.post('/api/partnerships/join', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { inviteCode } = req.body;
+
+      if (!inviteCode || inviteCode.length !== 6) {
+        return res.status(400).json({ message: "Invalid invite code" });
+      }
+
+      // Find user with this invite code
+      const coParent = await storage.getUserByInviteCode(inviteCode);
+      
+      if (!coParent) {
+        return res.status(404).json({ message: "Invalid invite code" });
+      }
+
+      if (coParent.id === userId) {
+        return res.status(400).json({ message: "You cannot partner with yourself" });
+      }
+
+      // Check if partnership already exists
+      const existingPartnerships = await storage.getPartnerships(userId);
+      const alreadyPartnered = existingPartnerships.some(
+        p => p.user1Id === coParent.id || p.user2Id === coParent.id
+      );
+
+      if (alreadyPartnered) {
+        return res.status(400).json({ message: "Partnership already exists" });
+      }
+
+      // Create partnership
+      const partnership = await storage.createPartnership({
+        user1Id: userId,
+        user2Id: coParent.id,
+        inviteCode: inviteCode,
+        allowAudio: true,
+        allowVideo: true,
+        allowRecording: false,
+        allowAiTone: true,
+      });
+
+      res.json({
+        ...partnership,
+        coParent: {
+          id: coParent.id,
+          displayName: coParent.displayName,
+          profileImageUrl: coParent.profileImageUrl,
+        },
+      });
+    } catch (error) {
+      console.error("Error joining partnership:", error);
+      res.status(500).json({ message: "Failed to join partnership" });
+    }
+  });
+
+  app.post('/api/partnerships/regenerate-code', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const newCode = await storage.regenerateInviteCode(userId);
+      res.json({ inviteCode: newCode });
+    } catch (error) {
+      console.error("Error regenerating invite code:", error);
+      res.status(500).json({ message: "Failed to regenerate invite code" });
+    }
+  });
+
   // Note routes
   app.get('/api/notes', isSoftAuthenticated, async (req: any, res) => {
     try {
