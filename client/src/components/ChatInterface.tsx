@@ -140,6 +140,11 @@ export default function ChatInterface() {
       return;
     }
 
+    // Skip if AI tone analysis is disabled for this contact
+    if (selectedContact && !selectedContact.allowAiTone) {
+      return;
+    }
+
     // Skip if already previewed this exact message
     if (tonePreview && tonePreview.originalMessage.trim() === message.trim()) {
       return;
@@ -151,7 +156,7 @@ export default function ChatInterface() {
     }, 1500);
 
     return () => clearTimeout(timeoutId);
-  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob]);
+  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob, selectedContact]);
 
   const sendTextMessage = useMutation({
     mutationFn: async (content: string) => {
@@ -307,6 +312,12 @@ export default function ChatInterface() {
     
     // Text message: Apply AI-first proactive blocking
     if (message.trim()) {
+      // If AI tone analysis is disabled for this contact, send directly
+      if (selectedContact && !selectedContact.allowAiTone) {
+        sendTextMessage.mutate(message);
+        return;
+      }
+      
       // If force sending (user clicked "Send Anyway"), bypass check
       if (isForceSending) {
         sendTextMessage.mutate(message);
@@ -722,7 +733,7 @@ export default function ChatInterface() {
                 // Trigger send immediately after closing dialog
                 setTimeout(() => handleSend(), 0);
               }}
-              variant="destructive"
+              className="bg-destructive text-destructive-foreground hover-elevate active-elevate-2"
               data-testid="button-send-anyway"
             >
               Send Anyway

@@ -16,6 +16,7 @@ export default function TherapistDirectoryPage() {
   const [searchDistance, setSearchDistance] = useState<number>(50);
   const [postalCode, setPostalCode] = useState<string>("");
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
   const [resourceType, setResourceType] = useState<string>("all");
 
   const handlePostalCodeSearch = async () => {
@@ -63,6 +64,7 @@ export default function TherapistDirectoryPage() {
 
   const handleUseMyLocation = async () => {
     if (navigator.geolocation) {
+      setIsGettingLocation(true);
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
@@ -91,6 +93,7 @@ export default function TherapistDirectoryPage() {
             });
           }
           
+          setIsGettingLocation(false);
           toast({
             title: "Location found",
             description: "Using your current location",
@@ -98,6 +101,7 @@ export default function TherapistDirectoryPage() {
         },
         (error) => {
           console.error('Error getting location:', error);
+          setIsGettingLocation(false);
           toast({
             title: "Location access denied",
             description: "Please enter a postal code instead",
@@ -217,10 +221,11 @@ export default function TherapistDirectoryPage() {
               <Button
                 onClick={handleUseMyLocation}
                 variant="outline"
+                disabled={isGettingLocation}
                 data-testid="button-use-location"
               >
                 <MapPin className="h-4 w-4 mr-2" />
-                Use My Location
+                {isGettingLocation ? "Getting Location..." : "Use My Location"}
               </Button>
             </div>
             

@@ -3,13 +3,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone } from "lucide-react";
+import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone, Sparkles } from "lucide-react";
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useLocation } from "wouter";
 
 const EMOJI_OPTIONS = [
   "😊", "😎", "🤗", "😇", "🥰", "😃", "🙂", "😌",
@@ -46,6 +47,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [sharePhoneWithContacts, setSharePhoneWithContacts] = useState(user?.sharePhoneWithContacts ?? false);
 
@@ -183,6 +185,15 @@ export default function SettingsPage() {
     }
     
     updateProfile.mutate({ phoneNumber });
+  };
+
+  const handleViewWelcomeTour = () => {
+    localStorage.removeItem("hasSeenIntro");
+    toast({
+      title: "Welcome tour restarted",
+      description: "You'll see the introduction slideshow again",
+    });
+    setLocation("/");
   };
 
   return (
@@ -482,6 +493,23 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Getting Started</h2>
+            <CardDescription>Review the welcome tour and introduction</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              variant="outline" 
+              onClick={handleViewWelcomeTour}
+              data-testid="button-view-welcome-tour"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              View Welcome Tour
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
