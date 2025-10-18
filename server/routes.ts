@@ -1978,19 +1978,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (format === 'json') {
         res.json(auditTrail);
       } else if (format === 'csv') {
-        // Generate CSV
-        let csv = 'Type,Content,Date,Details\n';
+        // Generate FRO-compliant CSV with conversation metadata
+        let csv = 'Type,Content,Date,Conversation Type,Participants,Tone,Details\n';
         
         auditTrail.messages.forEach((m: any) => {
-          csv += `Message,"${m.content}",${m.timestamp},"Tone: ${m.tone || 'N/A'}"\n`;
+          const content = (m.content || '').replace(/"/g, '""'); // Escape quotes
+          const conversationType = m.conversationType || 'Unknown';
+          const participants = (m.participants || 'Unknown').replace(/"/g, '""');
+          const tone = m.tone || 'N/A';
+          const details = m.toneSummary ? m.toneSummary.replace(/"/g, '""') : '';
+          csv += `Message,"${content}",${m.timestamp},"${conversationType}","${participants}","${tone}","${details}"\n`;
         });
         
         auditTrail.events.forEach((e: any) => {
-          csv += `Event,"${e.title}",${e.startDate},"Type: ${e.type}"\n`;
+          const title = (e.title || '').replace(/"/g, '""');
+          csv += `Event,"${title}",${e.startDate},"N/A","N/A","N/A","Type: ${e.type}"\n`;
         });
         
         auditTrail.calls.forEach((c: any) => {
-          csv += `Call,"${c.callType} call",${c.createdAt},"Code: ${c.sessionCode}"\n`;
+          csv += `Call,"${c.callType} call",${c.createdAt},"N/A","N/A","N/A","Code: ${c.sessionCode}"\n`;
         });
         
         res.setHeader('Content-Type', 'text/csv');
