@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QRCodeSVG } from "qrcode.react";
 import { Copy, Check, ChevronRight, Upload, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
+  const [showIntro, setShowIntro] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
@@ -28,6 +30,26 @@ export default function OnboardingPage() {
 
   const inviteCode = user?.inviteCode || "";
   const inviteLink = `${window.location.origin}/join/${inviteCode}`;
+
+  // Check if user is joining via invite link and should see intro
+  useEffect(() => {
+    const pendingCode = localStorage.getItem("pending_join_code");
+    const hasSeenIntro = localStorage.getItem("hasSeenIntro");
+    
+    console.log("[Onboarding] Checking intro status - Pending code:", pendingCode, "Has seen intro:", hasSeenIntro);
+    
+    // Show intro for users joining via invite link who haven't seen it
+    if (pendingCode && !hasSeenIntro) {
+      console.log("[Onboarding] Showing intro slideshow for invite link user");
+      setShowIntro(true);
+    }
+  }, []);
+
+  const handleIntroComplete = () => {
+    console.log("[Onboarding] Intro slideshow completed");
+    localStorage.setItem("hasSeenIntro", "true");
+    setShowIntro(false);
+  };
 
   const createGuestAccount = useMutation({
     mutationFn: async () => {
@@ -169,6 +191,11 @@ export default function OnboardingPage() {
       toast({ title: "Failed to copy", variant: "destructive" });
     }
   };
+
+  // Show intro slideshow for users joining via invite link
+  if (showIntro) {
+    return <LandingIntroSlideshow onComplete={handleIntroComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">

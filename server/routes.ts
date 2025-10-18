@@ -497,7 +497,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { inviteCode } = req.body;
 
+      console.log(`[Partnership Join] User ${userId} attempting to join with code: ${inviteCode}`);
+
       if (!inviteCode || inviteCode.length !== 6) {
+        console.log(`[Partnership Join] Invalid code length: ${inviteCode?.length}`);
         return res.status(400).json({ message: "Invalid invite code" });
       }
 
@@ -505,8 +508,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const coParent = await storage.getUserByInviteCode(inviteCode);
       
       if (!coParent) {
+        console.log(`[Partnership Join] No user found with invite code: ${inviteCode}`);
         return res.status(404).json({ message: "Invalid invite code" });
       }
+      
+      console.log(`[Partnership Join] Found co-parent: ${coParent.displayName} (ID: ${coParent.id})`);
 
       if (coParent.id === userId) {
         return res.status(400).json({ message: "You cannot partner with yourself" });

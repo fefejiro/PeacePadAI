@@ -186,7 +186,9 @@ export class DatabaseStorage implements IStorage {
   async upsertUser(userData: UpsertUser): Promise<User> {
     // Generate invite code for new users if not provided
     if (!userData.inviteCode) {
-      userData.inviteCode = await this.generateInviteCode();
+      const newCode = await this.generateInviteCode();
+      console.log(`[Storage] Generated invite code for new user: ${newCode}`);
+      userData.inviteCode = newCode;
     }
     
     const [user] = await db
@@ -200,6 +202,8 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .returning();
+    
+    console.log(`[Storage] User upserted - ID: ${user.id}, Invite Code: ${user.inviteCode}, Display Name: ${user.displayName}`);
     return user;
   }
 
@@ -403,7 +407,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByInviteCode(inviteCode: string): Promise<User | undefined> {
+    console.log(`[Storage] Looking up user by invite code: ${inviteCode}`);
     const [user] = await db.select().from(users).where(eq(users.inviteCode, inviteCode));
+    
+    if (user) {
+      console.log(`[Storage] Found user with invite code ${inviteCode}: ${user.displayName} (ID: ${user.id})`);
+    } else {
+      console.log(`[Storage] No user found with invite code: ${inviteCode}`);
+      // Debug: Let's see all invite codes in the database
+      const allUsers = await db.select({ id: users.id, displayName: users.displayName, inviteCode: users.inviteCode }).from(users);
+      console.log(`[Storage] All users in database:`, allUsers);
+    }
+    
     return user;
   }
 

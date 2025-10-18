@@ -57,12 +57,14 @@ export async function setupSoftAuth(app: Express) {
       const sessionId = clientSessionId || nanoid(16);
       const finalDisplayName = displayName || `Guest${guestId}`;
 
+      console.log(`[Auth] Creating new guest user: ${finalDisplayName}`);
       const user = await storage.upsertUser({
         displayName: finalDisplayName,
         isGuest: true,
         guestId,
         profileImageUrl: profileImageUrl || undefined,
       });
+      console.log(`[Auth] User created with ID: ${user.id}, Invite Code: ${user.inviteCode}`);
 
       const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
       await storage.createGuestSession({
