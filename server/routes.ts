@@ -513,6 +513,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowAiTone: true,
       });
 
+      // Auto-create 1:1 direct conversation for this partnership
+      const existingConversation = await storage.findDirectConversation(userId, coParent.id);
+      
+      if (!existingConversation) {
+        const conversation = await storage.createConversation({
+          type: 'direct',
+          createdBy: userId,
+        });
+
+        // Add both users as members
+        await storage.addConversationMember({
+          conversationId: conversation.id,
+          userId: userId,
+        });
+        await storage.addConversationMember({
+          conversationId: conversation.id,
+          userId: coParent.id,
+        });
+      }
+
       // Get current user info for notification
       const currentUser = await storage.getUser(userId);
       
