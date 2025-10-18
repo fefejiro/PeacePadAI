@@ -1,0 +1,117 @@
+🧩 User Stories / Features (Grouped by Functional Area)
+
+1️⃣ Intro & Onboarding Flow
+
+Goal: Validate the user’s first-time experience.
+	•	Story 1.1: As a new user, I want to see an animated slideshow explaining what PeacePad is, its goals, and benefits.
+	•	✅ Verify auto-progress, swipe navigation, skip button.
+	•	✅ Verify first-time user only (cookie/localStorage check).
+	•	Story 1.2: As a new user, I can soft-login by name or emoji/photo (no hard authentication yet).
+	•	✅ Validate emoji upload, photo upload, and persistence.
+	•	Story 1.3: As a returning user, I can skip intro and resume from dashboard.
+
+⸻
+
+2️⃣ Chat & Communication Core
+
+Goal: Validate all chat types and AI moderation.
+	•	Story 2.1: As a user, I can send text, audio, and video messages.
+	•	✅ Check message visibility in solo and dual-user sessions.
+	•	✅ Validate attachment progress bars and cancel option.
+	•	Story 2.2: As a user, I can see AI tone analysis before sending messages.
+	•	✅ Mock mode vs Production mode validation.
+	•	✅ Emoji/tone suggestions rendered correctly.
+	•	Story 2.3: As two users, I can exchange messages in real time.
+	•	✅ Verify send/receive timestamps, typing indicator, and message delivery.
+	•	Story 2.4: As a user, I can react to messages with emojis.
+
+⸻
+
+3️⃣ Audio/Video Call System
+
+Goal: Validate WebRTC session creation and joining.
+	•	Story 3.1: As a user, I can start a video or audio session.
+	•	✅ Check that a unique session ID/link is generated.
+	•	Story 3.2: As another user, I can join the session via link.
+	•	✅ Check camera/mic permission, name entry prompt, and join UI.
+	•	Story 3.3: As both users, we can toggle audio/video and see each other’s stream.
+	•	✅ Ensure fallback if device lacks media access (mock camera test).
+	•	Story 3.4: Verify reconnection if connection drops mid-call.
+
+⸻
+
+4️⃣ AI & Emotional Analysis Layer
+
+Goal: Validate sentiment, emotion, and moderation.
+	•	Story 4.1: AI continuously listens (opt-in) and logs emotional tone of sessions.
+	•	✅ Test mood tracking toggle and consent dialog.
+	•	Story 4.2: Mood ring animation reacts subtly to tone.
+	•	✅ Validate transitions (green → neutral → red).
+	•	Story 4.3: AI suggests “pause, reflect, or breathe” prompts when tension spikes.
+
+⸻
+
+5️⃣ Find Support & Resource Discovery
+
+Goal: Validate support search and mapping features.
+	•	Story 5.1: As a user, I can find support centers by postal code.
+	•	✅ Verify Canada-wide and US-wide lookup.
+	•	✅ Validate map pins load properly.
+	•	Story 5.2: As a user, I can fine-tune results using slider filters (distance, rating, specialization).
+	•	Story 5.3: As a user, I can click on a result to view details (address, hours, website).
+	•	Story 5.4: As a user, I can save or share support location links.
+
+⸻
+
+6️⃣ Shared Features & Collaboration
+
+Goal: Test features supporting co-parenting collaboration.
+	•	Story 6.1: As a user, I can add shared expenses (editable, synced).
+	•	Story 6.2: As a user, I can create, edit, and delete shared events in the calendar.
+	•	Story 6.3: As a user, I can upload documents (e.g., receipts, agreements).
+	•	Story 6.4: As a user, I can see updates sync live between both accounts.
+
+⸻
+
+7️⃣ Settings & User Preferences
+
+Goal: Ensure configurability, notifications, and consent.
+	•	Story 7.1: As a user, I can enable/disable notifications, hints, and mood prompts.
+	•	Story 7.2: As a user, I can view my activity logs.
+	•	Story 7.3: As a user, I can export or clear chat data.
+	•	Story 7.4: As a user, I can change my avatar, name, or emoji anytime.
+
+⸻
+
+8️⃣ Account Management
+
+Goal: Validate security and lifecycle of user profiles.
+	•	Story 8.1: As a user, I can temporarily deactivate my account (soft delete).
+	•	Story 8.2: As a user, I can fully delete my account (data removed).
+	•	Story 8.3: Verify re-registration works post-deletion.
+
+⸻
+
+9️⃣ System Health, Cache, and Accessibility
+
+Goal: Ensure platform stability, caching, and inclusivity.
+	•	Story 9.1: Verify session persistence across refresh and tab close.
+	•	Story 9.2: Ensure cache clear on logout works.
+	•	Story 9.3: Test accessibility (keyboard navigation, ARIA labels, dark/light mode).
+
+⸻
+
+🔟 Analytics & Feedback
+
+Goal: Measure engagement and gather insight.
+	•	Story 10.1: Track login frequency and feature usage (mock data for testing).
+	•	Story 10.2: Test survey form submission after first session.
+	•	Story 10.3: Verify “Rate My Experience” popup triggers after calls.
+
+⸻
+
+🧠 Non-Functional Tests
+	•	Performance: Load time, lag under 10 concurrent calls.
+	•	Security: API endpoint authorization, rate limiting, consent enforcement.
+	•	Resilience: Offline fallback (PWA caching).
+	•	Compatibility: Chrome, Safari, Firefox, Android WebView, iOS Safari.
