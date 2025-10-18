@@ -533,6 +533,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Auto-create family group conversation if 3+ people are connected
+      const allPartnerships = await storage.getPartnerships(userId);
+      const coParentPartnerships = await storage.getPartnerships(coParent.id);
+      
+      // Collect all unique user IDs in the partnership network
+      const allUserIds = new Set<string>();
+      allUserIds.add(userId);
+      allUserIds.add(coParent.id);
+      
+      [...allPartnerships, ...coParentPartnerships].forEach(p => {
+        allUserIds.add(p.user1Id);
+        allUserIds.add(p.user2Id);
+      });
+      
+      const uniqueUserIds = Array.from(allUserIds);
+      
+      // If 3+ people are connected, create/ensure family group exists
+      if (uniqueUserIds.length >= 3) {
+        // Check if a group conversation already exists with these exact members
+        const userConversations = await storage.getConversations(userId);
+        const existingGroup = userConversations.find(conv => {
+          if (conv.type !== 'group') return false;
+          const memberIds = conv.members.map((m: any) => m.id).sort();
+          const expectedIds = uniqueUserIds.sort();
+          return memberIds.length === expectedIds.length && 
+                 memberIds.every((id: string, i: number) => id === expectedIds[i]);
+        });
+        
+        if (!existingGroup) {
+          const groupConversation = await storage.createConversation({
+            name: 'Family Group',
+            type: 'group',
+            createdBy: userId,
+          });
+
+          // Add all connected users as members
+          await Promise.all(
+            uniqueUserIds.map(uid =>
+              storage.addConversationMember({
+                conversationId: groupConversation.id,
+                userId: uid,
+              })
+            )
+          );
+
+          // Create audit log for family group creation
+          await storage.createAuditLog({
+            userId,
+            actionType: 'conversation_created',
+            resourceId: groupConversation.id,
+            resourceType: 'conversation',
+            details: {
+              conversationType: 'group',
+              conversationName: 'Family Group',
+              memberCount: uniqueUserIds.length,
+              trigger: 'auto_created_on_partnership',
+            },
+          });
+        }
+      }
+
       // Get current user info for notification
       const currentUser = await storage.getUser(userId);
       
