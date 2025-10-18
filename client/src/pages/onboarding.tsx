@@ -12,10 +12,12 @@ import { QRCodeSVG } from "qrcode.react";
 import { Copy, Check, ChevronRight, Upload, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
+import ConsentAgreement from "@/components/ConsentAgreement";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [showIntro, setShowIntro] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
@@ -31,17 +33,21 @@ export default function OnboardingPage() {
   const inviteCode = user?.inviteCode || "";
   const inviteLink = `${window.location.origin}/join/${inviteCode}`;
 
-  // Check if user is joining via invite link and should see intro
+  // Check if user is joining via invite link and should see intro/consent
   useEffect(() => {
     const pendingCode = localStorage.getItem("pending_join_code");
     const hasSeenIntro = localStorage.getItem("hasSeenIntro");
+    const hasAcceptedConsent = localStorage.getItem("hasAcceptedConsent");
     
-    console.log("[Onboarding] Checking intro status - Pending code:", pendingCode, "Has seen intro:", hasSeenIntro);
+    console.log("[Onboarding] Checking status - Pending code:", pendingCode, "Has seen intro:", hasSeenIntro, "Has accepted consent:", hasAcceptedConsent);
     
     // Show intro for users joining via invite link who haven't seen it
     if (pendingCode && !hasSeenIntro) {
       console.log("[Onboarding] Showing intro slideshow for invite link user");
       setShowIntro(true);
+    } else if (pendingCode && !hasAcceptedConsent) {
+      console.log("[Onboarding] Showing consent for invite link user");
+      setShowConsent(true);
     }
   }, []);
 
@@ -49,6 +55,13 @@ export default function OnboardingPage() {
     console.log("[Onboarding] Intro slideshow completed");
     localStorage.setItem("hasSeenIntro", "true");
     setShowIntro(false);
+    setShowConsent(true);
+  };
+
+  const handleConsentAccept = () => {
+    console.log("[Onboarding] Consent accepted");
+    localStorage.setItem("hasAcceptedConsent", "true");
+    setShowConsent(false);
   };
 
   const createGuestAccount = useMutation({
@@ -195,6 +208,11 @@ export default function OnboardingPage() {
   // Show intro slideshow for users joining via invite link
   if (showIntro) {
     return <LandingIntroSlideshow onComplete={handleIntroComplete} />;
+  }
+
+  // Show consent agreement after intro
+  if (showConsent) {
+    return <ConsentAgreement onAccept={handleConsentAccept} />;
   }
 
   return (

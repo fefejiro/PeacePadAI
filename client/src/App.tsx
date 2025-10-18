@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -123,12 +123,18 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
 function ConditionalSidebar() {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return null;
+  const [location] = useLocation();
+  
+  // Hide sidebar during onboarding, even if authenticated
+  if (!isAuthenticated || location === "/onboarding") return null;
   return <AppSidebar />;
 }
 
 function ConditionalSidebarTrigger() {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <div />;
+  const [location] = useLocation();
+  
+  // Hide sidebar trigger during onboarding
+  if (!isAuthenticated || location === "/onboarding") return <div />;
   return <SidebarTrigger data-testid="button-sidebar-toggle" />;
 }

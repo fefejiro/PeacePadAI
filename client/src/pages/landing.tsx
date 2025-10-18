@@ -6,16 +6,19 @@ import { MessageCircle, Brain, Calendar, Shield, TrendingUp, Users } from "lucid
 import { queryClient } from "@/lib/queryClient";
 import GuestEntry from "@/components/GuestEntry";
 import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
+import ConsentAgreement from "@/components/ConsentAgreement";
 import heroImage from "@assets/stock_images/peaceful_diverse_fam_f2239163.jpg";
 
 export default function LandingPage() {
   const [showGuestEntry, setShowGuestEntry] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
   const [, setLocation] = useLocation();
 
   // Check for intro on first mount
   useEffect(() => {
     const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+    const hasAcceptedConsent = localStorage.getItem('hasAcceptedConsent');
     const pendingCode = localStorage.getItem('pending_join_code');
     
     if (pendingCode) {
@@ -24,6 +27,9 @@ export default function LandingPage() {
     } else if (!hasSeenIntro) {
       // Show intro slideshow for first-time visitors
       setShowIntro(true);
+    } else if (!hasAcceptedConsent) {
+      // Show consent if intro seen but consent not accepted
+      setShowConsent(true);
     }
   }, [setLocation]);
 
@@ -41,14 +47,28 @@ export default function LandingPage() {
   };
 
   const handleIntroComplete = () => {
+    console.log("[Landing] Intro slideshow completed");
+    localStorage.setItem('hasSeenIntro', 'true');
     setShowIntro(false);
-    // After intro, navigate to onboarding for first-time users
+    setShowConsent(true);
+  };
+
+  const handleConsentAccept = () => {
+    console.log("[Landing] Consent accepted");
+    localStorage.setItem('hasAcceptedConsent', 'true');
+    setShowConsent(false);
+    // After consent, navigate to onboarding
     setLocation('/onboarding');
   };
 
   // Show intro slideshow for first-time visitors
   if (showIntro) {
     return <LandingIntroSlideshow onComplete={handleIntroComplete} />;
+  }
+
+  // Show consent agreement after intro
+  if (showConsent) {
+    return <ConsentAgreement onAccept={handleConsentAccept} />;
   }
 
   // Show guest entry after intro or when joining with code
