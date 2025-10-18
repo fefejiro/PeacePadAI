@@ -191,13 +191,18 @@ export class DatabaseStorage implements IStorage {
       userData.inviteCode = newCode;
     }
     
+    // Filter out undefined values to prevent overwriting existing data with null
+    const cleanedData = Object.fromEntries(
+      Object.entries(userData).filter(([_, value]) => value !== undefined)
+    );
+    
     const [user] = await db
       .insert(users)
       .values(userData)
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          ...cleanedData,
           updatedAt: new Date(),
         },
       })

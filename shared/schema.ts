@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   inviteCode: varchar("invite_code", { length: 6 }).unique(), // 6-character invite code for partnership invites
   relationshipType: varchar("relationship_type"), // ex-spouse, separated, never-married, other
   childName: varchar("child_name"), // Primary child's name (optional)
+  consentAcceptedAt: timestamp("consent_accepted_at"), // Timestamp when user accepted consent agreement
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
