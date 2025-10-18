@@ -45,6 +45,7 @@ function Router() {
       <Switch>
         <Route path="/" component={ChatPage} />
         <Route path="/chat" component={ChatPage} />
+        <Route path="/onboarding" component={OnboardingPage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/scheduling" component={SchedulingPage} />
         <Route path="/tasks" component={TasksPage} />
