@@ -15,15 +15,8 @@ export default function LandingPage() {
 
   // Check for intro on first mount
   useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
     const hasSeenIntro = localStorage.getItem('hasSeenIntro');
     const pendingCode = localStorage.getItem('pending_join_code');
-    
-    // New users should go through onboarding instead of landing page
-    if (!hasCompletedOnboarding) {
-      setLocation('/onboarding');
-      return;
-    }
     
     if (pendingCode) {
       // Auto-show guest entry if there's a pending call to join (skip intro)
@@ -49,6 +42,8 @@ export default function LandingPage() {
 
   const handleIntroComplete = () => {
     setShowIntro(false);
+    // After intro, navigate to onboarding for first-time users
+    setLocation('/onboarding');
   };
 
   // Show intro slideshow for first-time visitors
