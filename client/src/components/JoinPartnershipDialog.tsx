@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, Info } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -35,9 +35,12 @@ export function JoinPartnershipDialog({ trigger }: JoinPartnershipDialogProps) {
     },
     onError: (error: any) => {
       const message = error.message || "Failed to join partnership";
+      const isInvalidCode = message.includes("Invalid invite code");
       toast({
-        title: "Error",
-        description: message,
+        title: isInvalidCode ? "Code not found" : "Error",
+        description: isInvalidCode 
+          ? "This invite code doesn't exist. Ask your co-parent to check their code in Settings and share the current one."
+          : message,
         variant: "destructive",
       });
     },
@@ -78,8 +81,19 @@ export function JoinPartnershipDialog({ trigger }: JoinPartnershipDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3 mb-4">
+            <div className="flex gap-2">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900 dark:text-blue-100">
+                <p className="font-medium mb-1">How invite codes work:</p>
+                <p className="text-blue-800 dark:text-blue-200">
+                  Ask your co-parent to go to <span className="font-semibold">Settings</span>, copy <strong>their invite code</strong>, and share it with you. Then enter it below to connect.
+                </p>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="invite-code">Invite Code</Label>
+            <Label htmlFor="invite-code">Your Co-Parent's Invite Code</Label>
             <Input
               id="invite-code"
               placeholder="ABC123"
@@ -90,8 +104,8 @@ export function JoinPartnershipDialog({ trigger }: JoinPartnershipDialogProps) {
               data-testid="input-invite-code"
               autoFocus
             />
-            <p className="text-sm text-muted-foreground">
-              Ask your co-parent to share their invite code from Settings
+            <p className="text-xs text-muted-foreground">
+              Enter the 6-character code your co-parent shared with you
             </p>
           </div>
           <Button
