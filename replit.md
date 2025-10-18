@@ -6,6 +6,11 @@ PeacePad is an AI-powered co-parenting communication platform designed to foster
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 18, 2025)
+- **Fixed Invite Code Database Bug**: All 178 users now have unique 6-digit invite codes properly saved to database. Ran backfill script to assign codes to existing users.
+- **Mobile-Responsive Chat Interface**: Added mobile drawer for conversation list, optimized touch targets (44px minimum), sticky input area at bottom, responsive button sizing.
+- **Consent Agreement Flow**: Added comprehensive legal consent agreement (communication recording, AI analysis, data retention, export rights) that appears after intro slideshow and before onboarding.
+
 ## System Architecture
 
 ### Frontend Architecture
