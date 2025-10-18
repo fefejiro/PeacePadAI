@@ -601,8 +601,21 @@ export class DatabaseStorage implements IStorage {
 
   // Note operations
   async getNotes(userId: string): Promise<Note[]> {
+    // Get all partnerships for this user
+    const partnerships = await this.getPartnerships(userId);
+    
+    // Collect all user IDs in partnerships (including current user)
+    const partnerUserIds = new Set<string>();
+    partnerUserIds.add(userId);
+    partnerships.forEach(p => {
+      partnerUserIds.add(p.user1Id);
+      partnerUserIds.add(p.user2Id);
+    });
+    
+    // Return notes created by ANY partnered user
+    const { inArray } = await import("drizzle-orm");
     return await db.select().from(notes)
-      .where(eq(notes.createdBy, userId))
+      .where(inArray(notes.createdBy, Array.from(partnerUserIds)))
       .orderBy(desc(notes.createdAt));
   }
 
@@ -626,8 +639,21 @@ export class DatabaseStorage implements IStorage {
 
   // Task operations
   async getTasks(userId: string): Promise<Task[]> {
+    // Get all partnerships for this user
+    const partnerships = await this.getPartnerships(userId);
+    
+    // Collect all user IDs in partnerships (including current user)
+    const partnerUserIds = new Set<string>();
+    partnerUserIds.add(userId);
+    partnerships.forEach(p => {
+      partnerUserIds.add(p.user1Id);
+      partnerUserIds.add(p.user2Id);
+    });
+    
+    // Return tasks created by ANY partnered user
+    const { inArray } = await import("drizzle-orm");
     return await db.select().from(tasks)
-      .where(eq(tasks.createdBy, userId))
+      .where(inArray(tasks.createdBy, Array.from(partnerUserIds)))
       .orderBy(tasks.createdAt);
   }
 
@@ -651,8 +677,21 @@ export class DatabaseStorage implements IStorage {
 
   // Child update operations
   async getChildUpdates(userId: string): Promise<ChildUpdate[]> {
+    // Get all partnerships for this user
+    const partnerships = await this.getPartnerships(userId);
+    
+    // Collect all user IDs in partnerships (including current user)
+    const partnerUserIds = new Set<string>();
+    partnerUserIds.add(userId);
+    partnerships.forEach(p => {
+      partnerUserIds.add(p.user1Id);
+      partnerUserIds.add(p.user2Id);
+    });
+    
+    // Return child updates created by ANY partnered user
+    const { inArray } = await import("drizzle-orm");
     return await db.select().from(childUpdates)
-      .where(eq(childUpdates.createdBy, userId))
+      .where(inArray(childUpdates.createdBy, Array.from(partnerUserIds)))
       .orderBy(desc(childUpdates.createdAt));
   }
 
@@ -667,8 +706,21 @@ export class DatabaseStorage implements IStorage {
 
   // Pet operations
   async getPets(userId: string): Promise<Pet[]> {
+    // Get all partnerships for this user
+    const partnerships = await this.getPartnerships(userId);
+    
+    // Collect all user IDs in partnerships (including current user)
+    const partnerUserIds = new Set<string>();
+    partnerUserIds.add(userId);
+    partnerships.forEach(p => {
+      partnerUserIds.add(p.user1Id);
+      partnerUserIds.add(p.user2Id);
+    });
+    
+    // Return pets created by ANY partnered user
+    const { inArray } = await import("drizzle-orm");
     return await db.select().from(pets)
-      .where(eq(pets.createdBy, userId))
+      .where(inArray(pets.createdBy, Array.from(partnerUserIds)))
       .orderBy(desc(pets.createdAt));
   }
 
@@ -679,8 +731,21 @@ export class DatabaseStorage implements IStorage {
 
   // Expense operations
   async getExpenses(userId: string): Promise<Expense[]> {
+    // Get all partnerships for this user
+    const partnerships = await this.getPartnerships(userId);
+    
+    // Collect all user IDs in partnerships (including current user)
+    const partnerUserIds = new Set<string>();
+    partnerUserIds.add(userId);
+    partnerships.forEach(p => {
+      partnerUserIds.add(p.user1Id);
+      partnerUserIds.add(p.user2Id);
+    });
+    
+    // Return expenses paid by ANY partnered user
+    const { inArray } = await import("drizzle-orm");
     return await db.select().from(expenses)
-      .where(eq(expenses.paidBy, userId))
+      .where(inArray(expenses.paidBy, Array.from(partnerUserIds)))
       .orderBy(desc(expenses.createdAt));
   }
 
@@ -691,8 +756,21 @@ export class DatabaseStorage implements IStorage {
 
   // Event operations
   async getEvents(userId: string): Promise<Event[]> {
+    // Get all partnerships for this user
+    const partnerships = await this.getPartnerships(userId);
+    
+    // Collect all user IDs in partnerships (including current user)
+    const partnerUserIds = new Set<string>();
+    partnerUserIds.add(userId);
+    partnerships.forEach(p => {
+      partnerUserIds.add(p.user1Id);
+      partnerUserIds.add(p.user2Id);
+    });
+    
+    // Return events created by ANY partnered user
+    const { inArray } = await import("drizzle-orm");
     return await db.select().from(events)
-      .where(eq(events.createdBy, userId))
+      .where(inArray(events.createdBy, Array.from(partnerUserIds)))
       .orderBy(events.startDate);
   }
 
