@@ -380,15 +380,17 @@ export default function OnboardingPage() {
 
               <Button
                 className="w-full"
-                onClick={() => {
+                onClick={async () => {
                   localStorage.setItem("hasCompletedOnboarding", "true");
+                  // Refresh auth state before redirecting
+                  await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
                   // Check if there's a pending join code from /join/:code link
                   const pendingCode = localStorage.getItem("pending_join_code");
                   if (pendingCode) {
                     localStorage.removeItem("pending_join_code");
                     setLocation(`/join/${pendingCode}`);
                   } else {
-                    setLocation("/");
+                    setLocation("/chat");
                   }
                 }}
                 data-testid="button-continue-to-app"
