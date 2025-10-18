@@ -74,6 +74,24 @@ export const partnerships = pgTable("partnerships", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Conversations table for both 1:1 and group chats (FRO compliant)
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name"), // Optional name for group chats (e.g., "Family Group")
+  type: text("type").notNull(), // 'direct' for 1:1, 'group' for 3+ people
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Conversation members junction table (who's in each conversation)
+export const conversationMembers = pgTable("conversation_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+});
+
 // Usage metrics tracking
 export const usageMetrics = pgTable("usage_metrics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -90,7 +108,8 @@ export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   content: text("content").notNull(),
   senderId: varchar("sender_id").notNull().references(() => users.id),
-  recipientId: varchar("recipient_id").references(() => users.id), // For 1:1 conversations
+  recipientId: varchar("recipient_id").references(() => users.id), // For backward compatibility with 1:1 conversations
+  conversationId: varchar("conversation_id").references(() => conversations.id), // New: links message to conversation
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   tone: text("tone"),
   toneSummary: text("tone_summary"),
@@ -260,6 +279,8 @@ export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({
 export const insertUsageMetricSchema = createInsertSchema(usageMetrics).omit({ id: true, lastUpdated: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPartnershipSchema = createInsertSchema(partnerships).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertConversationMemberSchema = createInsertSchema(conversationMembers).omit({ id: true, joinedAt: true });
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
@@ -283,6 +304,10 @@ export type InsertContact = z.infer<typeof insertContactSchema>;
 export type Contact = typeof contacts.$inferSelect;
 export type InsertPartnership = z.infer<typeof insertPartnershipSchema>;
 export type Partnership = typeof partnerships.$inferSelect;
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversationMember = z.infer<typeof insertConversationMemberSchema>;
+export type ConversationMember = typeof conversationMembers.$inferSelect;
 export const insertCallSessionSchema = createInsertSchema(callSessions).omit({ id: true, createdAt: true });
 export type InsertCallSession = z.infer<typeof insertCallSessionSchema>;
 export type CallSession = typeof callSessions.$inferSelect;
