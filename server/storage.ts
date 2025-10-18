@@ -755,10 +755,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserAuditTrail(userId: string, startDate?: Date, endDate?: Date): Promise<any> {
-    // Get all messages
+    // Get all messages sent by user
     const userMessages = await db.select().from(messages)
       .where(eq(messages.senderId, userId))
       .orderBy(messages.timestamp);
+    
+    // Enrich messages with conversation metadata for FRO compliance
+    const enrichedMessages = await Promise.all(
+      userMessages.map(async (msg) => {
+        let conversationType = 'Unknown';
+        let participants: string[] = [];
+        
+        if (msg.conversationId) {
+          const conversation = await this.getConversation(msg.conversationId);
+          if (conversation) {
+            conversationType = conversation.type === 'direct' ? 'Direct (1:1)' : 'Group';
+            const members = await this.getConversationMembers(msg.conversationId);
+            const memberDetails = await Promise.all(
+              members.map(async (m) => {
+                const user = await this.getUser(m.userId);
+                return user?.displayName || 'Unknown User';
+              })
+            );
+            participants = memberDetails;
+          }
+        } else if (msg.recipientId) {
+          // Legacy 1:1 message
+          conversationType = 'Direct (1:1 - Legacy)';
+          const recipient = await this.getUser(msg.recipientId);
+          const sender = await this.getUser(msg.senderId);
+          participants = [sender?.displayName || 'You', recipient?.displayName || 'Unknown'];
+        }
+        
+        return {
+          ...msg,
+          conversationType,
+          participants: participants.join(', '),
+        };
+      })
+    );
     
     // Get all events
     const userEvents = await db.select().from(events)
@@ -776,12 +811,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(callRecordings.createdAt));
     
     return {
-      messages: userMessages,
+      messages: enrichedMessages,
       events: userEvents,
       calls: userCalls,
       recordings: userRecordings,
       summary: {
-        totalMessages: userMessages.length,
+        totalMessages: enrichedMessages.length,
         totalEvents: userEvents.length,
         totalCalls: userCalls.length,
         totalRecordings: userRecordings.length,
