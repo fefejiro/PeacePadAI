@@ -546,6 +546,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Conversation routes
+  app.get('/api/conversations', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const conversations = await storage.getConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  app.post('/api/conversations', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { name, type, memberIds } = req.body;
+
+      if (!type || !memberIds || !Array.isArray(memberIds)) {
+        return res.status(400).json({ message: "Missing required fields: type, memberIds" });
+      }
+
+      // Create conversation
+      const conversation = await storage.createConversation({
+        name,
+        type,
+        createdBy: userId,
+      });
+
+      // Add members to conversation
+      const memberPromises = memberIds.map((memberId: string) =>
+        storage.addConversationMember({
+          conversationId: conversation.id,
+          userId: memberId,
+        })
+      );
+      await Promise.all(memberPromises);
+
+      // Create audit log for group conversation creation
+      if (type === 'group') {
+        await storage.createAuditLog({
+          userId,
+          actionType: 'conversation_created',
+          resourceId: conversation.id,
+          resourceType: 'conversation',
+          details: {
+            conversationType: type,
+            conversationName: name,
+            memberCount: memberIds.length,
+          },
+        });
+      }
+
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
+
+  app.get('/api/conversations/:id/messages', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const conversationId = req.params.id;
+
+      // Verify user is a member of this conversation
+      const members = await storage.getConversationMembers(conversationId);
+      const isMember = members.some((m) => m.userId === userId);
+
+      if (!isMember) {
+        return res.status(403).json({ message: "You are not a member of this conversation" });
+      }
+
+      const messages = await storage.getConversationMessages(conversationId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching conversation messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
   // Note routes
   app.get('/api/notes', isSoftAuthenticated, async (req: any, res) => {
     try {
