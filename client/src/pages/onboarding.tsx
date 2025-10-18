@@ -100,9 +100,21 @@ export default function OnboardingPage() {
         return await res.json();
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      setStep(3);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      // Check if there's a pending join code - if so, skip Step 3 and join partnership
+      const pendingCode = localStorage.getItem("pending_join_code");
+      console.log("[Onboarding] Step 2 complete. Pending code:", pendingCode);
+      
+      if (pendingCode) {
+        localStorage.removeItem("pending_join_code");
+        localStorage.setItem("hasCompletedOnboarding", "true");
+        console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
+        setLocation(`/join/${pendingCode}`);
+      } else {
+        setStep(3);
+      }
     },
     onError: () => {
       toast({
@@ -284,7 +296,21 @@ export default function OnboardingPage() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setStep(3)}
+                  onClick={async () => {
+                    // Check if there's a pending join code - if so, skip Step 3 and join partnership
+                    const pendingCode = localStorage.getItem("pending_join_code");
+                    console.log("[Onboarding] Step 2 skipped. Pending code:", pendingCode);
+                    
+                    if (pendingCode) {
+                      localStorage.removeItem("pending_join_code");
+                      localStorage.setItem("hasCompletedOnboarding", "true");
+                      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+                      console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
+                      setLocation(`/join/${pendingCode}`);
+                    } else {
+                      setStep(3);
+                    }
+                  }}
                   data-testid="button-skip-step2"
                 >
                   Skip

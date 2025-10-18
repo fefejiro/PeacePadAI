@@ -16,13 +16,18 @@ export default function JoinPartnershipPage() {
 
   const joinPartnershipMutation = useMutation({
     mutationFn: async (inviteCode: string) => {
+      console.log("[JoinPartnership] Calling API to join with code:", inviteCode);
       const res = await apiRequest("POST", "/api/partnerships/join", {
         inviteCode: inviteCode.toUpperCase(),
       });
-      return await res.json();
+      const data = await res.json();
+      console.log("[JoinPartnership] API response:", data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("[JoinPartnership] Successfully joined partnership:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       toast({
         title: "Partnership created!",
         description: "You're now connected with your co-parent",
@@ -33,6 +38,7 @@ export default function JoinPartnershipPage() {
       }, 2000);
     },
     onError: (error: any) => {
+      console.error("[JoinPartnership] Error joining partnership:", error);
       const message = error.message || "Failed to join partnership. The code may be invalid or already used.";
       toast({
         title: "Error",
@@ -45,6 +51,7 @@ export default function JoinPartnershipPage() {
   useEffect(() => {
     // If not authenticated, store the code and redirect to onboarding
     if (!authLoading && !isAuthenticated && code) {
+      console.log("[JoinPartnership] Not authenticated. Storing code:", code);
       localStorage.setItem("pending_join_code", code);
       setLocation("/onboarding");
       return;
@@ -52,6 +59,7 @@ export default function JoinPartnershipPage() {
 
     // If authenticated and have a code, auto-join
     if (isAuthenticated && code && !joinPartnershipMutation.isPending && !joinPartnershipMutation.isSuccess) {
+      console.log("[JoinPartnership] Authenticated. Auto-joining partnership with code:", code);
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
         joinPartnershipMutation.mutate(code);
