@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
-import { CoParentSelector } from "./CoParentSelector";
+import { ConversationList } from "./ConversationList";
 import { type ToneType } from "./TonePill";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -31,28 +31,24 @@ type MessageWithSender = Message & {
   senderProfileImage?: string;
 };
 
-interface Partnership {
+interface ConversationMember {
   id: string;
-  user1Id: string;
-  user2Id: string;
-  inviteCode: string;
-  allowAudio: boolean;
-  allowVideo: boolean;
-  allowRecording: boolean;
-  allowAiTone: boolean;
+  displayName: string;
+  profileImageUrl: string | null;
+}
+
+interface Conversation {
+  id: string;
+  name: string | null;
+  type: 'direct' | 'group';
+  createdBy: string;
   createdAt: string;
-  updatedAt: string;
-  coParent: {
-    id: string;
-    displayName: string;
-    profileImageUrl: string | null;
-    phoneNumber: string | null;
-  } | null;
+  members: ConversationMember[];
 }
 
 export default function ChatInterface() {
   const [message, setMessage] = useState("");
-  const [selectedPartnership, setSelectedPartnership] = useState<Partnership | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [callType, setCallType] = useState<"audio" | "video">("audio");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
@@ -89,18 +85,17 @@ export default function ChatInterface() {
   const recordedVideoPreviewRef = useRef<HTMLVideoElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const recipientId = selectedPartnership?.coParent?.id;
+  const conversationId = selectedConversation?.id;
   
   const { data: messages = [], isLoading } = useQuery<MessageWithSender[]>({
-    queryKey: recipientId ? ["/api/messages", recipientId] : ["/api/messages"],
+    queryKey: conversationId ? ["/api/conversations", conversationId, "messages"] : [],
     queryFn: async () => {
-      const url = recipientId 
-        ? `/api/messages?recipientId=${recipientId}`
-        : "/api/messages";
-      const res = await fetch(url, { credentials: "include" });
+      if (!conversationId) return [];
+      const res = await fetch(`/api/conversations/${conversationId}/messages`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch messages");
       return res.json();
     },
+    enabled: !!conversationId,
   });
 
   // WebSocket connection for real-time message updates
@@ -120,15 +115,27 @@ export default function ChatInterface() {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "new-message") {
-          queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+          // Invalidate all conversation-related queries using predicate
+          queryClient.invalidateQueries({ 
+            predicate: (query) => {
+              const key = query.queryKey;
+              return key[0] === "/api/conversations";
+            }
+          });
         } else if (data.type === "partnership-joined") {
           // Show toast notification when someone joins your partnership
           toast({
             title: "New Partnership! 🎉",
             description: `${data.partnerName} joined using your invite code`,
           });
-          // Refresh partnerships list
+          // Refresh both partnerships and conversations (new partnership = new conversation)
           queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
+          queryClient.invalidateQueries({ 
+            predicate: (query) => {
+              const key = query.queryKey;
+              return key[0] === "/api/conversations";
+            }
+          });
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
@@ -157,10 +164,8 @@ export default function ChatInterface() {
       return;
     }
 
-    // Skip if AI tone analysis is disabled for this partnership
-    if (selectedPartnership && !selectedPartnership.allowAiTone) {
-      return;
-    }
+    // For now, always allow AI tone analysis
+    // (Partnership-level permissions can be checked if needed)
 
     // Skip if already previewed this exact message
     if (tonePreview && tonePreview.originalMessage.trim() === message.trim()) {
@@ -173,16 +178,21 @@ export default function ChatInterface() {
     }, 1500);
 
     return () => clearTimeout(timeoutId);
-  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob, selectedPartnership]);
+  }, [message, selectedFile, recordedAudioBlob, recordedVideoBlob]);
 
   const sendTextMessage = useMutation({
-    mutationFn: async (content: string) => {
-      const recipientId = selectedPartnership?.coParent?.id;
-      const res = await apiRequest("POST", "/api/messages", { content, recipientId });
+    mutationFn: async ({ content, conversationId }: { content: string; conversationId: string }) => {
+      const res = await apiRequest("POST", "/api/messages", { content, conversationId });
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    onSuccess: (_data, variables) => {
+      // Invalidate all conversation-related queries using predicate
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key[0] === "/api/conversations";
+        }
+      });
       setMessage("");
       setTonePreview(null); // Clear preview after sending
     },
@@ -229,7 +239,7 @@ export default function ChatInterface() {
   });
 
   const sendMediaMessage = useMutation({
-    mutationFn: async ({ file, messageType, duration }: { file: File; messageType: string; duration?: number }) => {
+    mutationFn: async ({ file, messageType, duration, conversationId }: { file: File; messageType: string; duration?: number; conversationId: string }) => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('messageType', messageType);
@@ -244,7 +254,6 @@ export default function ChatInterface() {
       if (!uploadRes.ok) throw new Error('Failed to upload file');
       const fileData = await uploadRes.json();
 
-      const recipientId = selectedPartnership?.coParent?.id;
       const res = await apiRequest("POST", "/api/messages", {
         content: file.name,
         messageType: fileData.messageType,
@@ -253,13 +262,19 @@ export default function ChatInterface() {
         fileSize: fileData.fileSize,
         mimeType: fileData.mimeType,
         duration: fileData.duration,
-        recipientId,
+        conversationId,
       });
       
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      // Invalidate all conversation-related queries using predicate
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key[0] === "/api/conversations";
+        }
+      });
       setSelectedFile(null);
       setFilePreviewUrl(null);
       setRecordedAudioBlob(null);
@@ -303,11 +318,13 @@ export default function ChatInterface() {
     trackActivity('messaging');
     
     // Media messages bypass tone check
+    if (!conversationId) return;
+    
     if (selectedFile) {
       const messageType = selectedFile.type.startsWith('image/') ? 'image' :
                          selectedFile.type.startsWith('video/') ? 'video' :
                          selectedFile.type.startsWith('audio/') ? 'audio' : 'document';
-      sendMediaMessage.mutate({ file: selectedFile, messageType });
+      sendMediaMessage.mutate({ file: selectedFile, messageType, conversationId });
       return;
     }
     
@@ -315,7 +332,7 @@ export default function ChatInterface() {
       const mimeType = recordedAudioBlob.type || 'audio/webm';
       const extension = getExtensionFromMimeType(mimeType);
       const file = new File([recordedAudioBlob], `audio-${Date.now()}.${extension}`, { type: mimeType });
-      sendMediaMessage.mutate({ file, messageType: 'audio' });
+      sendMediaMessage.mutate({ file, messageType: 'audio', conversationId });
       return;
     }
     
@@ -323,21 +340,18 @@ export default function ChatInterface() {
       const mimeType = recordedVideoBlob.type || 'video/webm';
       const extension = getExtensionFromMimeType(mimeType);
       const file = new File([recordedVideoBlob], `video-${Date.now()}.${extension}`, { type: mimeType });
-      sendMediaMessage.mutate({ file, messageType: 'video' });
+      sendMediaMessage.mutate({ file, messageType: 'video', conversationId });
       return;
     }
     
     // Text message: Apply AI-first proactive blocking
     if (message.trim()) {
-      // If AI tone analysis is disabled for this partnership, send directly
-      if (selectedPartnership && !selectedPartnership.allowAiTone) {
-        sendTextMessage.mutate(message);
-        return;
-      }
+      // AI tone analysis is enabled for all conversations
       
       // If force sending (user clicked "Send Anyway"), bypass check
       if (isForceSending) {
-        sendTextMessage.mutate(message);
+        if (!conversationId) return;
+        sendTextMessage.mutate({ content: message, conversationId });
         setIsForceSending(false);
         return;
       }
@@ -361,14 +375,16 @@ export default function ChatInterface() {
           }
           
           // Tone is safe, proceed with send
-          sendTextMessage.mutate(message);
+          if (!conversationId) return;
+          sendTextMessage.mutate({ content: message, conversationId });
         } catch (error) {
           // If tone check fails, warn user but allow send
           toast({
             title: "AI Check Unavailable",
             description: "Unable to analyze message tone. Sending anyway...",
           });
-          sendTextMessage.mutate(message);
+          if (!conversationId) return;
+          sendTextMessage.mutate({ content: message, conversationId });
         }
       } else {
         // Already analyzed, check if concerning
@@ -379,7 +395,8 @@ export default function ChatInterface() {
         }
         
         // Safe to send
-        sendTextMessage.mutate(message);
+        if (!conversationId) return;
+        sendTextMessage.mutate({ content: message, conversationId });
       }
     }
   };
@@ -624,7 +641,7 @@ export default function ChatInterface() {
               onClick={startAudioCall}
               className="h-9 w-9 flex items-center justify-center"
               data-testid="button-start-audio-call"
-              disabled={!selectedPartnership?.allowAudio}
+              disabled={!selectedConversation}
             >
               <Phone className="h-5 w-5" />
             </Button>
@@ -634,15 +651,15 @@ export default function ChatInterface() {
               onClick={startVideoCall}
               className="h-9 w-9 flex items-center justify-center"
               data-testid="button-start-video-call"
-              disabled={!selectedPartnership?.allowVideo}
+              disabled={!selectedConversation}
             >
               <Video className="h-5 w-5" />
             </Button>
           </div>
         </div>
-        <CoParentSelector
-          onSelectPartnership={setSelectedPartnership}
-          selectedPartnershipId={selectedPartnership?.id}
+        <ConversationList
+          onSelectConversation={setSelectedConversation}
+          selectedConversationId={selectedConversation?.id}
         />
       </div>
 
