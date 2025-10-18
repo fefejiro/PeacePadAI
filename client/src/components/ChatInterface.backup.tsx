@@ -58,7 +58,6 @@ export default function ChatInterface() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [callType, setCallType] = useState<"audio" | "video">("audio");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [showCameraPreview, setShowCameraPreview] = useState(false);
@@ -638,89 +637,40 @@ export default function ChatInterface() {
   const hasAnyMediaReady = !!(selectedFile || recordedAudioBlob || recordedVideoBlob);
 
   return (
-    <div className="flex h-full">
-      {/* Desktop Conversation List Sidebar */}
-      <div className="hidden lg:flex lg:flex-col lg:w-80 border-r bg-card">
-        <div className="p-4 border-b">
-          <h3 className="text-lg font-semibold text-foreground mb-3">Conversations</h3>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <ConversationList
-            onSelectConversation={setSelectedConversation}
-            selectedConversationId={selectedConversation?.id}
-          />
-        </div>
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Mobile & Desktop Header */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-card sticky top-0 z-10">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            {/* Mobile Conversations Menu */}
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="lg:hidden h-9 w-9 shrink-0"
-                  data-testid="button-mobile-conversations"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
-                <SheetHeader className="p-4 border-b">
-                  <SheetTitle>Conversations</SheetTitle>
-                </SheetHeader>
-                <div className="p-4">
-                  <ConversationList
-                    onSelectConversation={(conv) => {
-                      setSelectedConversation(conv);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    selectedConversationId={selectedConversation?.id}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <h2 className="text-base sm:text-lg font-semibold text-foreground truncate">
-              {selectedConversation
-                ? selectedConversation.type === 'direct'
-                  ? selectedConversation.members?.find(m => m.id !== user?.id)?.displayName || 'Chat'
-                  : selectedConversation.name || 'Group Chat'
-                : 'Select a conversation'
-              }
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col gap-3 p-4 border-b bg-card">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Chat</h2>
+          <div className="flex items-center gap-2">
             <Button
               size="icon"
               variant="secondary"
               onClick={startAudioCall}
-              className="h-9 w-9"
+              className="h-9 w-9 flex items-center justify-center"
               data-testid="button-start-audio-call"
               disabled={!selectedConversation}
             >
-              <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Phone className="h-5 w-5" />
             </Button>
             <Button
               size="icon"
               variant="secondary"
               onClick={startVideoCall}
-              className="h-9 w-9"
+              className="h-9 w-9 flex items-center justify-center"
               data-testid="button-start-video-call"
               disabled={!selectedConversation}
             >
-              <Video className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Video className="h-5 w-5" />
             </Button>
           </div>
         </div>
+        <ConversationList
+          onSelectConversation={setSelectedConversation}
+          selectedConversationId={selectedConversation?.id}
+        />
+      </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">No messages yet. Start a conversation!</p>
@@ -961,47 +911,46 @@ export default function ChatInterface() {
         </div>
       )}
 
-      {/* Input Area - Mobile Optimized with Sticky Bottom */}
-      <div className="p-3 sm:p-4 bg-background border-t sticky bottom-0 z-10">
+      <div className="p-4 bg-background border-t">
         <div className="max-w-4xl mx-auto">
           {/* File Preview */}
           {selectedFile && (
-            <div className="mb-3 p-2 sm:p-3 bg-card border rounded-lg">
-              <p className="text-xs sm:text-sm font-medium mb-2">Preview attachment</p>
-              <div className="flex items-center gap-2 sm:gap-3">
+            <div className="mb-3 p-3 bg-card border border-card-border rounded-lg">
+              <p className="text-sm font-medium mb-2">Preview attachment</p>
+              <div className="flex items-center gap-3">
                 {filePreviewUrl && selectedFile.type.startsWith('image/') ? (
-                  <img src={filePreviewUrl} alt="Preview" className="h-16 w-16 sm:h-20 sm:w-20 object-cover rounded" />
+                  <img src={filePreviewUrl} alt="Preview" className="h-20 w-20 object-cover rounded" />
                 ) : selectedFile.type.startsWith('video/') ? (
-                  <video src={filePreviewUrl || undefined} controls className="h-16 w-24 sm:h-20 sm:w-32 object-cover rounded" />
+                  <video src={filePreviewUrl || undefined} controls className="h-20 w-32 object-cover rounded" />
                 ) : (
-                  <FileText className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground" />
+                  <FileText className="h-20 w-20 text-muted-foreground" />
                 )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium truncate">{selectedFile.name}</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {(selectedFile.size / 1024).toFixed(2)} KB
                   </p>
                 </div>
-                <div className="flex flex-col gap-1.5 sm:gap-2">
+                <div className="flex flex-col gap-2">
                   <Button
                     size="sm"
                     onClick={handleSend}
                     disabled={sendMediaMessage.isPending}
-                    className="min-h-[36px] px-3"
+                    className="flex items-center justify-center gap-2"
                     data-testid="button-send-file"
                   >
-                    <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    <span className="hidden sm:inline">Send</span>
+                    <Send className="h-4 w-4" />
+                    Send
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={clearFileSelection}
-                    className="min-h-[36px] px-3"
+                    className="flex items-center justify-center gap-2"
                     data-testid="button-clear-file"
                   >
-                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    <span className="hidden sm:inline">Delete</span>
+                    <Trash2 className="h-4 w-4" />
+                    Delete
                   </Button>
                 </div>
               </div>
@@ -1010,43 +959,43 @@ export default function ChatInterface() {
 
           {/* Audio Recording Indicator */}
           {isRecordingAudio && (
-            <div className="mb-3 p-2 sm:p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse shrink-0"></span>
-                <span className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300">Recording...</span>
+            <div className="mb-3 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="text-sm font-medium text-red-700 dark:text-red-300">Recording audio...</span>
               </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   onClick={stopAudioRecording}
-                  className="min-h-[36px]"
+                  className="flex items-center gap-2"
                   data-testid="button-stop-audio-recording"
                 >
-                  <Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Stop</span>
+                  <Check className="h-4 w-4" />
+                  Stop
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={cancelAudioRecording}
-                  className="min-h-[36px]"
+                  className="flex items-center gap-2"
                   data-testid="button-cancel-audio-recording"
                 >
-                  <X className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Cancel</span>
+                  <X className="h-4 w-4" />
+                  Cancel
                 </Button>
               </div>
             </div>
           )}
 
-          <div className="relative rounded-xl shadow-lg bg-card border">
-            <div className="flex items-center gap-1 sm:gap-1.5 p-2 sm:p-2.5">
+          <div className="relative rounded-xl shadow-lg bg-card border border-card-border">
+            <div className="flex items-center gap-1.5 p-2.5">
               {/* File Attachment Button */}
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 disabled={hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
                 data-testid="button-attach-file"
               >
@@ -1058,19 +1007,19 @@ export default function ChatInterface() {
                 size="icon"
                 variant={isRecordingAudio ? "destructive" : "ghost"}
                 onClick={isRecordingAudio ? stopAudioRecording : startAudioRecording}
-                className="shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 disabled={hasAnyMediaReady || isRecordingVideo}
                 data-testid="button-record-audio"
               >
                 <Mic className="h-5 w-5" />
               </Button>
 
-              {/* Video Recording Button - Hidden on small screens */}
+              {/* Video Recording Button */}
               <Button
                 size="icon"
                 variant={isRecordingVideo ? "destructive" : "ghost"}
                 onClick={isRecordingVideo ? stopVideoRecording : startVideoRecording}
-                className="hidden sm:flex shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 disabled={hasAnyMediaReady || isRecordingAudio}
                 data-testid="button-record-video"
               >
@@ -1137,12 +1086,12 @@ export default function ChatInterface() {
                 }}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
-                className="resize-none border-0 text-sm sm:text-base focus-visible:ring-0 min-h-[44px] sm:min-h-[40px] max-h-[120px] flex-1 self-center"
+                className="resize-none border-0 text-base focus-visible:ring-0 min-h-[40px] max-h-[120px] flex-1 self-center"
                 data-testid="input-message"
                 disabled={sendTextMessage.isPending || sendMediaMessage.isPending || hasAnyMediaReady || isRecordingAudio || isRecordingVideo}
               />
 
-              {/* AI Check Tone Button - Hidden on mobile */}
+              {/* AI Check Tone Button */}
               <Button
                 size="icon"
                 variant="ghost"
@@ -1152,7 +1101,7 @@ export default function ChatInterface() {
                   }
                 }}
                 disabled={!message.trim() || previewTone.isPending || hasAnyMediaReady}
-                className="hidden sm:flex shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 data-testid="button-check-tone"
                 title="Check tone with AI"
               >
@@ -1163,7 +1112,7 @@ export default function ChatInterface() {
                 size="icon"
                 onClick={handleSend}
                 disabled={(!message.trim() && !hasAnyMediaReady) || sendTextMessage.isPending || sendMediaMessage.isPending || isRecordingAudio || isRecordingVideo}
-                className="shrink-0 h-10 w-10 sm:h-9 sm:w-9"
+                className="shrink-0 h-9 w-9 flex items-center justify-center"
                 data-testid="button-send-message"
               >
                 <Send className="h-5 w-5" />
@@ -1180,7 +1129,7 @@ export default function ChatInterface() {
             data-testid="input-file"
           />
 
-          <p className="text-xs text-muted-foreground mt-2 text-center hidden sm:block">
+          <p className="text-xs text-muted-foreground mt-2 text-center">
             {sendTextMessage.isPending || sendMediaMessage.isPending 
               ? "Sending..." 
               : isRecordingAudio
@@ -1192,7 +1141,6 @@ export default function ChatInterface() {
               : "Click ✨ to check your message tone before sending"}
           </p>
         </div>
-      </div>
       </div>
     </div>
   );
