@@ -7,6 +7,8 @@ PeacePad is an AI-powered co-parenting communication platform designed to foster
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 18, 2025)
+- **CRITICAL FIX - Partnership Data Sharing**: Fixed all shared data queries (tasks, notes, child updates, pets, expenses, events) to return data from ALL partnered users, not just the logged-in user. This enables proper co-parent collaboration where both parents can see all shared information.
+- **Database Safety Enhancement**: Added unique index on `users.invite_code` column to prevent race conditions during concurrent invite code generation and ensure database-level uniqueness enforcement.
 - **CRITICAL FIX - Invite Code Preservation**: Fixed bug where invite codes were regenerated during profile updates (photo upload, name change). Codes now persist permanently after initial generation, preventing partnership join failures.
 - **Fixed Invite Code Database Bug**: All 178 users now have unique 6-digit invite codes properly saved to database. Ran backfill script to assign codes to existing users.
 - **Mobile-Responsive Chat Interface**: Added mobile drawer for conversation list, optimized touch targets (44px minimum), sticky input area at bottom, responsive button sizing.
