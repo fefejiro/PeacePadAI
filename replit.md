@@ -7,9 +7,35 @@ PeacePad is an AI-powered co-parenting communication platform designed to foster
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 18, 2025)
+- **CRITICAL FIX - Invite Code Preservation**: Fixed bug where invite codes were regenerated during profile updates (photo upload, name change). Codes now persist permanently after initial generation, preventing partnership join failures.
 - **Fixed Invite Code Database Bug**: All 178 users now have unique 6-digit invite codes properly saved to database. Ran backfill script to assign codes to existing users.
 - **Mobile-Responsive Chat Interface**: Added mobile drawer for conversation list, optimized touch targets (44px minimum), sticky input area at bottom, responsive button sizing.
 - **Consent Agreement Flow**: Added comprehensive legal consent agreement (communication recording, AI analysis, data retention, export rights) that appears after intro slideshow and before onboarding.
+
+## Testing Partnership Flow (Critical)
+**IMPORTANT**: When testing the partnership invite system, follow these steps exactly:
+
+### Parent A (First User):
+1. Open a fresh incognito/private window
+2. Complete full onboarding (name, photo upload, all 3 steps)
+3. Click "Continue to PeacePad" to save your account
+4. Go to Settings → copy your 6-digit invite code
+5. Share this code with Parent B (via text/email, NOT by sharing the browser window)
+
+### Parent B (Second User):
+1. Open a SEPARATE incognito/private window (different browser or different computer)
+2. Do NOT copy-paste the URL from Parent A's browser
+3. Complete your own onboarding with a different name
+4. Click "Continue to PeacePad" to save your account
+5. Click "Add Co-Parent" button
+6. Enter Parent A's invite code (the one they shared with you)
+7. Partnership should be created successfully
+
+### Common Mistakes:
+- ❌ Sharing the URL from Parent A's session → Parent B will see Parent A's profile
+- ❌ Sharing the invite code BEFORE clicking "Continue to PeacePad" → Code doesn't exist yet in database
+- ❌ Using the same browser/incognito session → Cookies will mix the sessions
+- ✅ Each person completes onboarding separately, then Parent B enters Parent A's code
 
 ## System Architecture
 

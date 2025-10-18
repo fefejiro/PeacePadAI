@@ -184,8 +184,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // Generate invite code for new users if not provided
-    if (!userData.inviteCode) {
+    // Only generate invite code for NEW users (not updates)
+    // Check if user exists first to prevent code regeneration on updates
+    let existingUser: User | undefined;
+    if (userData.id) {
+      existingUser = await this.getUser(userData.id);
+    }
+    
+    // Generate invite code only for truly new users
+    if (!userData.inviteCode && !existingUser) {
       const newCode = await this.generateInviteCode();
       console.log(`[Storage] Generated invite code for new user: ${newCode}`);
       userData.inviteCode = newCode;
@@ -195,6 +202,11 @@ export class DatabaseStorage implements IStorage {
     const cleanedData = Object.fromEntries(
       Object.entries(userData).filter(([_, value]) => value !== undefined)
     );
+    
+    // If updating existing user, preserve their invite code
+    if (existingUser && !cleanedData.inviteCode) {
+      delete cleanedData.inviteCode;
+    }
     
     const [user] = await db
       .insert(users)
