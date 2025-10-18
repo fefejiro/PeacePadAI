@@ -311,30 +311,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const sessionId = req.user.sessionId;
       
-      // Determine recipientId: use provided value or auto-select
+      let conversationId = req.body.conversationId;
       let recipientId = req.body.recipientId;
       
-      if (!recipientId) {
-        const otherUsers = await storage.getOtherUsers(userId);
-        if (otherUsers.length === 0) {
-          // No other users - message to yourself (WhatsApp-like solo chat)
-          recipientId = userId;
-        } else {
-          // Auto-select most recent other user for co-parenting demo
-          recipientId = otherUsers[0].id;
+      // If conversationId is provided, verify user is a member
+      if (conversationId) {
+        const members = await storage.getConversationMembers(conversationId);
+        const isMember = members.some((m) => m.userId === userId);
+        
+        if (!isMember) {
+          return res.status(403).json({ message: "You are not a member of this conversation" });
         }
-      } else {
-        // Validate provided recipientId exists (allow self-messaging)
+      } else if (recipientId) {
+        // Legacy: recipientId provided - find or create direct conversation
         const recipient = await storage.getUser(recipientId);
         if (!recipient) {
           return res.status(400).json({ message: "Invalid recipient" });
         }
+        
+        // Find existing direct conversation or create one
+        let directConv = await storage.findDirectConversation(userId, recipientId);
+        if (!directConv) {
+          directConv = await storage.createConversation({
+            type: 'direct',
+            createdBy: userId,
+          });
+          await storage.addConversationMember({
+            conversationId: directConv.id,
+            userId: userId,
+          });
+          await storage.addConversationMember({
+            conversationId: directConv.id,
+            userId: recipientId,
+          });
+        }
+        conversationId = directConv.id;
+      } else {
+        return res.status(400).json({ message: "Either conversationId or recipientId is required" });
       }
       
       const parsed = insertMessageSchema.parse({
         ...req.body,
         senderId: userId,
-        recipientId,
+        conversationId,
+        recipientId, // Keep for backward compatibility
       });
 
       const { tone, summary, emoji, rewordingSuggestion} = await analyzeTone(parsed.content);
@@ -351,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await trackUsage(sessionId, 'messagesSent', 1);
       await trackUsage(sessionId, 'toneAnalyzed', 1);
 
-      // Broadcast to all connected clients that a new message was posted
+      // Broadcast to all conversation members that a new message was posted
       broadcastNewMessage();
 
       res.json(message);
