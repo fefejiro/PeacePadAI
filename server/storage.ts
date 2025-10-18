@@ -11,6 +11,8 @@ import {
   usageMetrics,
   contacts,
   partnerships,
+  conversations,
+  conversationMembers,
   callSessions,
   callRecordings,
   therapists,
@@ -41,6 +43,10 @@ import {
   type InsertContact,
   type Partnership,
   type InsertPartnership,
+  type Conversation,
+  type InsertConversation,
+  type ConversationMember,
+  type InsertConversationMember,
   type CallSession,
   type InsertCallSession,
   type CallRecording,
@@ -95,6 +101,15 @@ export interface IStorage {
   getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
   generateInviteCode(): Promise<string>;
   regenerateInviteCode(userId: string): Promise<string>;
+  
+  // Conversation operations
+  getConversations(userId: string): Promise<any[]>;
+  getConversation(conversationId: string): Promise<Conversation | undefined>;
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  addConversationMember(member: InsertConversationMember): Promise<ConversationMember>;
+  getConversationMembers(conversationId: string): Promise<ConversationMember[]>;
+  getConversationMessages(conversationId: string): Promise<any[]>;
+  findDirectConversation(userId1: string, userId2: string): Promise<Conversation | undefined>;
   
   // Note operations
   getNotes(userId: string): Promise<Note[]>;
@@ -422,6 +437,134 @@ export class DatabaseStorage implements IStorage {
       .set({ inviteCode: newCode, updatedAt: new Date() })
       .where(eq(users.id, userId));
     return newCode;
+  }
+
+  // Conversation operations
+  async getConversations(userId: string): Promise<any[]> {
+    // Get all conversations the user is a member of
+    const userConversations = await db
+      .select({
+        conversation: conversations,
+      })
+      .from(conversationMembers)
+      .innerJoin(conversations, eq(conversationMembers.conversationId, conversations.id))
+      .where(eq(conversationMembers.userId, userId))
+      .orderBy(desc(conversations.updatedAt));
+
+    // Enrich each conversation with member details
+    const enrichedConversations = await Promise.all(
+      userConversations.map(async ({ conversation }) => {
+        const members = await this.getConversationMembers(conversation.id);
+        const memberDetails = await Promise.all(
+          members.map(async (member) => {
+            const user = await this.getUser(member.userId);
+            return {
+              id: user?.id,
+              displayName: user?.displayName,
+              profileImageUrl: user?.profileImageUrl,
+            };
+          })
+        );
+
+        return {
+          ...conversation,
+          members: memberDetails,
+        };
+      })
+    );
+
+    return enrichedConversations;
+  }
+
+  async getConversation(conversationId: string): Promise<Conversation | undefined> {
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, conversationId));
+    return conversation;
+  }
+
+  async createConversation(conversationData: InsertConversation): Promise<Conversation> {
+    const [conversation] = await db.insert(conversations).values(conversationData).returning();
+    return conversation;
+  }
+
+  async addConversationMember(memberData: InsertConversationMember): Promise<ConversationMember> {
+    const [member] = await db.insert(conversationMembers).values(memberData).returning();
+    return member;
+  }
+
+  async getConversationMembers(conversationId: string): Promise<ConversationMember[]> {
+    return await db
+      .select()
+      .from(conversationMembers)
+      .where(eq(conversationMembers.conversationId, conversationId));
+  }
+
+  async getConversationMessages(conversationId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        senderId: messages.senderId,
+        conversationId: messages.conversationId,
+        timestamp: messages.timestamp,
+        tone: messages.tone,
+        toneSummary: messages.toneSummary,
+        toneEmoji: messages.toneEmoji,
+        rewordingSuggestion: messages.rewordingSuggestion,
+        messageType: messages.messageType,
+        fileUrl: messages.fileUrl,
+        fileName: messages.fileName,
+        fileSize: messages.fileSize,
+        mimeType: messages.mimeType,
+        duration: messages.duration,
+        senderDisplayName: users.displayName,
+        senderProfileImageUrl: users.profileImageUrl,
+      })
+      .from(messages)
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.timestamp);
+    
+    return result;
+  }
+
+  async findDirectConversation(userId1: string, userId2: string): Promise<Conversation | undefined> {
+    // Find a direct conversation between two users
+    const conversations1 = await db
+      .select({ conversationId: conversationMembers.conversationId })
+      .from(conversationMembers)
+      .where(eq(conversationMembers.userId, userId1));
+
+    const conversations2 = await db
+      .select({ conversationId: conversationMembers.conversationId })
+      .from(conversationMembers)
+      .where(eq(conversationMembers.userId, userId2));
+
+    // Find common conversations
+    const commonConvIds = conversations1
+      .map(c => c.conversationId)
+      .filter(id => conversations2.some(c2 => c2.conversationId === id));
+
+    // Check which ones are direct (have exactly 2 members)
+    for (const convId of commonConvIds) {
+      const members = await this.getConversationMembers(convId);
+      if (members.length === 2) {
+        const [conversation] = await db
+          .select()
+          .from(conversations)
+          .where(and(
+            eq(conversations.id, convId),
+            eq(conversations.type, 'direct')
+          ));
+        if (conversation) {
+          return conversation;
+        }
+      }
+    }
+
+    return undefined;
   }
 
   // Note operations
