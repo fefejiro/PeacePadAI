@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
+import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import MoodCheckIn from "@/components/MoodCheckIn";
 import Clippy from "@/components/Clippy";
@@ -99,9 +100,10 @@ export default function App() {
                       <ConditionalSidebarTrigger />
                       <ThemeToggle />
                     </header>
-                    <main className="flex-1 overflow-auto">
+                    <main className="flex-1 overflow-auto pb-16 lg:pb-0">
                       <Router />
                     </main>
+                    <ConditionalBottomNav />
                   </div>
                 </div>
               </SidebarProvider>
@@ -125,16 +127,33 @@ function ConditionalSidebar() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   
-  // Hide sidebar during onboarding, even if authenticated
+  // Hide sidebar during onboarding and on mobile (bottom nav handles mobile)
   if (!isAuthenticated || location === "/onboarding") return null;
-  return <AppSidebar />;
+  return (
+    <div className="hidden lg:block">
+      <AppSidebar />
+    </div>
+  );
 }
 
 function ConditionalSidebarTrigger() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   
-  // Hide sidebar trigger during onboarding
+  // Hide sidebar trigger during onboarding and on mobile
   if (!isAuthenticated || location === "/onboarding") return <div />;
-  return <SidebarTrigger data-testid="button-sidebar-toggle" />;
+  return (
+    <div className="hidden lg:block">
+      <SidebarTrigger data-testid="button-sidebar-toggle" />
+    </div>
+  );
+}
+
+function ConditionalBottomNav() {
+  const { isAuthenticated } = useAuth();
+  const [location] = useLocation();
+  
+  // Show bottom nav only when authenticated and not on onboarding/landing
+  if (!isAuthenticated || location === "/onboarding" || location === "/") return null;
+  return <BottomNav />;
 }
