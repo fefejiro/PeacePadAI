@@ -176,6 +176,18 @@ export const events = pgTable("events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Custody schedule templates for quick setup (every other weekend, 2-2-3, etc.)
+export const scheduleTemplates = pgTable("schedule_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // "Every Other Weekend", "2-2-3 Schedule", etc.
+  description: text("description").notNull(), // Detailed explanation of the pattern
+  pattern: text("pattern").notNull(), // JSON structure defining the schedule pattern
+  isCustom: boolean("is_custom").notNull().default(false), // true for user-created templates
+  createdBy: varchar("created_by").references(() => users.id), // null for system templates
+  isPublic: boolean("is_public").notNull().default(true), // System templates are public
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   description: text("description").notNull(),
@@ -332,3 +344,7 @@ export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export const insertSessionMoodSummarySchema = createInsertSchema(sessionMoodSummaries).omit({ id: true, createdAt: true, expiresAt: true });
 export type InsertSessionMoodSummary = z.infer<typeof insertSessionMoodSummarySchema>;
 export type SessionMoodSummary = typeof sessionMoodSummaries.$inferSelect;
+
+export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplates).omit({ id: true, createdAt: true });
+export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
+export type ScheduleTemplate = typeof scheduleTemplates.$inferSelect;

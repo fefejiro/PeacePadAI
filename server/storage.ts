@@ -19,6 +19,7 @@ import {
   auditLogs,
   pushSubscriptions,
   sessionMoodSummaries,
+  scheduleTemplates,
   type User,
   type UpsertUser,
   type Message,
@@ -59,6 +60,8 @@ import {
   type InsertPushSubscription,
   type SessionMoodSummary,
   type InsertSessionMoodSummary,
+  type ScheduleTemplate,
+  type InsertScheduleTemplate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, and } from "drizzle-orm";
@@ -169,6 +172,12 @@ export interface IStorage {
   createSessionMoodSummary(summary: InsertSessionMoodSummary): Promise<SessionMoodSummary>;
   getSessionMoodSummary(sessionId: string): Promise<SessionMoodSummary | undefined>;
   getSessionMoodSummariesByUser(userId: string): Promise<SessionMoodSummary[]>;
+  
+  // Schedule template operations
+  getScheduleTemplates(userId?: string): Promise<ScheduleTemplate[]>;
+  getScheduleTemplate(id: string): Promise<ScheduleTemplate | undefined>;
+  createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
+  deleteScheduleTemplate(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -965,6 +974,41 @@ export class DatabaseStorage implements IStorage {
     // Get summaries where user is a participant
     const summaries = await db.select().from(sessionMoodSummaries);
     return summaries.filter(s => s.participants.includes(userId));
+  }
+
+  // Schedule template operations
+  async getScheduleTemplates(userId?: string): Promise<ScheduleTemplate[]> {
+    if (userId) {
+      // Return public system templates + user's custom templates
+      return await db.select().from(scheduleTemplates)
+        .where(
+          or(
+            eq(scheduleTemplates.isPublic, true),
+            eq(scheduleTemplates.createdBy, userId)
+          )
+        )
+        .orderBy(desc(scheduleTemplates.createdAt));
+    } else {
+      // Return only public system templates
+      return await db.select().from(scheduleTemplates)
+        .where(eq(scheduleTemplates.isPublic, true))
+        .orderBy(desc(scheduleTemplates.createdAt));
+    }
+  }
+
+  async getScheduleTemplate(id: string): Promise<ScheduleTemplate | undefined> {
+    const [template] = await db.select().from(scheduleTemplates)
+      .where(eq(scheduleTemplates.id, id));
+    return template;
+  }
+
+  async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
+    const [newTemplate] = await db.insert(scheduleTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async deleteScheduleTemplate(id: string): Promise<void> {
+    await db.delete(scheduleTemplates).where(eq(scheduleTemplates.id, id));
   }
 }
 

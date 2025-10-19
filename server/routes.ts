@@ -9,6 +9,7 @@ import { transcribeFromBase64 } from "./whisperService";
 import { analyzeEmotion, generateSessionSummary } from "./emotionAnalyzer";
 import { aiCache, isDevMode, getMaxTokens, logTokenUsage, mockToneAnalysis, createCacheKey } from "./aiHelper";
 import { generateICalFromEvents } from "./utils/icalGenerator";
+import { seedScheduleTemplates } from "./seedTemplates";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -193,6 +194,11 @@ Rewording: [suggestion or "none"]`,
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupSoftAuth(app);
+  
+  // Seed schedule templates on server startup (non-blocking)
+  seedScheduleTemplates().catch(err => {
+    console.error("Failed to seed schedule templates (will retry on next startup):", err.message);
+  });
 
   // Get current authenticated user
   app.get('/api/auth/user', isSoftAuthenticated, async (req: any, res) => {
@@ -1024,6 +1030,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting events to iCal:", error);
       res.status(500).json({ message: "Failed to export calendar" });
+    }
+  });
+
+  // Schedule template routes
+  app.get('/api/schedule-templates', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const templates = await storage.getScheduleTemplates(userId);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching schedule templates:", error);
+      res.status(500).json({ message: "Failed to fetch schedule templates" });
+    }
+  });
+
+  app.post('/api/schedule-templates', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const template = await storage.createScheduleTemplate({
+        ...req.body,
+        createdBy: userId,
+        isCustom: true,
+        isPublic: false,
+      });
+      res.json(template);
+    } catch (error: any) {
+      console.error("Error creating schedule template:", error);
+      res.status(400).json({ message: error.message || "Failed to create schedule template" });
+    }
+  });
+
+  app.post('/api/schedule-templates/:id/apply', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const templateId = req.params.id;
+      const { startDate, childName, location } = req.body;
+
+      const template = await storage.getScheduleTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+
+      // Parse the template pattern (JSON) and generate events
+      const pattern = JSON.parse(template.pattern);
+      const generatedEvents = [];
+      const baseDate = new Date(startDate);
+
+      // Generate events based on pattern (simplified version)
+      for (const eventDef of pattern.events) {
+        const eventDate = new Date(baseDate);
+        eventDate.setDate(baseDate.getDate() + (eventDef.dayOffset || 0));
+
+        const event = await storage.createEvent({
+          title: eventDef.title,
+          type: eventDef.type,
+          startDate: eventDate,
+          endDate: eventDef.duration ? new Date(eventDate.getTime() + eventDef.duration * 60 * 60 * 1000) : undefined,
+          description: eventDef.description,
+          location: location || eventDef.location,
+          childName: childName || eventDef.childName,
+          recurring: eventDef.recurring,
+          notes: `Created from template: ${template.name}`,
+          createdBy: userId,
+        });
+        generatedEvents.push(event);
+      }
+
+      res.json({ 
+        message: `Applied template: ${template.name}`, 
+        events: generatedEvents 
+      });
+    } catch (error: any) {
+      console.error("Error applying schedule template:", error);
+      res.status(400).json({ message: error.message || "Failed to apply schedule template" });
+    }
+  });
+
+  app.delete('/api/schedule-templates/:id', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const templateId = req.params.id;
+      await storage.deleteScheduleTemplate(templateId);
+      res.json({ message: "Template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting schedule template:", error);
+      res.status(500).json({ message: "Failed to delete schedule template" });
     }
   });
 

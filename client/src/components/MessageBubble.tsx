@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lightbulb, FileText, Download } from "lucide-react";
 import TonePill, { type ToneType } from "./TonePill";
 import { Button } from "@/components/ui/button";
+import { AudioPlayer } from "./AudioPlayer";
 
 interface MessageBubbleProps {
   content: string;
@@ -56,14 +57,11 @@ export default function MessageBubble({
       
       case "audio":
         return (
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-[280px]">
             {fileUrl && (
-              <audio controls className="w-full max-w-sm" data-testid="message-audio">
-                <source src={fileUrl} type={mimeType || "audio/webm"} />
-                Your browser does not support audio playback.
-              </audio>
+              <AudioPlayer audioUrl={fileUrl} />
             )}
-            {content && <p className="text-sm">{content}</p>}
+            {content && <p className="text-sm mt-2">{content}</p>}
           </div>
         );
       

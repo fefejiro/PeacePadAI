@@ -7,6 +7,8 @@ import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
 import { ConversationList } from "./ConversationList";
 import { type ToneType } from "./TonePill";
+import { AudioWaveform } from "./AudioWaveform";
+import { AudioPlayer } from "./AudioPlayer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -951,20 +953,7 @@ export default function ChatInterface() {
           <div className="max-w-md mx-auto space-y-3">
             <p className="text-sm font-medium">Review your audio message</p>
             <div className="p-3 bg-muted rounded-lg">
-              <audio 
-                src={recordedAudioUrl} 
-                controls 
-                className="w-full" 
-                data-testid="audio-preview"
-                onError={(e) => {
-                  console.error("Audio playback error:", e);
-                  toast({
-                    title: "Playback issue",
-                    description: "Audio format may not be supported on this device",
-                    variant: "destructive",
-                  });
-                }}
-              />
+              <AudioPlayer audioUrl={recordedAudioUrl} />
             </div>
             <div className="flex gap-2">
               <Button
@@ -1037,22 +1026,31 @@ export default function ChatInterface() {
             </div>
           )}
 
-          {/* Audio Recording Indicator */}
+          {/* Audio Recording Indicator with Waveform */}
           {isRecordingAudio && (
-            <div className="mb-3 p-2 sm:p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="mb-3 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse shrink-0"></span>
-                <span className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300">Recording...</span>
+                <span className="text-sm font-medium text-red-700 dark:text-red-300">Recording Audio</span>
+                <span className="text-xs text-red-600 dark:text-red-400 ml-auto">
+                  {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                </span>
               </div>
-              <div className="flex gap-2">
+              <div className="bg-background rounded-md mb-3 overflow-hidden">
+                <AudioWaveform 
+                  stream={audioStreamRef.current} 
+                  isRecording={true}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
                 <Button
                   size="sm"
                   onClick={stopAudioRecording}
                   className="min-h-[36px]"
                   data-testid="button-stop-audio-recording"
                 >
-                  <Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Stop</span>
+                  <Check className="h-4 w-4 mr-1" />
+                  Stop & Review
                 </Button>
                 <Button
                   size="sm"
@@ -1061,8 +1059,8 @@ export default function ChatInterface() {
                   className="min-h-[36px]"
                   data-testid="button-cancel-audio-recording"
                 >
-                  <X className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Cancel</span>
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
                 </Button>
               </div>
             </div>

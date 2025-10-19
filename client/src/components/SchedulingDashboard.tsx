@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, AlertTriangle, Plus } from "lucide-react";
+import { Calendar, Clock, AlertTriangle, Plus, Download, CalendarDays, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Event } from "@shared/schema";
+import type { Event, ScheduleTemplate } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -34,6 +35,7 @@ interface ConflictAnalysis {
 export default function SchedulingDashboard() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState("pickup");
   const [startDate, setStartDate] = useState("");
@@ -43,9 +45,19 @@ export default function SchedulingDashboard() {
   const [childName, setChildName] = useState("");
   const [recurring, setRecurring] = useState("none");
   const [notes, setNotes] = useState("");
+  
+  // Template selector state
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [templateStartDate, setTemplateStartDate] = useState("");
+  const [templateLocation, setTemplateLocation] = useState("");
+  const [templateChildName, setTemplateChildName] = useState("");
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
+  });
+  
+  const { data: templates = [], isLoading: templatesLoading } = useQuery<ScheduleTemplate[]>({
+    queryKey: ["/api/schedule-templates"],
   });
 
   const { data: conflictAnalysis } = useQuery<ConflictAnalysis>({
@@ -122,6 +134,72 @@ export default function SchedulingDashboard() {
       notes: notes || undefined,
     });
   };
+  
+  const applyTemplate = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      startDate: string;
+      childName?: string;
+      location?: string;
+    }) => {
+      const res = await apiRequest("POST", `/api/schedule-templates/${data.templateId}/apply`, {
+        startDate: data.startDate,
+        childName: data.childName,
+        location: data.location,
+      });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/analyze"] });
+      setTemplateDialogOpen(false);
+      setSelectedTemplateId("");
+      setTemplateStartDate("");
+      setTemplateLocation("");
+      setTemplateChildName("");
+      toast({ 
+        title: "Template applied successfully",
+        description: `Created ${data.events?.length || 0} events from template`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to apply template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleApplyTemplate = () => {
+    if (!selectedTemplateId || !templateStartDate) {
+      toast({
+        title: "Error",
+        description: "Please select a template and start date",
+        variant: "destructive",
+      });
+      return;
+    }
+    applyTemplate.mutate({
+      templateId: selectedTemplateId,
+      startDate: templateStartDate,
+      childName: templateChildName || undefined,
+      location: templateLocation || undefined,
+    });
+  };
+  
+  const handleDownloadICal = () => {
+    window.location.href = '/api/events/export/ical';
+    toast({ title: "Downloading calendar..." });
+  };
+  
+  const handleAddToGoogleCalendar = () => {
+    // Generate a Google Calendar import URL
+    const icalUrl = `${window.location.origin}/api/events/export/ical`;
+    const googleCalUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(icalUrl)}`;
+    window.open(googleCalUrl, '_blank');
+    toast({ title: "Opening Google Calendar..." });
+  };
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {
@@ -155,13 +233,98 @@ export default function SchedulingDashboard() {
           <Calendar className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-semibold text-foreground">Scheduling Dashboard</h1>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-event">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Event
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadICal}
+            data-testid="button-download-ical"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download iCal
+          </Button>
+          <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="button-use-template">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Use Template
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Apply Custody Schedule Template</DialogTitle>
+                <DialogDescription>
+                  Choose a pre-built custody schedule to quickly populate your calendar
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="template-select">Select Template</Label>
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger data-testid="select-template">
+                      <SelectValue placeholder="Choose a custody schedule template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id!}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTemplateId && templates.find(t => t.id === selectedTemplateId) && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {templates.find(t => t.id === selectedTemplateId)?.description}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="template-start-date">Start Date</Label>
+                  <Input
+                    id="template-start-date"
+                    type="date"
+                    value={templateStartDate}
+                    onChange={(e) => setTemplateStartDate(e.target.value)}
+                    data-testid="input-template-start-date"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="template-child-name">Child Name (Optional)</Label>
+                  <Input
+                    id="template-child-name"
+                    value={templateChildName}
+                    onChange={(e) => setTemplateChildName(e.target.value)}
+                    placeholder="e.g., Emma"
+                    data-testid="input-template-child-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="template-location">Location (Optional)</Label>
+                  <Input
+                    id="template-location"
+                    value={templateLocation}
+                    onChange={(e) => setTemplateLocation(e.target.value)}
+                    placeholder="e.g., 123 Main St"
+                    data-testid="input-template-location"
+                  />
+                </div>
+                <Button 
+                  onClick={handleApplyTemplate}
+                  disabled={applyTemplate.isPending}
+                  className="w-full"
+                  data-testid="button-apply-template"
+                >
+                  {applyTemplate.isPending ? "Applying..." : "Apply Template"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-add-event">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Event
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Event</DialogTitle>
@@ -277,7 +440,8 @@ export default function SchedulingDashboard() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {conflictAnalysis?.hasConflicts && (
