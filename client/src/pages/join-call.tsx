@@ -200,6 +200,7 @@ export default function JoinCallPage() {
             title: "Session Not Found",
             description: "This call session doesn't exist or has expired",
             variant: "destructive",
+            duration: 5000,
           });
         } else if (response.status === 401) {
           setError("Authentication required. Please sign in to join calls.");
@@ -222,6 +223,7 @@ export default function JoinCallPage() {
         title: "Connection Error",
         description: "Could not reach the server. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -238,6 +240,7 @@ export default function JoinCallPage() {
         title: "Authentication Required",
         description: "Please create a guest profile to join the call",
         variant: "destructive",
+        duration: 5000,
       });
       
       // Redirect to home to create guest session
@@ -258,6 +261,7 @@ export default function JoinCallPage() {
     toast({
       title: "Joining Call",
       description: `Connecting to ${callSession?.callType} call...`,
+      duration: 4000,
     });
   };
 

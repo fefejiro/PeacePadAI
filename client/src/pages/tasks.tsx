@@ -44,13 +44,14 @@ export default function TasksPage() {
       setDialogOpen(false);
       setTitle("");
       setDueDate("");
-      toast({ title: "Task created successfully" });
+      toast({ title: "Task created successfully", duration: 3000 });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create task",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -76,6 +77,7 @@ export default function TasksPage() {
         title: "Error",
         description: "Please enter a task title",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }

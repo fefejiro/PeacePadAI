@@ -285,6 +285,7 @@ export default function VideoCallDialog({
         title: "Connection Error",
         description: "Failed to connect to call server",
         variant: "destructive",
+        duration: 5000,
       });
     };
 
@@ -352,6 +353,7 @@ export default function VideoCallDialog({
         title: "Media Access Failed",
         description: errorMessage,
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -595,12 +597,14 @@ export default function VideoCallDialog({
           toast({
             title: "Recording Saved",
             description: "Your call recording has been saved and downloaded",
+            duration: 3000,
           });
         } catch (error) {
           console.error('Failed to save recording:', error);
           toast({
             title: "Recording Downloaded",
             description: "Recording saved locally but failed to upload to cloud",
+            duration: 4000,
           });
         }
       };
@@ -611,6 +615,7 @@ export default function VideoCallDialog({
       toast({
         title: "Recording Started",
         description: "Call is being recorded",
+        duration: 4000,
       });
     } catch (error) {
       console.error("Failed to start recording:", error);
@@ -618,6 +623,7 @@ export default function VideoCallDialog({
         title: "Recording Failed",
         description: "Could not start call recording",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -638,6 +644,7 @@ export default function VideoCallDialog({
       toast({
         title: "Session Code Copied!",
         description: `Share code ${sessionCode} with others to join this call`,
+        duration: 3000,
       });
       setTimeout(() => setCodeCopied(false), 2000);
     } catch (error) {
@@ -646,6 +653,7 @@ export default function VideoCallDialog({
         title: "Copy Failed",
         description: "Could not copy session code to clipboard",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -660,6 +668,7 @@ export default function VideoCallDialog({
       toast({
         title: "Link Copied!",
         description: "Share this link with others to join the call",
+        duration: 3000,
       });
     } catch (error) {
       console.error('Failed to copy link:', error);
@@ -667,6 +676,7 @@ export default function VideoCallDialog({
         title: "Copy Failed",
         description: "Could not copy link to clipboard",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -687,6 +697,7 @@ export default function VideoCallDialog({
         toast({
           title: "Shared Successfully!",
           description: "Invitation sent",
+          duration: 3000,
         });
       } else {
         // Fallback to copying link

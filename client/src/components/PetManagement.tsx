@@ -30,10 +30,10 @@ export default function PetManagement() {
       setDialogOpen(false);
       setPetName("");
       setPetType("");
-      toast({ title: "Pet added successfully" });
+      toast({ title: "Pet added successfully", duration: 3000 });
     },
     onError: () => {
-      toast({ title: "Failed to add pet", variant: "destructive" });
+      toast({ title: "Failed to add pet", variant: "destructive", duration: 5000 });
     },
   });
 

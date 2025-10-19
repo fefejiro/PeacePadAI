@@ -55,6 +55,7 @@ export default function TaskItem({ id, title, completed, dueDate, assignedTo, lo
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
           variant: "destructive",
+          duration: 5000,
         });
         localStorage.removeItem("peacepad_session_id");
         setTimeout(() => {
@@ -62,7 +63,7 @@ export default function TaskItem({ id, title, completed, dueDate, assignedTo, lo
         }, 1000);
         return;
       }
-      toast({ title: "Error", description: "Failed to update task", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to update task", variant: "destructive", duration: 5000 });
     },
   });
 

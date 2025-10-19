@@ -24,7 +24,7 @@ export default function NoteCard({ id, title, content, createdBy, date }: NoteCa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notes"] });
-      toast({ title: "Note deleted successfully" });
+      toast({ title: "Note deleted successfully", duration: 3000 });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -32,6 +32,7 @@ export default function NoteCard({ id, title, content, createdBy, date }: NoteCa
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
           variant: "destructive",
+          duration: 5000,
         });
         localStorage.removeItem("peacepad_session_id");
         setTimeout(() => {
@@ -39,7 +40,7 @@ export default function NoteCard({ id, title, content, createdBy, date }: NoteCa
         }, 1000);
         return;
       }
-      toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to delete note", variant: "destructive", duration: 5000 });
     },
   });
 

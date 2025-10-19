@@ -27,6 +27,7 @@ export default function TherapistLocator() {
         title: "Postal code required",
         description: "Please enter a postal code to search",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -44,6 +45,7 @@ export default function TherapistLocator() {
         toast({
           title: "No results",
           description: "No therapists or mediators found in this area. Try a different postal code.",
+          duration: 4000,
         });
       }
     } catch (error) {
@@ -51,6 +53,7 @@ export default function TherapistLocator() {
         title: "Search failed",
         description: "Unable to search for therapists. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);

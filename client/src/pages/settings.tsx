@@ -52,13 +52,14 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Profile updated successfully" });
+      toast({ title: "Profile updated successfully", duration: 3000 });
     },
     onError: () => {
       toast({
         title: "Error",
         description: "Failed to update profile",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -73,6 +74,7 @@ export default function SettingsPage() {
         title: "Invalid file type",
         description: "Please upload an image file",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -83,6 +85,7 @@ export default function SettingsPage() {
         title: "File too large",
         description: "Please upload an image smaller than 5MB",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -107,6 +110,7 @@ export default function SettingsPage() {
         title: "Upload failed",
         description: "Failed to upload profile photo",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -122,13 +126,14 @@ export default function SettingsPage() {
     try {
       await navigator.clipboard.writeText(shareableLink);
       setCopied(true);
-      toast({ title: "Link copied!", description: "Share this link with your co-parent" });
+      toast({ title: "Link copied!", description: "Share this link with your co-parent", duration: 3000 });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast({
         title: "Failed to copy",
         description: "Please copy the link manually",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -147,6 +152,7 @@ export default function SettingsPage() {
             title: "Share failed",
             description: "Please copy the link instead",
             variant: "destructive",
+            duration: 5000,
           });
         }
       }
@@ -163,6 +169,7 @@ export default function SettingsPage() {
       description: enabled 
         ? "You'll see helpful tips throughout the app" 
         : "Tips are now hidden",
+      duration: 3000,
     });
   };
 
@@ -192,6 +199,7 @@ export default function SettingsPage() {
       description: enabled
         ? "AI will analyze emotional tone during calls when both participants have it enabled"
         : "AI listening is now disabled",
+      duration: 3000,
     });
   };
 
@@ -203,6 +211,7 @@ export default function SettingsPage() {
         title: "Invalid phone number",
         description: "Please enter a valid phone number",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -215,6 +224,7 @@ export default function SettingsPage() {
     toast({
       title: "Welcome tour restarted",
       description: "You'll see the introduction slideshow again",
+      duration: 3000,
     });
     setLocation("/");
   };
@@ -229,6 +239,7 @@ export default function SettingsPage() {
       toast({
         title: "Invite code regenerated",
         description: "Your new invite code is ready to share",
+        duration: 3000,
       });
     },
     onError: () => {
@@ -236,6 +247,7 @@ export default function SettingsPage() {
         title: "Error",
         description: "Failed to regenerate invite code",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -248,6 +260,7 @@ export default function SettingsPage() {
       toast({
         title: "Invite code copied!",
         description: "Share this code with your co-parent",
+        duration: 3000,
       });
       setTimeout(() => setInviteCodeCopied(false), 2000);
     } catch (error) {
@@ -255,6 +268,7 @@ export default function SettingsPage() {
         title: "Failed to copy",
         description: "Please copy the code manually",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };

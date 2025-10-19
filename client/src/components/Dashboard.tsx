@@ -46,7 +46,7 @@ export default function Dashboard() {
       setNoteDialogOpen(false);
       setNoteTitle("");
       setNoteContent("");
-      toast({ title: "Note created successfully" });
+      toast({ title: "Note created successfully", duration: 3000 });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -54,6 +54,7 @@ export default function Dashboard() {
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
           variant: "destructive",
+          duration: 5000,
         });
         localStorage.removeItem("peacepad_session_id");
         setTimeout(() => {
@@ -61,13 +62,13 @@ export default function Dashboard() {
         }, 1000);
         return;
       }
-      toast({ title: "Error", description: "Failed to create note", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to create note", variant: "destructive", duration: 5000 });
     },
   });
 
   const handleAddNote = () => {
     if (!noteTitle.trim() || !noteContent.trim()) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive", duration: 5000 });
       return;
     }
     createNote.mutate({ title: noteTitle, content: noteContent });

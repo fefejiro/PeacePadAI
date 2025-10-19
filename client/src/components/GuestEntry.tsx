@@ -37,6 +37,7 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
             toast({
               title: "Welcome back!",
               description: `Hello again, ${data.displayName || 'Guest'}!`,
+              duration: 3000,
             });
             onAuthenticated();
           } else if (response.status === 401) {
@@ -108,6 +109,7 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
         title: "File too large",
         description: "Please select an image under 2MB",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -120,6 +122,7 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
         title: "Upload failed",
         description: "Failed to process image. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -150,6 +153,7 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
       toast({
         title: "Success!",
         description: data.message,
+        duration: 3000,
       });
 
       onAuthenticated();
@@ -159,6 +163,7 @@ export default function GuestEntry({ onAuthenticated }: GuestEntryProps) {
         title: "Error",
         description: error.message || "Failed to authenticate. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);

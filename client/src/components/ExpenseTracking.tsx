@@ -34,10 +34,10 @@ export default function ExpenseTracking() {
       setDescription("");
       setAmount("");
       setCategory("");
-      toast({ title: "Expense added successfully" });
+      toast({ title: "Expense added successfully", duration: 3000 });
     },
     onError: () => {
-      toast({ title: "Failed to add expense", variant: "destructive" });
+      toast({ title: "Failed to add expense", variant: "destructive", duration: 5000 });
     },
   });
 

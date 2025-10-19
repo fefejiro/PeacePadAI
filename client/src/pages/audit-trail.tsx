@@ -63,12 +63,14 @@ export default function AuditTrailPage() {
       toast({
         title: "Export successful",
         description: `Your audit trail has been downloaded as ${format.toUpperCase()}`,
+        duration: 3000,
       });
     } catch (error) {
       toast({
         title: "Export failed",
         description: "Failed to export audit trail. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsExporting(false);
@@ -94,6 +96,7 @@ export default function AuditTrailPage() {
         toast({
           title: "Copied to clipboard",
           description: "Audit trail summary copied to clipboard",
+          duration: 3000,
         });
       }
     } catch (error) {

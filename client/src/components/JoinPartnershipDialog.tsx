@@ -29,6 +29,7 @@ export function JoinPartnershipDialog({ trigger }: JoinPartnershipDialogProps) {
       toast({
         title: "Partnership created",
         description: "You're now connected with your co-parent",
+        duration: 3000,
       });
       setInviteCode("");
       setIsOpen(false);
@@ -42,6 +43,7 @@ export function JoinPartnershipDialog({ trigger }: JoinPartnershipDialogProps) {
           ? "This invite code doesn't exist. Ask your co-parent to check their code in Settings and share the current one."
           : message,
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -55,6 +57,7 @@ export function JoinPartnershipDialog({ trigger }: JoinPartnershipDialogProps) {
         title: "Invalid code",
         description: "Invite code must be 6 characters",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };

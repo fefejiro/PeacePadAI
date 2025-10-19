@@ -110,13 +110,14 @@ export default function SchedulingDashboard() {
       setChildName("");
       setRecurring("none");
       setNotes("");
-      toast({ title: "Event created successfully" });
+      toast({ title: "Event created successfully", duration: 3000 });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create event",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -127,6 +128,7 @@ export default function SchedulingDashboard() {
         title: "Error",
         description: "Please fill in required fields",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -167,7 +169,8 @@ export default function SchedulingDashboard() {
       setTemplateChildName("");
       toast({ 
         title: "Template applied successfully",
-        description: `Created ${data.events?.length || 0} events from template`
+        description: `Created ${data.events?.length || 0} events from template`,
+        duration: 3000,
       });
     },
     onError: (error: any) => {
@@ -175,6 +178,7 @@ export default function SchedulingDashboard() {
         title: "Error",
         description: error.message || "Failed to apply template",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -185,6 +189,7 @@ export default function SchedulingDashboard() {
         title: "Error",
         description: "Please select a template and start date",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -198,7 +203,7 @@ export default function SchedulingDashboard() {
   
   const handleDownloadICal = () => {
     window.location.href = '/api/events/export/ical';
-    toast({ title: "Downloading calendar..." });
+    toast({ title: "Downloading calendar...", duration: 4000 });
   };
   
   const handleAddToGoogleCalendar = () => {
@@ -206,7 +211,7 @@ export default function SchedulingDashboard() {
     const icalUrl = `${window.location.origin}/api/events/export/ical`;
     const googleCalUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(icalUrl)}`;
     window.open(googleCalUrl, '_blank');
-    toast({ title: "Opening Google Calendar..." });
+    toast({ title: "Opening Google Calendar...", duration: 4000 });
   };
 
   const getEventColor = (eventType: string) => {

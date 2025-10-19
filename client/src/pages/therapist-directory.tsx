@@ -25,6 +25,7 @@ export default function TherapistDirectoryPage() {
         title: "Enter a location",
         description: "Please enter a postal code or address to search",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -50,12 +51,14 @@ export default function TherapistDirectoryPage() {
       toast({
         title: "Location found",
         description: `Searching for therapists near ${postalCode}`,
+        duration: 4000,
       });
     } catch (error) {
       toast({
         title: "Location not found",
         description: "Could not find coordinates for this postal code",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsSearching(false);
@@ -97,6 +100,7 @@ export default function TherapistDirectoryPage() {
           toast({
             title: "Location found",
             description: "Using your current location",
+            duration: 4000,
           });
         },
         (error) => {
@@ -106,6 +110,7 @@ export default function TherapistDirectoryPage() {
             title: "Location access denied",
             description: "Please enter a postal code instead",
             variant: "destructive",
+            duration: 5000,
           });
         }
       );

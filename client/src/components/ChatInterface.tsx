@@ -134,6 +134,7 @@ export default function ChatInterface() {
           toast({
             title: "New Partnership! 🎉",
             description: `${data.partnerName} joined using your invite code`,
+            duration: 3000,
           });
           // Refresh both partnerships and conversations (new partnership = new conversation)
           queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
@@ -197,6 +198,7 @@ export default function ChatInterface() {
           title: "Session Expired",
           description: "Your session has expired. Please refresh the page.",
           variant: "destructive",
+          duration: 5000,
         });
         localStorage.removeItem("peacepad_session_id");
         setTimeout(() => {
@@ -208,6 +210,7 @@ export default function ChatInterface() {
         title: "Error",
         description: "Failed to send message. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -229,6 +232,7 @@ export default function ChatInterface() {
         title: "Error",
         description: "Failed to analyze message tone. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -279,6 +283,7 @@ export default function ChatInterface() {
       toast({
         title: "Message sent",
         description: "Your media message was sent successfully",
+        duration: 3000,
       });
     },
     onError: (error: Error) => {
@@ -286,6 +291,7 @@ export default function ChatInterface() {
         title: "Error",
         description: "Failed to send media message",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -377,6 +383,7 @@ export default function ChatInterface() {
           toast({
             title: "AI Check Unavailable",
             description: "Unable to analyze message tone. Sending anyway...",
+            duration: 4000,
           });
           if (!conversationId) return;
           sendTextMessage.mutate({ content: message, conversationId });
@@ -463,6 +470,7 @@ export default function ChatInterface() {
       toast({
         title: "Recording started",
         description: "Recording audio message...",
+        duration: 3000,
       });
     } catch (error) {
       console.error("Failed to start audio recording:", error);
@@ -470,6 +478,7 @@ export default function ChatInterface() {
         title: "Recording failed",
         description: "Could not access microphone",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -481,6 +490,7 @@ export default function ChatInterface() {
       toast({
         title: "Recording stopped",
         description: "Review your audio message",
+        duration: 3000,
       });
     }
   };
@@ -496,6 +506,7 @@ export default function ChatInterface() {
       toast({
         title: "Recording cancelled",
         description: "Audio recording discarded",
+        duration: 3000,
       });
     }
     setRecordedAudioBlob(null);
@@ -549,6 +560,7 @@ export default function ChatInterface() {
       toast({
         title: "Recording started",
         description: "Recording video message...",
+        duration: 3000,
       });
     } catch (error) {
       console.error("Failed to start video recording:", error);
@@ -556,6 +568,7 @@ export default function ChatInterface() {
         title: "Recording failed",
         description: "Could not access camera. Make sure you've granted camera permissions.",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -573,6 +586,7 @@ export default function ChatInterface() {
       toast({
         title: "Recording stopped",
         description: "Review your video message",
+        duration: 3000,
       });
     }
   };
@@ -598,6 +612,7 @@ export default function ChatInterface() {
       toast({
         title: "Recording cancelled",
         description: "Video recording discarded",
+        duration: 3000,
       });
     }
     setRecordedVideoBlob(null);

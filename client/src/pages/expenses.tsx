@@ -58,13 +58,14 @@ export default function ExpensesPage() {
     },
     onSuccess: (data) => {
       setUploadedReceipt(data);
-      toast({ title: "Receipt uploaded successfully" });
+      toast({ title: "Receipt uploaded successfully", duration: 3000 });
     },
     onError: () => {
       toast({
         title: "Error",
         description: "Failed to upload receipt",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -93,13 +94,14 @@ export default function ExpensesPage() {
       setSplitPercentage("50");
       setReceiptFile(null);
       setUploadedReceipt(null);
-      toast({ title: "Expense created successfully" });
+      toast({ title: "Expense created successfully", duration: 3000 });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create expense",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -112,6 +114,7 @@ export default function ExpensesPage() {
           title: "File too large",
           description: "Receipt must be under 10MB",
           variant: "destructive",
+          duration: 5000,
         });
         return;
       }
@@ -126,6 +129,7 @@ export default function ExpensesPage() {
         title: "Error",
         description: "Please fill in required fields",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }

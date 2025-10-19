@@ -31,6 +31,7 @@ export default function JoinPartnershipPage() {
       toast({
         title: "Partnership created!",
         description: "You're now connected with your co-parent",
+        duration: 3000,
       });
       // Redirect to chat after successful join
       setTimeout(() => {
@@ -44,6 +45,7 @@ export default function JoinPartnershipPage() {
         title: "Error",
         description: message,
         variant: "destructive",
+        duration: 5000,
       });
     },
   });

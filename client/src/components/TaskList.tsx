@@ -56,7 +56,7 @@ export default function TaskList() {
       setTaskDueDate("");
       setAssignedTo(null);
       setLocation(null);
-      toast({ title: "Task created successfully" });
+      toast({ title: "Task created successfully", duration: 3000 });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -64,6 +64,7 @@ export default function TaskList() {
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
           variant: "destructive",
+          duration: 5000,
         });
         localStorage.removeItem("peacepad_session_id");
         setTimeout(() => {
@@ -71,13 +72,13 @@ export default function TaskList() {
         }, 1000);
         return;
       }
-      toast({ title: "Error", description: "Failed to create task", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to create task", variant: "destructive", duration: 5000 });
     },
   });
 
   const handleAddTask = () => {
     if (!taskTitle.trim()) {
-      toast({ title: "Error", description: "Please enter a task title", variant: "destructive" });
+      toast({ title: "Error", description: "Please enter a task title", variant: "destructive", duration: 5000 });
       return;
     }
     

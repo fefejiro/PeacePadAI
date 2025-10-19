@@ -89,6 +89,7 @@ export default function OnboardingPage() {
         title: "Error",
         description: "Failed to create account. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -119,6 +120,7 @@ export default function OnboardingPage() {
       toast({
         title: "Warning",
         description: "Profile image upload failed, but your account was created.",
+        duration: 4000,
       });
       setStep(2);
     },
@@ -156,6 +158,7 @@ export default function OnboardingPage() {
         title: "Error",
         description: "Failed to save details",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -176,10 +179,10 @@ export default function OnboardingPage() {
     try {
       await navigator.clipboard.writeText(inviteCode);
       setInviteCodeCopied(true);
-      toast({ title: "Copied!", description: "Invite code copied to clipboard" });
+      toast({ title: "Copied!", description: "Invite code copied to clipboard", duration: 3000 });
       setTimeout(() => setInviteCodeCopied(false), 2000);
     } catch (error) {
-      toast({ title: "Failed to copy", variant: "destructive" });
+      toast({ title: "Failed to copy", variant: "destructive", duration: 5000 });
     }
   };
 
@@ -187,10 +190,10 @@ export default function OnboardingPage() {
     try {
       await navigator.clipboard.writeText(inviteLink);
       setInviteLinkCopied(true);
-      toast({ title: "Copied!", description: "Invite link copied to clipboard" });
+      toast({ title: "Copied!", description: "Invite link copied to clipboard", duration: 3000 });
       setTimeout(() => setInviteLinkCopied(false), 2000);
     } catch (error) {
-      toast({ title: "Failed to copy", variant: "destructive" });
+      toast({ title: "Failed to copy", variant: "destructive", duration: 5000 });
     }
   };
 
@@ -199,9 +202,9 @@ export default function OnboardingPage() {
   const copyShareMessage = async () => {
     try {
       await navigator.clipboard.writeText(shareMessage);
-      toast({ title: "Copied!", description: "Share message copied to clipboard" });
+      toast({ title: "Copied!", description: "Share message copied to clipboard", duration: 3000 });
     } catch (error) {
-      toast({ title: "Failed to copy", variant: "destructive" });
+      toast({ title: "Failed to copy", variant: "destructive", duration: 5000 });
     }
   };
 
