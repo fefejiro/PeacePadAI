@@ -1,0 +1,116 @@
+
+PeacePad AppClose-Style Update: Replit Iteration Plan
+=====================================================
+
+🎯 Goal
+Integrate the AppClose-style partnership flow and Playwright E2E test suite into the PeacePad dev workspace — ensuring both the new invite system and real-time messaging sync work smoothly before publishing.
+
+-----------------------------------------------------
+
+🧱 Step 1: Prepare Replit Environment
+1. Upload `peacepad_appclose_update.zip` to your Replit dashboard.
+2. Unzip it into `/appclose-update/`.
+3. Run the following commands:
+   ```bash
+   npm install
+   npx playwright install
+   ```
+
+-----------------------------------------------------
+
+⚙️ Step 2: Merge Configs
+Copy the following files to PeacePad’s root folder:
+```
+configs/playwright.local.config.ts
+configs/playwright.replit.config.ts
+```
+Update `.env` with:
+```
+ENVIRONMENT=dev
+PORT=5000
+```
+Update `package.json`:
+```json
+"scripts": {
+  "test:e2e": "npx playwright test",
+  "test:headed": "npx playwright test --headed"
+}
+```
+
+-----------------------------------------------------
+
+🧠 Step 3: Add Partnership Flow Test
+Ensure the following data-test-IDs exist in your React code:
+```
+[data-testid="create-partnership"]
+[data-testid="share-link"]
+[data-testid="partner-connected"]
+[data-testid="chat-input"]
+[data-testid="send-message"]
+[data-testid="chat-message"]
+```
+Then verify the test flow in `tests/partnership-flow.spec.ts`.
+
+-----------------------------------------------------
+
+🔍 Step 4: Run and Debug E2E Tests
+Run all tests:
+```bash
+npx playwright test
+```
+Run visual (headed) mode:
+```bash
+npm run test:headed
+```
+Interactive mode:
+```bash
+npx playwright test --ui
+```
+Show report:
+```bash
+npx playwright show-report
+```
+
+-----------------------------------------------------
+
+🧩 Step 5: Merge into PeacePad Dev
+Once all tests pass, move the following into your PeacePad workspace:
+```
+/tests
+/helpers
+/configs
+/env
+```
+Add the README content into your project documentation.
+
+-----------------------------------------------------
+
+🌐 Step 6: Optional CI/CD Integration
+For GitHub + Replit CI/CD pipelines, add this step:
+```yaml
+- name: Run Playwright Tests
+  run: npx playwright test --config=configs/playwright.replit.config.ts
+```
+
+-----------------------------------------------------
+
+💸 Cost Control Tips
+- Disable Auto-Refactor and Always-On in Replit.
+- Run tests manually to save compute tokens.
+- Use Chromium only:
+  ```bash
+  npx playwright test --project=chromium
+  ```
+- Clean cache regularly:
+  ```bash
+  rm -rf playwright-report .cache node_modules/.cache
+  ```
+
+-----------------------------------------------------
+
+✅ Expected Outcome
+PeacePad will now:
+- Feature AppClose-style partnership linking.
+- Support real-time chat sync validation via Playwright.
+- Maintain E2E coverage for tone, messaging, and shared data.
+- Stay optimized for both local and Replit development environments.

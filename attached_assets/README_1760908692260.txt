@@ -1,0 +1,21 @@
+
+PeacePad AppClose-style E2E Test Update
+---------------------------------------
+This package introduces an AppClose-style partnership flow where Parent A generates a shareable invite link for Parent B.
+
+🧩 What's Included
+- Playwright configs for local & Replit testing
+- Partnership link simulation tests
+- Reusable helpers for co-parent session handling
+
+📦 How to Use
+1. Unzip this folder into your Replit or local workspace.
+2. Run `npm install`.
+3. Run `npx playwright install`.
+4. Run `npx playwright test` or `npm run test:headed` for visual test mode.
+
+✅ Expected Outcome
+- Parent A generates an invite link.
+- Parent B joins using that link.
+- Both can chat in sync in real-time.
+
