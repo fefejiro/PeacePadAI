@@ -6,28 +6,27 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin } from "lucide-react";
 
+interface LocationData {
+  displayName: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 interface TaskItemProps {
   id: string;
   title: string;
   completed: boolean;
   dueDate?: string;
   assignedTo?: string | null;
-  location?: string | null;
+  location?: LocationData | null;
 }
 
 export default function TaskItem({ id, title, completed, dueDate, assignedTo, location }: TaskItemProps) {
   const { toast } = useToast();
   
-  // Parse location if it's a JSON string
-  let locationData: any = null;
-  if (location) {
-    try {
-      locationData = JSON.parse(location);
-    } catch (e) {
-      // If not JSON, treat as plain text
-      locationData = { displayName: location };
-    }
-  }
+  // Location is already an object from the API
+  const locationData = location;
 
   // Fetch assigned user info if assignedTo is set
   const { data: assignedUser } = useQuery<any>({

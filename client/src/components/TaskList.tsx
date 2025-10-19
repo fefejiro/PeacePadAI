@@ -43,7 +43,7 @@ export default function TaskList() {
     mutationFn: async (data: { 
       title: string; 
       dueDate?: string;
-      location?: string;
+      location?: LocationData;
       assignedTo?: string | null;
     }) => {
       const res = await apiRequest("POST", "/api/tasks", data);
@@ -81,18 +81,12 @@ export default function TaskList() {
       return;
     }
     
-    const taskData: any = { 
+    createTask.mutate({
       title: taskTitle, 
       dueDate: taskDueDate || undefined,
       assignedTo: assignedTo || undefined,
-    };
-    
-    // Store location as JSON string if provided
-    if (location) {
-      taskData.location = JSON.stringify(location);
-    }
-    
-    createTask.mutate(taskData);
+      location: location || undefined,
+    });
   };
 
   return (
@@ -179,7 +173,7 @@ export default function TaskList() {
               completed={task.completed}
               dueDate={task.dueDate || undefined}
               assignedTo={task.assignedTo || undefined}
-              location={task.location || undefined}
+              location={(task.location as any) || undefined}
             />
           ))
         )}

@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Event, ScheduleTemplate } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { LocationAutocomplete } from "./LocationAutocomplete";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface LocationData {
+  displayName: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 interface ConflictAnalysis {
   hasConflicts: boolean;
   conflicts: string[];
@@ -41,7 +49,7 @@ export default function SchedulingDashboard() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<LocationData | null>(null);
   const [childName, setChildName] = useState("");
   const [recurring, setRecurring] = useState("none");
   const [notes, setNotes] = useState("");
@@ -49,7 +57,7 @@ export default function SchedulingDashboard() {
   // Template selector state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [templateStartDate, setTemplateStartDate] = useState("");
-  const [templateLocation, setTemplateLocation] = useState("");
+  const [templateLocation, setTemplateLocation] = useState<LocationData | null>(null);
   const [templateChildName, setTemplateChildName] = useState("");
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
@@ -72,7 +80,7 @@ export default function SchedulingDashboard() {
       startDate: string;
       endDate?: string;
       description?: string;
-      location?: string;
+      location?: LocationData;
       childName?: string;
       recurring?: string;
       notes?: string;
@@ -98,7 +106,7 @@ export default function SchedulingDashboard() {
       setStartDate("");
       setEndDate("");
       setDescription("");
-      setLocation("");
+      setLocation(null);
       setChildName("");
       setRecurring("none");
       setNotes("");
@@ -140,7 +148,7 @@ export default function SchedulingDashboard() {
       templateId: string;
       startDate: string;
       childName?: string;
-      location?: string;
+      location?: LocationData;
     }) => {
       const res = await apiRequest("POST", `/api/schedule-templates/${data.templateId}/apply`, {
         startDate: data.startDate,
@@ -155,7 +163,7 @@ export default function SchedulingDashboard() {
       setTemplateDialogOpen(false);
       setSelectedTemplateId("");
       setTemplateStartDate("");
-      setTemplateLocation("");
+      setTemplateLocation(null);
       setTemplateChildName("");
       toast({ 
         title: "Template applied successfully",
@@ -298,13 +306,12 @@ export default function SchedulingDashboard() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="template-location">Location (Optional)</Label>
-                  <Input
-                    id="template-location"
+                  <Label>Location (Optional)</Label>
+                  <LocationAutocomplete
                     value={templateLocation}
-                    onChange={(e) => setTemplateLocation(e.target.value)}
-                    placeholder="e.g., 123 Main St"
-                    data-testid="input-template-location"
+                    onChange={setTemplateLocation}
+                    placeholder="e.g., 123 Main St, Target on 5th Ave"
+                    disabled={applyTemplate.isPending}
                   />
                 </div>
                 <Button 
@@ -387,13 +394,12 @@ export default function SchedulingDashboard() {
                 />
               </div>
               <div>
-                <Label htmlFor="location">Location (Optional)</Label>
-                <Input
-                  id="location"
+                <Label>Location (Optional)</Label>
+                <LocationAutocomplete
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., School, Home, Park"
-                  data-testid="input-event-location"
+                  onChange={setLocation}
+                  placeholder="e.g., School, Target on Main St, 123 Oak Ave"
+                  disabled={createEvent.isPending}
                 />
               </div>
               <div>
