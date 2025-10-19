@@ -138,6 +138,8 @@ export const tasks = pgTable("tasks", {
   title: text("title").notNull(),
   completed: boolean("completed").notNull().default(false),
   dueDate: text("due_date"),
+  location: text("location"), // Structured location data (JSON: {address, lat, lng})
+  assignedTo: varchar("assigned_to").references(() => users.id), // User assigned to complete this task
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -146,6 +148,7 @@ export const childUpdates = pgTable("child_updates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   childName: text("child_name").notNull(),
   update: text("update").notNull(),
+  location: text("location"), // Structured location data (JSON: {address, lat, lng})
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -168,7 +171,7 @@ export const events = pgTable("events", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date"),
   description: text("description"),
-  location: text("location"), // Location for pickup/dropoff
+  location: text("location"), // Structured location data (JSON: {address, lat, lng, displayName})
   childName: text("child_name"), // Which child this relates to
   recurring: text("recurring"), // none, daily, weekly, biweekly, monthly
   notes: text("notes"), // Additional notes

@@ -2229,6 +2229,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Geocoding API for location autocomplete (using OpenStreetMap Nominatim)
+  app.get('/api/geocode', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { query } = req.query;
+      
+      if (!query || typeof query !== 'string' || query.trim().length < 2) {
+        return res.json({ results: [] });
+      }
+
+      // Use OpenStreetMap Nominatim API for geocoding
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
+      
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'PeacePad Co-Parenting App', // Required by Nominatim
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Geocoding service unavailable');
+      }
+
+      const data = await response.json();
+      
+      // Transform Nominatim results to our format
+      const results = data.map((item: any) => ({
+        displayName: item.display_name,
+        address: item.address?.road || item.address?.city || item.display_name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+        city: item.address?.city || item.address?.town || item.address?.village,
+        state: item.address?.state,
+        country: item.address?.country,
+        postalCode: item.address?.postcode,
+      }));
+
+      res.json({ results });
+    } catch (error) {
+      console.error("Error geocoding location:", error);
+      res.status(500).json({ message: "Failed to geocode location", results: [] });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebRTC signaling server
