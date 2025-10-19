@@ -239,6 +239,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get specific user by ID (basic info only for assigned tasks, etc.)
+  app.get('/api/users/:userId', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Return only basic user info for privacy
+      const basicUserInfo = {
+        id: user.id,
+        displayName: user.displayName,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+      };
+      
+      res.json(basicUserInfo);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Update user profile
   app.patch('/api/user/profile', isSoftAuthenticated, async (req: any, res) => {
     try {

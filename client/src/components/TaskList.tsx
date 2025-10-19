@@ -17,19 +17,35 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AssigneeSelector } from "./AssigneeSelector";
+import { LocationAutocomplete } from "./LocationAutocomplete";
+
+interface LocationData {
+  displayName: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
 
 export default function TaskList() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const [location, setLocation] = useState<LocationData | null>(null);
 
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
   });
 
   const createTask = useMutation({
-    mutationFn: async (data: { title: string; dueDate?: string }) => {
+    mutationFn: async (data: { 
+      title: string; 
+      dueDate?: string;
+      location?: string;
+      assignedTo?: string | null;
+    }) => {
       const res = await apiRequest("POST", "/api/tasks", data);
       return await res.json();
     },
@@ -38,6 +54,8 @@ export default function TaskList() {
       setDialogOpen(false);
       setTaskTitle("");
       setTaskDueDate("");
+      setAssignedTo(null);
+      setLocation(null);
       toast({ title: "Task created successfully" });
     },
     onError: (error: Error) => {
@@ -62,7 +80,19 @@ export default function TaskList() {
       toast({ title: "Error", description: "Please enter a task title", variant: "destructive" });
       return;
     }
-    createTask.mutate({ title: taskTitle, dueDate: taskDueDate || undefined });
+    
+    const taskData: any = { 
+      title: taskTitle, 
+      dueDate: taskDueDate || undefined,
+      assignedTo: assignedTo || undefined,
+    };
+    
+    // Store location as JSON string if provided
+    if (location) {
+      taskData.location = JSON.stringify(location);
+    }
+    
+    createTask.mutate(taskData);
   };
 
   return (
@@ -94,7 +124,7 @@ export default function TaskList() {
                   id="task-title"
                   value={taskTitle}
                   onChange={(e) => setTaskTitle(e.target.value)}
-                  placeholder="Enter task"
+                  placeholder="e.g., Pick up soccer gear"
                   data-testid="input-task-title"
                 />
               </div>
@@ -108,9 +138,27 @@ export default function TaskList() {
                   data-testid="input-task-due-date"
                 />
               </div>
+              <div>
+                <Label>Assign To (optional)</Label>
+                <AssigneeSelector
+                  value={assignedTo}
+                  onChange={setAssignedTo}
+                  disabled={createTask.isPending}
+                />
+              </div>
+              <div>
+                <Label>Location (optional)</Label>
+                <LocationAutocomplete
+                  value={location}
+                  onChange={setLocation}
+                  placeholder="e.g., Target on Main St"
+                  disabled={createTask.isPending}
+                />
+              </div>
               <Button
                 onClick={handleAddTask}
                 disabled={createTask.isPending}
+                className="w-full"
                 data-testid="button-save-task"
               >
                 Create Task
@@ -130,6 +178,8 @@ export default function TaskList() {
               title={task.title}
               completed={task.completed}
               dueDate={task.dueDate || undefined}
+              assignedTo={task.assignedTo || undefined}
+              location={task.location || undefined}
             />
           ))
         )}

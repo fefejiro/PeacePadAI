@@ -1,18 +1,46 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MapPin } from "lucide-react";
 
 interface TaskItemProps {
   id: string;
   title: string;
   completed: boolean;
   dueDate?: string;
+  assignedTo?: string | null;
+  location?: string | null;
 }
 
-export default function TaskItem({ id, title, completed, dueDate }: TaskItemProps) {
+export default function TaskItem({ id, title, completed, dueDate, assignedTo, location }: TaskItemProps) {
   const { toast } = useToast();
+  
+  // Parse location if it's a JSON string
+  let locationData: any = null;
+  if (location) {
+    try {
+      locationData = JSON.parse(location);
+    } catch (e) {
+      // If not JSON, treat as plain text
+      locationData = { displayName: location };
+    }
+  }
+
+  // Fetch assigned user info if assignedTo is set
+  const { data: assignedUser } = useQuery<any>({
+    queryKey: ['/api/users', assignedTo],
+    enabled: !!assignedTo,
+  });
+
+  const getInitials = (user: any) => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    return user?.displayName?.[0]?.toUpperCase() || '?';
+  };
 
   const updateTask = useMutation({
     mutationFn: async (newCompleted: boolean) => {
@@ -51,17 +79,44 @@ export default function TaskItem({ id, title, completed, dueDate }: TaskItemProp
         id={`task-${id}`}
         data-testid={`checkbox-task-${id}`}
       />
-      <label
-        htmlFor={`task-${id}`}
-        className={`flex-1 text-sm cursor-pointer ${
-          completed ? "line-through text-muted-foreground" : "text-foreground"
-        }`}
-      >
-        {title}
-      </label>
-      {dueDate && (
-        <span className="text-xs font-mono text-muted-foreground">{dueDate}</span>
-      )}
+      <div className="flex-1 min-w-0">
+        <label
+          htmlFor={`task-${id}`}
+          className={`block text-sm cursor-pointer ${
+            completed ? "line-through text-muted-foreground" : "text-foreground"
+          }`}
+        >
+          {title}
+        </label>
+        {locationData && (
+          <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            <span className="truncate">{locationData.displayName || locationData.address}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        {assignedUser && (
+          <div 
+            className="flex items-center gap-1.5" 
+            title={`Assigned to ${assignedUser.displayName || assignedUser.firstName}`}
+            data-testid={`task-assignee-${id}`}
+          >
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={assignedUser.profileImageUrl || undefined} />
+              <AvatarFallback className="text-xs">
+                {getInitials(assignedUser)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {assignedUser.firstName || assignedUser.displayName}
+            </span>
+          </div>
+        )}
+        {dueDate && (
+          <span className="text-xs font-mono text-muted-foreground">{dueDate}</span>
+        )}
+      </div>
     </div>
   );
 }
