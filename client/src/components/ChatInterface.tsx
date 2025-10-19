@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle, Menu } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle, Menu, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
 import { ConversationList } from "./ConversationList";
@@ -13,6 +14,7 @@ import type { Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useActivity } from "@/components/ActivityProvider";
+import { useReconnectingWebSocket } from "@/hooks/useReconnectingWebSocket";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,20 +108,15 @@ export default function ChatInterface() {
     enabled: !!conversationId,
   });
 
-  // WebSocket connection for real-time message updates
-  useEffect(() => {
-    if (!user) return;
+  // WebSocket connection for real-time message updates with auto-reconnect
+  const sessionId = localStorage.getItem("peacepad_session_id") || user?.id || '';
+  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = user ? `${protocol}//${window.location.host}/ws/signaling?sessionId=${sessionId}&userId=${user.id}` : '';
 
-    const sessionId = localStorage.getItem("peacepad_session_id") || user.id;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/signaling?sessionId=${sessionId}&userId=${user.id}`;
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log("WebSocket connected for real-time messages");
-    };
-
-    ws.onmessage = (event) => {
+  const { status: wsStatus, retryCount, maxRetries, reconnect } = useReconnectingWebSocket({
+    url: wsUrl,
+    enabled: !!user,
+    onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "new-message") {
@@ -148,20 +145,8 @@ export default function ChatInterface() {
       } catch (error) {
         console.error("WebSocket message error:", error);
       }
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket disconnected");
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [user]);
+    },
+  });
 
   // Auto-preview tone with debounce (1.5s after typing stops)
   useEffect(() => {
@@ -685,14 +670,58 @@ export default function ChatInterface() {
               </SheetContent>
             </Sheet>
 
-            <h2 className="text-base sm:text-lg font-semibold text-foreground truncate">
-              {selectedConversation
-                ? selectedConversation.type === 'direct'
-                  ? selectedConversation.members?.find(m => m.id !== user?.id)?.displayName || 'Chat'
-                  : selectedConversation.name || 'Group Chat'
-                : 'Select a conversation'
-              }
-            </h2>
+            <div className="flex flex-col gap-1 min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground truncate">
+                {selectedConversation
+                  ? selectedConversation.type === 'direct'
+                    ? selectedConversation.members?.find(m => m.id !== user?.id)?.displayName || 'Chat'
+                    : selectedConversation.name || 'Group Chat'
+                  : 'Select a conversation'
+                }
+              </h2>
+              {/* Connection Status Indicator */}
+              {wsStatus === 'connected' && (
+                <Badge 
+                  variant="outline" 
+                  className="w-fit text-xs gap-1 border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  data-testid="status-connected"
+                >
+                  <Wifi className="h-3 w-3" />
+                  Connected
+                </Badge>
+              )}
+              {wsStatus === 'reconnecting' && (
+                <Badge 
+                  variant="outline" 
+                  className="w-fit text-xs gap-1 border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse"
+                  data-testid="status-reconnecting"
+                >
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  Reconnecting {retryCount}/{maxRetries}
+                </Badge>
+              )}
+              {wsStatus === 'disconnected' && (
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="outline" 
+                    className="w-fit text-xs gap-1 border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
+                    data-testid="status-disconnected"
+                  >
+                    <WifiOff className="h-3 w-3" />
+                    Disconnected
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={reconnect}
+                    className="h-6 text-xs"
+                    data-testid="button-reconnect"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
