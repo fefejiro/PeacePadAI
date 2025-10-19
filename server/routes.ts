@@ -8,6 +8,7 @@ import OpenAI from "openai";
 import { transcribeFromBase64 } from "./whisperService";
 import { analyzeEmotion, generateSessionSummary } from "./emotionAnalyzer";
 import { aiCache, isDevMode, getMaxTokens, logTokenUsage, mockToneAnalysis, createCacheKey } from "./aiHelper";
+import { generateICalFromEvents } from "./utils/icalGenerator";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -995,6 +996,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating event:", error);
       res.status(400).json({ message: error.message || "Failed to create event" });
+    }
+  });
+
+  // Export events as iCal/ICS file for calendar apps (Google Calendar, Apple Calendar, Outlook, etc.)
+  app.get('/api/events/export/ical', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const events = await storage.getEvents(userId);
+      
+      // Get user's display name for calendar title
+      const user = await storage.getUser(userId);
+      const calendarName = user?.displayName 
+        ? `${user.displayName}'s PeacePad Custody Schedule` 
+        : 'PeacePad Custody Schedule';
+      
+      // Generate iCal content
+      const icalContent = generateICalFromEvents(events, calendarName);
+      
+      // Set headers for file download
+      const filename = `peacepad-custody-${new Date().toISOString().split('T')[0]}.ics`;
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      res.send(icalContent);
+    } catch (error) {
+      console.error("Error exporting events to iCal:", error);
+      res.status(500).json({ message: "Failed to export calendar" });
     }
   });
 
