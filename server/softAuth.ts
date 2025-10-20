@@ -3,16 +3,33 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import { nanoid } from "nanoid";
+import { pool } from "./db";
 
 export function getSession() {
   const sessionTtl = 14 * 24 * 60 * 60 * 1000; // 14 days
   const pgStore = connectPg(session);
+  
+  // Create session store with error handling
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
+    pool: pool, // Use the existing pool from db.ts with retry logic
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
+    errorLog: (error) => {
+      // Log session store errors without crashing the app
+      if (error.message?.includes('disabled') || error.message?.includes('suspended')) {
+        console.warn('[Session Store] Database suspended - sessions may not persist until database wakes');
+      } else {
+        console.error('[Session Store] Error:', error.message);
+      }
+    },
   });
+  
+  // Handle connection errors without blocking app startup
+  sessionStore.on?.('error', (error) => {
+    console.error('[Session Store] Store error:', error.message);
+  });
+  
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
