@@ -34,12 +34,38 @@ test('Complete onboarding flow as new guest user', async ({ page }) => {
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     console.log('📸 Welcome carousel detected, clicking Skip Intro...');
     await skipButton.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
   } else {
-    console.log('ℹ️  No carousel detected, proceeding to guest entry...');
+    console.log('ℹ️  No carousel detected...');
   }
 
-  // Step 3: Wait for guest entry form
+  // Step 2.5: Handle Consent Agreement (if present)
+  const consentCheckbox = page.locator('[data-testid="checkbox-consent"]');
+  
+  if (await consentCheckbox.isVisible({ timeout: 3000 }).catch(() => false)) {
+    console.log('📋 Consent agreement detected, scrolling and accepting...');
+    
+    // Scroll to bottom of terms
+    const scrollArea = page.locator('.h-\\[500px\\]').first();
+    if (await scrollArea.isVisible().catch(() => false)) {
+      await scrollArea.evaluate(el => el.scrollTop = el.scrollHeight);
+      await page.waitForTimeout(1000);
+    }
+    
+    // Check consent checkbox
+    await consentCheckbox.click();
+    console.log('✅ Consent checkbox checked');
+    
+    // Click accept button
+    const acceptButton = page.locator('[data-testid="button-accept-consent"]');
+    await acceptButton.click();
+    await page.waitForTimeout(1000);
+    console.log('✅ Consent agreement accepted');
+  } else {
+    console.log('ℹ️  No consent agreement detected');
+  }
+
+  // Step 3: Wait for guest entry form or onboarding
   const displayNameInput = page.locator('[data-testid="input-display-name"]').or(
     page.locator('input[placeholder*="name" i]')
   );
