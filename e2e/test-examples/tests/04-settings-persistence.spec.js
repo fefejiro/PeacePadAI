@@ -39,7 +39,7 @@ test('Settings changes save and persist correctly', async ({ page }) => {
   const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click({ force: true });
-    await page.waitForTimeout(1500);
+    await skipButton.waitFor({ state: 'hidden', timeout: 5000 });
   }
 
   // Handle Consent Agreement (if present)

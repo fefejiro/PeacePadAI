@@ -34,8 +34,9 @@ test('Complete onboarding flow as new guest user', async ({ page }) => {
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     console.log('📸 Welcome carousel detected, clicking Skip Intro...');
     await skipButton.click({ force: true });
-    await page.waitForTimeout(1500);
-    console.log('✅ Skip Intro clicked');
+    // Wait for carousel to actually disappear (state-based wait)
+    await skipButton.waitFor({ state: 'hidden', timeout: 5000 });
+    console.log('✅ Skip Intro clicked and carousel disappeared');
   } else {
     console.log('ℹ️  No carousel detected...');
   }

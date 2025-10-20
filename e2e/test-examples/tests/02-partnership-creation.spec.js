@@ -45,7 +45,7 @@ test('Two co-parents connect via invite code', async ({ browser }) => {
     const skipButtonA = pageA.locator('[data-testid="button-skip-intro"]');
     if (await skipButtonA.isVisible({ timeout: 3000 }).catch(() => false)) {
       await skipButtonA.click({ force: true });
-      await pageA.waitForTimeout(1500);
+      await skipButtonA.waitFor({ state: 'hidden', timeout: 5000 });
     }
 
     // Handle Consent Agreement (if present)
@@ -119,7 +119,7 @@ test('Two co-parents connect via invite code', async ({ browser }) => {
     const skipButtonB = pageB.locator('[data-testid="button-skip-intro"]');
     if (await skipButtonB.isVisible({ timeout: 3000 }).catch(() => false)) {
       await skipButtonB.click({ force: true });
-      await pageB.waitForTimeout(1500);
+      await skipButtonB.waitFor({ state: 'hidden', timeout: 5000 });
     }
 
     // Handle Consent Agreement (if present)
