@@ -1,0 +1,456 @@
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\01-onboarding-Complete-onboarding-flow-as-new-guest-user-chromium\error-context.md
+
+  1 failed
+    [chromium] › tests\01-onboarding.spec.js:23:1 › Complete onboarding flow as new guest user ─────
+
+  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.
+Terminate batch job (Y/N)? Y
+
+C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples>npx playwright test --ui
+
+C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples>npx playwright test --headed
+Configuration Error: HTML reporter output folder clashes with the tests output folder:
+
+    html reporter folder: C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\test-results\html-report
+    test results folder: C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\test-results
+
+HTML reporter will clear its output directory prior to being generated, which will lead to the artifact loss.
+
+
+Running 8 tests using 1 worker
+
+  x  1 [chromium] › tests\01-onboarding.spec.js:23:1 › Complete onboarding flow as new guest user (18.7s)
+📝 Starting onboarding test...
+✅ Page loaded
+📸 Welcome carousel detected, clicking Skip Intro...
+  x  2 [chromium] › tests\02-partnership-creation.spec.js:24:1 › Two co-parents connect via invite code (18.5s)
+🤝 Starting partnership creation test...
+
+👤 PARENT A: Creating account...
+Internal error: step id not found: fixture@39
+  x  3 [chromium] › tests\03-messaging.spec.js:24:1 › Co-parents send and receive messages in real-time (18.5s)
+💬 Starting real-time messaging test...
+
+🔧 SETUP: Creating Parent A account...
+Internal error: step id not found: fixture@39Internal error: step id not found: fixture@39
+  x  4 [chromium] › tests\04-settings-persistence.spec.js:27:1 › Settings changes save and persist correctly (18.2s)
+⚙️  Starting settings persistence test...
+
+🔧 SETUP: Creating user account...
+  x  5 …omium] › tests\05-custody-schedule.spec.js:28:1 › Set up custody schedule and verify calendar display (17.8s)📅 Starting custody schedule test...
+
+🔧 SETUP: Creating Parent A...
+Internal error: step id not found: fixture@36
+  x  6 [chromium] › tests\06-responsive-navigation.spec.js:23:1 › Mobile view shows bottom navigation (17.5s)
+📱 Testing mobile navigation...
+  x  7 [chromium] › tests\06-responsive-navigation.spec.js:121:1 › Desktop view shows sidebar navigation (18.3s)
+💻 Testing desktop navigation...
+  x  8 [chromium] › tests\06-responsive-navigation.spec.js:255:1 › Navigation adapts when resizing viewport (18.5s)
+🔄 Testing responsive navigation transitions...
+
+
+  1) [chromium] › tests\01-onboarding.spec.js:23:1 › Complete onboarding flow as new guest user ────
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        3 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      34 |   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+      35 |     console.log('📸 Welcome carousel detected, clicking Skip Intro...');
+    > 36 |     await skipButton.click();
+         |                      ^
+      37 |     await page.waitForTimeout(1500);
+      38 |     console.log('✅ Skip Intro clicked');
+      39 |   } else {
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\01-onboarding.spec.js:36:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\01-onboarding-Complete-onboarding-flow-as-new-guest-user-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\01-onboarding-Complete-onboarding-flow-as-new-guest-user-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\01-onboarding-Complete-onboarding-flow-as-new-guest-user-chromium\error-context.md
+
+  2) [chromium] › tests\02-partnership-creation.spec.js:24:1 › Two co-parents connect via invite code
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        27 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      45 |     const skipButtonA = pageA.locator('[data-testid="button-skip-intro"]');
+      46 |     if (await skipButtonA.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 47 |       await skipButtonA.click();
+         |                         ^
+      48 |       await pageA.waitForTimeout(1500);
+      49 |     }
+      50 |
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\02-partnership-creation.spec.js:47:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\02-partnership-creation-Tw-9b60d-nts-connect-via-invite-code-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests\03-messaging.spec.js:24:1 › Co-parents send and receive messages in real-time
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        27 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      44 |       const skipButton = page.locator('[data-testid="button-skip-intro"]');
+      45 |       if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 46 |         await skipButton.click();
+         |                          ^
+      47 |         await page.waitForTimeout(1500);
+      48 |       }
+      49 |
+        at createAccount (C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\03-messaging.spec.js:46:26)
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\03-messaging.spec.js:127:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\03-messaging-Co-parents-se-1670d-ceive-messages-in-real-time-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\03-messaging-Co-parents-se-1670d-ceive-messages-in-real-time-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests\04-settings-persistence.spec.js:27:1 › Settings changes save and persist correctly
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        12 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      39 |   const skipButton = page.locator('[data-testid="button-skip-intro"]');
+      40 |   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 41 |     await skipButton.click();
+         |                      ^
+      42 |     await page.waitForTimeout(1500);
+      43 |   }
+      44 |
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\04-settings-persistence.spec.js:41:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\04-settings-persistence-Se-deb64--save-and-persist-correctly-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\04-settings-persistence-Se-deb64--save-and-persist-correctly-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\04-settings-persistence-Se-deb64--save-and-persist-correctly-chromium\error-context.md
+
+  5) [chromium] › tests\05-custody-schedule.spec.js:28:1 › Set up custody schedule and verify calendar display
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        17 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      43 |       const skipButton = page.locator('[data-testid="button-skip-intro"]');
+      44 |       if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 45 |         await skipButton.click();
+         |                          ^
+      46 |         await page.waitForTimeout(1500);
+      47 |       }
+      48 |
+        at createAccount (C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\05-custody-schedule.spec.js:45:26)
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\05-custody-schedule.spec.js:79:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\05-custody-schedule-Set-up-00742-and-verify-calendar-display-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › tests\06-responsive-navigation.spec.js:23:1 › Mobile view shows bottom navigation
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="flex flex-col items-center justify-center h-full text-center px-8">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="flex flex-col items-center justify-center h-full text-center px-8">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        7 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="flex flex-col items-center justify-center h-full text-center px-8">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      33 |   const skipButton = page.locator('[data-testid="button-skip-intro"]');
+      34 |   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 35 |     await skipButton.click();
+         |                      ^
+      36 |     await page.waitForTimeout(1500);
+      37 |   }
+      38 |
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\06-responsive-navigation.spec.js:35:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\06-responsive-navigation-Mobile-view-shows-bottom-navigation-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\06-responsive-navigation-Mobile-view-shows-bottom-navigation-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\06-responsive-navigation-Mobile-view-shows-bottom-navigation-chromium\error-context.md
+
+  7) [chromium] › tests\06-responsive-navigation.spec.js:121:1 › Desktop view shows sidebar navigation
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        7 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      131 |   const skipButton = page.locator('[data-testid="button-skip-intro"]');
+      132 |   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 133 |     await skipButton.click();
+          |                      ^
+      134 |     await page.waitForTimeout(1500);
+      135 |   }
+      136 |
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\06-responsive-navigation.spec.js:133:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\06-responsive-navigation-D-746e2-ew-shows-sidebar-navigation-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\06-responsive-navigation-D-746e2-ew-shows-sidebar-navigation-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\06-responsive-navigation-D-746e2-ew-shows-sidebar-navigation-chromium\error-context.md
+
+  8) [chromium] › tests\06-responsive-navigation.spec.js:255:1 › Navigation adapts when resizing viewport
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="button-skip-intro"]')
+        - locator resolved to <button data-testid="button-skip-intro" class="inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs absolute top-4 right-4 z-20 gap-2">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="relative h-full flex items-center justify-center">…</div> from <div class="h-full overflow-hidden">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      264 |   const skipButton = page.locator('[data-testid="button-skip-intro"]');
+      265 |   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    > 266 |     await skipButton.click();
+          |                      ^
+      267 |     await page.waitForTimeout(1500);
+      268 |   }
+      269 |
+        at C:\Users\mikef\PeacePadAI\e2e\peacepad-tests\test-examples\tests\06-responsive-navigation.spec.js:266:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\06-responsive-navigation-N-17621-apts-when-resizing-viewport-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\06-responsive-navigation-N-17621-apts-when-resizing-viewport-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\06-responsive-navigation-N-17621-apts-when-resizing-viewport-chromium\error-context.md
+
+  8 failed
+    [chromium] › tests\01-onboarding.spec.js:23:1 › Complete onboarding flow as new guest user ─────
+    [chromium] › tests\02-partnership-creation.spec.js:24:1 › Two co-parents connect via invite code
+    [chromium] › tests\03-messaging.spec.js:24:1 › Co-parents send and receive messages in real-time
+    [chromium] › tests\04-settings-persistence.spec.js:27:1 › Settings changes save and persist correctly
+    [chromium] › tests\05-custody-schedule.spec.js:28:1 › Set up custody schedule and verify calendar display
+    [chromium] › tests\06-responsive-navigation.spec.js:23:1 › Mobile view shows bottom navigation ─
+    [chromium] › tests\06-responsive-navigation.spec.js:121:1 › Desktop view shows sidebar navigation
+    [chromium] › tests\06-responsive-navigation.spec.js:255:1 › Navigation adapts when resizing viewport
+
+  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.
