@@ -14,6 +14,42 @@ export default function ConsentAgreement({ onAccept }: ConsentAgreementProps) {
   const [hasAccepted, setHasAccepted] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Check if content is already fully visible (no scroll needed) or if scrolled to bottom
+  useEffect(() => {
+    const checkScroll = () => {
+      // Try multiple selectors to find the scroll container
+      let scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement;
+      
+      // Fallback to direct child if radix selector doesn't work
+      if (!scrollContainer) {
+        scrollContainer = scrollAreaRef.current?.querySelector('.overflow-auto') as HTMLDivElement;
+      }
+      
+      if (scrollContainer) {
+        const { scrollHeight, clientHeight, scrollTop } = scrollContainer;
+        // Check if no scrolling is needed OR if already scrolled to bottom
+        const isFullyVisible = scrollHeight <= clientHeight + 10;
+        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50;
+        
+        if ((isFullyVisible || isAtBottom) && !hasScrolledToBottom) {
+          setHasScrolledToBottom(true);
+        }
+      }
+    };
+
+    // Check multiple times to handle async rendering
+    checkScroll();
+    const timer1 = setTimeout(checkScroll, 100);
+    const timer2 = setTimeout(checkScroll, 500);
+    const timer3 = setTimeout(checkScroll, 1000);
+    
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [hasScrolledToBottom]);
+
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const target = event.target as HTMLDivElement;
     const scrolledToBottom =
