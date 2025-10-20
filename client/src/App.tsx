@@ -9,11 +9,14 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useIncomingCalls } from "@/hooks/use-incoming-calls";
+import { useReconnectingWebSocket } from "@/hooks/useReconnectingWebSocket";
 import MoodCheckIn from "@/components/MoodCheckIn";
 import Clippy from "@/components/Clippy";
 import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
 import JoinPartnershipPage from "@/pages/join-partnership";
@@ -123,7 +126,60 @@ export default function App() {
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { incomingCall, clearIncomingCall } = useIncomingCalls();
+
+  // Global WebSocket connection for all real-time features
+  const sessionId = typeof window !== 'undefined' ? (localStorage.getItem("peacepad_session_id") || user?.id || '') : '';
+  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = user ? `${protocol}//${window.location.host}/ws/signaling?sessionId=${sessionId}&userId=${user.id}` : '';
+
+  useReconnectingWebSocket({
+    url: wsUrl,
+    enabled: !!user,
+    onMessage: (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Handle all message types
+        if (data.type === "new-message") {
+          queryClient.invalidateQueries({ 
+            predicate: (query) => query.queryKey[0] === "/api/conversations"
+          });
+        } else if (data.type === "partnership-joined") {
+          toast({
+            title: "New Partnership! 🎉",
+            description: `${data.partnerName} joined using your invite code`,
+            duration: 3000,
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
+          queryClient.invalidateQueries({ 
+            predicate: (query) => query.queryKey[0] === "/api/conversations"
+          });
+        } else if (data.type === "incoming-call") {
+          // Dispatch custom event for incoming call
+          window.dispatchEvent(new CustomEvent('incoming-call', {
+            detail: {
+              callId: data.callId,
+              callerId: data.callerId,
+              callerName: data.callerName,
+              callerProfileImageUrl: data.callerProfileImageUrl,
+              callType: data.callType,
+            }
+          }));
+        } else if (data.type === "call-accepted") {
+          window.dispatchEvent(new CustomEvent('call-accepted', { detail: data }));
+        } else if (data.type === "call-declined") {
+          window.dispatchEvent(new CustomEvent('call-declined', { detail: data }));
+        } else if (data.type === "call-ended") {
+          window.dispatchEvent(new CustomEvent('call-ended', { detail: data }));
+        }
+      } catch (error) {
+        console.error("WebSocket message error:", error);
+      }
+    },
+  });
 
   const handleAcceptCall = (callId: string) => {
     clearIncomingCall();

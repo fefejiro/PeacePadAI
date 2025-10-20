@@ -19,7 +19,7 @@ type CallSession = {
 };
 
 export default function JoinCallPage() {
-  const [, params] = useRoute("/join/:code");
+  const [, params] = useRoute("/call/:code");
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();

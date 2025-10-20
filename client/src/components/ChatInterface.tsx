@@ -16,7 +16,6 @@ import type { Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useActivity } from "@/components/ActivityProvider";
-import { useReconnectingWebSocket } from "@/hooks/useReconnectingWebSocket";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -108,71 +107,6 @@ export default function ChatInterface() {
       return res.json();
     },
     enabled: !!conversationId,
-  });
-
-  // WebSocket connection for real-time message updates with auto-reconnect
-  const sessionId = localStorage.getItem("peacepad_session_id") || user?.id || '';
-  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = user ? `${protocol}//${window.location.host}/ws/signaling?sessionId=${sessionId}&userId=${user.id}` : '';
-
-  const { status: wsStatus, retryCount, maxRetries, reconnect } = useReconnectingWebSocket({
-    url: wsUrl,
-    enabled: !!user,
-    onMessage: (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "new-message") {
-          // Invalidate all conversation-related queries using predicate
-          queryClient.invalidateQueries({ 
-            predicate: (query) => {
-              const key = query.queryKey;
-              return key[0] === "/api/conversations";
-            }
-          });
-        } else if (data.type === "partnership-joined") {
-          // Show toast notification when someone joins your partnership
-          toast({
-            title: "New Partnership! 🎉",
-            description: `${data.partnerName} joined using your invite code`,
-            duration: 3000,
-          });
-          // Refresh both partnerships and conversations (new partnership = new conversation)
-          queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
-          queryClient.invalidateQueries({ 
-            predicate: (query) => {
-              const key = query.queryKey;
-              return key[0] === "/api/conversations";
-            }
-          });
-        } else if (data.type === "incoming-call") {
-          // Dispatch custom event for incoming call
-          const incomingCallEvent = new CustomEvent('incoming-call', {
-            detail: {
-              callId: data.callId,
-              callerId: data.callerId,
-              callerName: data.callerName,
-              callerProfileImageUrl: data.callerProfileImageUrl,
-              callType: data.callType,
-            }
-          });
-          window.dispatchEvent(incomingCallEvent);
-        } else if (data.type === "call-accepted") {
-          // Dispatch custom event for call accepted
-          const callAcceptedEvent = new CustomEvent('call-accepted', { detail: data });
-          window.dispatchEvent(callAcceptedEvent);
-        } else if (data.type === "call-declined") {
-          // Dispatch custom event for call declined
-          const callDeclinedEvent = new CustomEvent('call-declined', { detail: data });
-          window.dispatchEvent(callDeclinedEvent);
-        } else if (data.type === "call-ended") {
-          // Dispatch custom event for call ended
-          const callEndedEvent = new CustomEvent('call-ended', { detail: data });
-          window.dispatchEvent(callEndedEvent);
-        }
-      } catch (error) {
-        console.error("WebSocket message error:", error);
-      }
-    },
   });
 
   // Auto-preview tone with debounce (1.5s after typing stops)
@@ -720,48 +654,6 @@ export default function ChatInterface() {
                   : 'Select a conversation'
                 }
               </h2>
-              {/* Connection Status Indicator */}
-              {wsStatus === 'connected' && (
-                <Badge 
-                  variant="outline" 
-                  className="w-fit text-xs gap-1 border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  data-testid="status-connected"
-                >
-                  <Wifi className="h-3 w-3" />
-                  Connected
-                </Badge>
-              )}
-              {wsStatus === 'reconnecting' && (
-                <Badge 
-                  variant="outline" 
-                  className="w-fit text-xs gap-1 border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse"
-                  data-testid="status-reconnecting"
-                >
-                  <RefreshCw className="h-3 w-3 animate-spin" />
-                  Reconnecting {retryCount}/{maxRetries}
-                </Badge>
-              )}
-              {wsStatus === 'disconnected' && (
-                <div className="flex items-center gap-2">
-                  <Badge 
-                    variant="outline" 
-                    className="w-fit text-xs gap-1 border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
-                    data-testid="status-disconnected"
-                  >
-                    <WifiOff className="h-3 w-3" />
-                    Disconnected
-                  </Badge>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={reconnect}
-                    className="h-6 text-xs"
-                    data-testid="button-reconnect"
-                  >
-                    Retry
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
 
