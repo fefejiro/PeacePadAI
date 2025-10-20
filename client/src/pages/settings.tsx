@@ -44,13 +44,12 @@ export default function SettingsPage() {
   const [, setLocation] = useLocation();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
-  const [sharePhoneWithContacts, setSharePhoneWithContacts] = useState(user?.sharePhoneWithContacts ?? false);
   const [inviteCodeCopied, setInviteCodeCopied] = useState(false);
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
   const { theme, setTheme } = useTheme();
 
   const updateProfile = useMutation({
-    mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string; sharePhoneWithContacts?: boolean }) => {
+    mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string }) => {
       const res = await apiRequest("PATCH", "/api/user/profile", data);
       return await res.json();
     },
@@ -421,25 +420,8 @@ export default function SettingsPage() {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your phone number will be visible to your contacts for easy communication
+                Your phone number will be visible to your co-parent
               </p>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="space-y-0.5">
-                <Label htmlFor="share-phone">Share Phone Number with Mutual Contacts</Label>
-                <p className="text-sm text-muted-foreground">
-                  Only contacts who have also added you will see your phone number
-                </p>
-              </div>
-              <Switch
-                id="share-phone"
-                checked={sharePhoneWithContacts}
-                onCheckedChange={(checked) => {
-                  setSharePhoneWithContacts(checked);
-                  updateProfile.mutate({ sharePhoneWithContacts: checked });
-                }}
-                data-testid="switch-share-phone"
-              />
             </div>
           </CardContent>
         </Card>

@@ -1470,13 +1470,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Geocoding route - convert address/postal code to coordinates
   app.get('/api/geocode', isSoftAuthenticated, async (req, res) => {
     try {
-      const { address } = req.query;
+      const { query, address } = req.query;
+      const searchTerm = (query || address) as string;
       
-      if (!address) {
-        return res.status(400).json({ message: "Address is required" });
+      if (!searchTerm) {
+        return res.json({ results: [] });
       }
       
-      const addressStr = address as string;
+      const addressStr = searchTerm;
       let data: any = null;
       let isCanada = false;
       
@@ -1495,10 +1496,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (geocoderData && geocoderData.latt && geocoderData.longt) {
             isCanada = true;
             return res.json({
-              lat: parseFloat(geocoderData.latt),
-              lng: parseFloat(geocoderData.longt),
-              displayName: `${postalCode}, ${geocoderData.standard?.city || ''}, ${geocoderData.standard?.prov || 'ON'}, Canada`,
-              isCanada: true
+              results: [{
+                lat: parseFloat(geocoderData.latt),
+                lng: parseFloat(geocoderData.longt),
+                displayName: `${postalCode}, ${geocoderData.standard?.city || ''}, ${geocoderData.standard?.prov || 'ON'}, Canada`,
+                address: `${postalCode}, ${geocoderData.standard?.city || ''}, ${geocoderData.standard?.prov || 'ON'}, Canada`,
+                city: geocoderData.standard?.city,
+                state: geocoderData.standard?.prov || 'ON',
+                country: 'Canada'
+              }]
             });
           }
         } catch (geocoderError) {
@@ -1552,10 +1558,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (fsaLookup[fsaPrefix]) {
           const location = fsaLookup[fsaPrefix];
           return res.json({
-            lat: location.lat,
-            lng: location.lng,
-            displayName: `${partialPostalCode} area (${location.city}, ${location.prov}, Canada)`,
-            isCanada: true
+            results: [{
+              lat: location.lat,
+              lng: location.lng,
+              displayName: `${partialPostalCode} area (${location.city}, ${location.prov}, Canada)`,
+              address: `${partialPostalCode} area, ${location.city}, ${location.prov}, Canada`,
+              city: location.city,
+              state: location.prov,
+              country: 'Canada'
+            }]
           });
         }
         
@@ -1572,10 +1583,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (data && data.length > 0) {
           return res.json({
-            lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon),
-            displayName: `${partialPostalCode} area, ${data[0].address?.city || data[0].address?.town || ''}, Canada`,
-            isCanada: true
+            results: [{
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon),
+              displayName: `${partialPostalCode} area, ${data[0].address?.city || data[0].address?.town || ''}, Canada`,
+              address: data[0].display_name,
+              city: data[0].address?.city || data[0].address?.town,
+              state: data[0].address?.state,
+              country: 'Canada'
+            }]
           });
         }
       }
@@ -1591,18 +1607,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       data = await response.json();
       
       if (!data || data.length === 0) {
-        return res.status(404).json({ message: "Location not found. Please check the postal code or address." });
+        return res.json({ results: [] });
       }
       
-      const countryCode = data[0].address?.country_code;
-      isCanada = countryCode === 'ca';
+      // Return multiple results from Nominatim (up to 5)
+      const results = data.slice(0, 5).map((item: any) => ({
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+        displayName: item.display_name,
+        address: item.display_name,
+        city: item.address?.city || item.address?.town || item.address?.village,
+        state: item.address?.state,
+        country: item.address?.country,
+        postalCode: item.address?.postcode
+      }));
       
-      res.json({
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
-        displayName: data[0].display_name,
-        isCanada
-      });
+      res.json({ results });
     } catch (error) {
       console.error("Geocoding error:", error);
       res.status(500).json({ message: "Failed to geocode address" });
