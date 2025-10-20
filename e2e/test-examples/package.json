@@ -1,0 +1,19 @@
+{
+  "name": "peacepad-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for PeacePad using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:specific": "playwright test"
+  },
+  "keywords": ["e2e", "testing", "playwright", "peacepad"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
