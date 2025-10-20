@@ -214,7 +214,7 @@ export const expenses = pgTable("expenses", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Call sessions for shareable video/audio calls
+// Call sessions for shareable video/audio calls (legacy - for session code approach)
 export const callSessions = pgTable("call_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sessionCode: varchar("session_code").notNull().unique(), // 6-digit code like Zoom
@@ -223,6 +223,37 @@ export const callSessions = pgTable("call_sessions", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   endedAt: timestamp("ended_at"),
+});
+
+// Direct calls between co-parents (new calling system)
+export const calls = pgTable("calls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  callerId: varchar("caller_id").notNull().references(() => users.id), // Who initiated the call
+  receiverId: varchar("receiver_id").notNull().references(() => users.id), // Who was called
+  partnershipId: varchar("partnership_id").references(() => partnerships.id), // Link to partnership
+  callType: varchar("call_type").notNull(), // 'audio' or 'video'
+  status: varchar("status").notNull().default("ringing"), // ringing, active, ended, missed, declined
+  declineReason: text("decline_reason"), // "Busy", "Can't talk now", "Will call back", "Other"
+  startedAt: timestamp("started_at"), // When call was answered (null if never answered)
+  endedAt: timestamp("ended_at"), // When call ended
+  duration: text("duration"), // Duration in seconds (calculated from startedAt to endedAt)
+  createdAt: timestamp("created_at").notNull().defaultNow(), // When call was initiated
+});
+
+// Scheduled calls for future appointments
+export const scheduledCalls = pgTable("scheduled_calls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schedulerId: varchar("scheduler_id").notNull().references(() => users.id), // Who scheduled the call
+  participantId: varchar("participant_id").notNull().references(() => users.id), // Other participant
+  partnershipId: varchar("partnership_id").references(() => partnerships.id),
+  callType: varchar("call_type").notNull(), // 'audio' or 'video'
+  scheduledFor: timestamp("scheduled_for").notNull(), // When the call is scheduled
+  title: text("title"), // Optional title like "Weekly check-in"
+  notes: text("notes"), // Optional notes about the call
+  reminderSent: boolean("reminder_sent").notNull().default(false), // Track if reminder notification was sent
+  status: varchar("status").notNull().default("pending"), // pending, completed, cancelled, missed
+  actualCallId: varchar("actual_call_id").references(() => calls.id), // Links to actual call when it happens
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Call recordings for audit/legal purposes
@@ -359,3 +390,11 @@ export type SessionMoodSummary = typeof sessionMoodSummaries.$inferSelect;
 export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplates).omit({ id: true, createdAt: true });
 export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
 export type ScheduleTemplate = typeof scheduleTemplates.$inferSelect;
+
+export const insertCallSchema = createInsertSchema(calls).omit({ id: true, createdAt: true });
+export type InsertCall = z.infer<typeof insertCallSchema>;
+export type Call = typeof calls.$inferSelect;
+
+export const insertScheduledCallSchema = createInsertSchema(scheduledCalls).omit({ id: true, createdAt: true });
+export type InsertScheduledCall = z.infer<typeof insertScheduledCallSchema>;
+export type ScheduledCall = typeof scheduledCalls.$inferSelect;
