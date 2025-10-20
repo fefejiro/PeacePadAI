@@ -35,6 +35,83 @@ export function notifyPartnershipJoin(userId: string, partnerName: string) {
   });
 }
 
+// Direct calling system notifications
+export async function notifyIncomingCall(receiverId: string, callId: string, callerId: string, callType: 'audio' | 'video', isScheduled: boolean = false) {
+  let notified = false;
+  
+  // Notify all active connections for the receiver
+  clients.forEach((client) => {
+    if (client.userId === receiverId && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({
+        type: "direct-call-incoming",
+        callId,
+        callerId,
+        callType,
+        isScheduled
+      }));
+      notified = true;
+    }
+  });
+  
+  // Send push notification if user is not actively connected
+  if (!notified) {
+    try {
+      const caller = await storage.getUser(callerId);
+      const callerName = caller?.displayName || 'Someone';
+      
+      await sendPushNotification(receiverId, {
+        title: 'Incoming Call',
+        body: `${callerName} is calling you (${callType} call)`,
+        data: {
+          type: 'direct-call-incoming',
+          callId,
+          callerId,
+          callType,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to send push notification for incoming call:', error);
+    }
+  }
+}
+
+export function notifyCallAccepted(callerId: string, callId: string, receiverId: string) {
+  clients.forEach((client) => {
+    if (client.userId === callerId && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({
+        type: "direct-call-accepted",
+        callId,
+        receiverId
+      }));
+    }
+  });
+}
+
+export function notifyCallDeclined(callerId: string, callId: string, receiverId: string, reason?: string) {
+  clients.forEach((client) => {
+    if (client.userId === callerId && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({
+        type: "direct-call-declined",
+        callId,
+        receiverId,
+        reason
+      }));
+    }
+  });
+}
+
+export function notifyCallEnded(userId: string, callId: string, endedBy: string) {
+  clients.forEach((client) => {
+    if (client.userId === userId && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({
+        type: "direct-call-ended",
+        callId,
+        endedBy
+      }));
+    }
+  });
+}
+
 export function setupWebRTCSignaling(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
 

@@ -3,7 +3,15 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
 import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
-import { setupWebRTCSignaling, broadcastNewMessage, notifyPartnershipJoin } from "./webrtc-signaling";
+import { 
+  setupWebRTCSignaling, 
+  broadcastNewMessage, 
+  notifyPartnershipJoin,
+  notifyIncomingCall,
+  notifyCallAccepted,
+  notifyCallDeclined,
+  notifyCallEnded
+} from "./webrtc-signaling";
 import OpenAI from "openai";
 import { transcribeFromBase64 } from "./whisperService";
 import { analyzeEmotion, generateSessionSummary } from "./emotionAnalyzer";
@@ -1362,9 +1370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'ringing',
       });
 
-      // Broadcast call notification to receiver via WebSocket
-      // This will be handled in the WebSocket section
-      broadcastNewMessage(); // Temporary - will add specific call notification
+      // Notify receiver of incoming call via WebSocket
+      await notifyIncomingCall(receiverId, call.id, userId, callType);
 
       res.json(call);
     } catch (error) {
@@ -1412,8 +1419,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startedAt: new Date(),
       });
 
-      // Broadcast call status update via WebSocket
-      broadcastNewMessage();
+      // Notify caller that call was accepted via WebSocket
+      notifyCallAccepted(call.callerId, id, userId);
 
       res.json(updatedCall);
     } catch (error) {
@@ -1449,8 +1456,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endedAt: new Date(),
       });
 
-      // Broadcast call status update via WebSocket
-      broadcastNewMessage();
+      // Notify caller that call was declined via WebSocket
+      notifyCallDeclined(call.callerId, id, userId, reason);
 
       res.json(updatedCall);
     } catch (error) {
@@ -1498,8 +1505,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duration,
       });
 
-      // Broadcast call status update via WebSocket
-      broadcastNewMessage();
+      // Notify the other party that call ended via WebSocket
+      const otherUserId = call.callerId === userId ? call.receiverId : call.callerId;
+      notifyCallEnded(otherUserId, id, userId);
 
       res.json(updatedCall);
     } catch (error) {
