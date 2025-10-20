@@ -15,7 +15,11 @@ import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
 import ConsentAgreement from "@/components/ConsentAgreement";
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState(1);
+  // Initialize step from localStorage or default to 1
+  const [step, setStep] = useState(() => {
+    const savedStep = localStorage.getItem("onboarding_current_step");
+    return savedStep ? parseInt(savedStep, 10) : 1;
+  });
   const [showIntro, setShowIntro] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -28,28 +32,60 @@ export default function OnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const inviteCode = user?.inviteCode || "";
   const inviteLink = `${window.location.origin}/join/${inviteCode}`;
 
-  // Check if user is joining via invite link and should see intro/consent
+  // Detect authenticated users and determine which step they should be on
   useEffect(() => {
+    if (isLoading) return; // Wait for auth to load
+
     const pendingCode = localStorage.getItem("pending_join_code");
     const hasSeenIntro = localStorage.getItem("hasSeenIntro");
     const hasAcceptedConsent = localStorage.getItem("hasAcceptedConsent");
+    const hasCompletedStep2 = localStorage.getItem("onboarding_completed_step2");
     
-    console.log("[Onboarding] Checking status - Pending code:", pendingCode, "Has seen intro:", hasSeenIntro, "Has accepted consent:", hasAcceptedConsent);
+    console.log("[Onboarding] Auth loaded - User:", user?.id, "Step:", step, "Pending code:", pendingCode);
     
-    // Show intro for users joining via invite link who haven't seen it
+    // Handle intro/consent flow for users joining via invite link
     if (pendingCode && !hasSeenIntro) {
       console.log("[Onboarding] Showing intro slideshow for invite link user");
       setShowIntro(true);
+      return;
     } else if (pendingCode && !hasAcceptedConsent) {
       console.log("[Onboarding] Showing consent for invite link user");
       setShowConsent(true);
+      return;
     }
-  }, []);
+
+    // If user is NOT authenticated, reset to Step 1 and clear stale storage
+    if (!user) {
+      console.log("[Onboarding] No authenticated user, resetting to Step 1");
+      setStep(1);
+      localStorage.removeItem("onboarding_current_step");
+      localStorage.removeItem("onboarding_completed_step2");
+      return;
+    }
+
+    // If user is authenticated, determine which step they should be on
+    if (user.displayName && user.inviteCode) {
+      console.log("[Onboarding] User already has account. Checking profile completion...");
+      
+      // If they completed Step 2 (or skipped it), show Step 3
+      if (hasCompletedStep2 || user.childName || user.relationshipType) {
+        console.log("[Onboarding] Step 2 completed, showing Step 3");
+        setStep(3);
+        localStorage.setItem("onboarding_current_step", "3");
+      } 
+      // Otherwise, they completed Step 1 but not Step 2
+      else if (step === 1) {
+        console.log("[Onboarding] Step 1 completed, showing Step 2");
+        setStep(2);
+        localStorage.setItem("onboarding_current_step", "2");
+      }
+    }
+  }, [user, isLoading]);
 
   const handleIntroComplete = () => {
     console.log("[Onboarding] Intro slideshow completed");
@@ -82,6 +118,7 @@ export default function OnboardingPage() {
         uploadProfileImage.mutate();
       } else {
         setStep(2);
+        localStorage.setItem("onboarding_current_step", "2");
       }
     },
     onError: () => {
@@ -115,6 +152,7 @@ export default function OnboardingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       setStep(2);
+      localStorage.setItem("onboarding_current_step", "2");
     },
     onError: () => {
       toast({
@@ -123,6 +161,7 @@ export default function OnboardingPage() {
         duration: 4000,
       });
       setStep(2);
+      localStorage.setItem("onboarding_current_step", "2");
     },
   });
 
@@ -140,6 +179,9 @@ export default function OnboardingPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       
+      // Mark Step 2 as completed
+      localStorage.setItem("onboarding_completed_step2", "true");
+      
       // Check if there's a pending join code - if so, skip Step 3 and join partnership
       const pendingCode = localStorage.getItem("pending_join_code");
       console.log("[Onboarding] Step 2 complete. Pending code:", pendingCode);
@@ -147,10 +189,14 @@ export default function OnboardingPage() {
       if (pendingCode) {
         localStorage.removeItem("pending_join_code");
         localStorage.setItem("hasCompletedOnboarding", "true");
+        // Clear onboarding state when redirecting to partnership
+        localStorage.removeItem("onboarding_current_step");
+        localStorage.removeItem("onboarding_completed_step2");
         console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
         setLocation(`/join/${pendingCode}`);
       } else {
         setStep(3);
+        localStorage.setItem("onboarding_current_step", "3");
       }
     },
     onError: () => {
@@ -345,6 +391,9 @@ export default function OnboardingPage() {
                   variant="outline"
                   className="flex-1"
                   onClick={async () => {
+                    // Mark Step 2 as completed even when skipping
+                    localStorage.setItem("onboarding_completed_step2", "true");
+                    
                     // Check if there's a pending join code - if so, skip Step 3 and join partnership
                     const pendingCode = localStorage.getItem("pending_join_code");
                     console.log("[Onboarding] Step 2 skipped. Pending code:", pendingCode);
@@ -352,11 +401,15 @@ export default function OnboardingPage() {
                     if (pendingCode) {
                       localStorage.removeItem("pending_join_code");
                       localStorage.setItem("hasCompletedOnboarding", "true");
+                      // Clear onboarding state when redirecting to partnership
+                      localStorage.removeItem("onboarding_current_step");
+                      localStorage.removeItem("onboarding_completed_step2");
                       await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
                       console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
                       setLocation(`/join/${pendingCode}`);
                     } else {
                       setStep(3);
+                      localStorage.setItem("onboarding_current_step", "3");
                     }
                   }}
                   data-testid="button-skip-step2"
@@ -455,9 +508,14 @@ export default function OnboardingPage() {
               <Button
                 className="w-full"
                 onClick={async () => {
+                  // Mark onboarding as complete and clear step tracking
                   localStorage.setItem("hasCompletedOnboarding", "true");
+                  localStorage.removeItem("onboarding_current_step");
+                  localStorage.removeItem("onboarding_completed_step2");
+                  
                   // Refresh auth state before redirecting
                   await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+                  
                   // Check if there's a pending join code from /join/:code link
                   const pendingCode = localStorage.getItem("pending_join_code");
                   if (pendingCode) {
