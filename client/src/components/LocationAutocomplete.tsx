@@ -54,6 +54,15 @@ export function LocationAutocomplete({
   // Fetch geocoding results
   const { data, isLoading } = useQuery<{ results: LocationResult[] }>({
     queryKey: ['/api/geocode', debouncedQuery],
+    queryFn: async () => {
+      const res = await fetch(`/api/geocode?query=${encodeURIComponent(debouncedQuery)}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch geocoding results');
+      }
+      return res.json();
+    },
     enabled: debouncedQuery.length >= 2,
   });
 
