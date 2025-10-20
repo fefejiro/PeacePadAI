@@ -32,7 +32,7 @@ test('Mobile view shows bottom navigation', async ({ page }) => {
 
   const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await skipButton.click();
+    await skipButton.click({ force: true });
     await page.waitForTimeout(1500);
   }
 
@@ -130,7 +130,7 @@ test('Desktop view shows sidebar navigation', async ({ page }) => {
 
   const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await skipButton.click();
+    await skipButton.click({ force: true });
     await page.waitForTimeout(1500);
   }
 
@@ -263,7 +263,7 @@ test('Navigation adapts when resizing viewport', async ({ page }) => {
   // Complete onboarding
   const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await skipButton.click();
+    await skipButton.click({ force: true });
     await page.waitForTimeout(1500);
   }
 

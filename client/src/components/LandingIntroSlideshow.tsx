@@ -151,7 +151,7 @@ export default function LandingIntroSlideshow({ onComplete }: LandingIntroSlides
         variant="ghost"
         size="sm"
         onClick={handleSkip}
-        className="absolute top-4 right-4 z-20 gap-2"
+        className="absolute top-4 right-4 z-[100] gap-2"
         data-testid="button-skip-intro"
       >
         <X className="h-4 w-4" />

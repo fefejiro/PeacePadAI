@@ -42,7 +42,7 @@ test('Set up custody schedule and verify calendar display', async ({ browser }) 
 
       const skipButton = page.locator('[data-testid="button-skip-intro"]');
       if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await skipButton.click();
+        await skipButton.click({ force: true });
         await page.waitForTimeout(1500);
       }
 

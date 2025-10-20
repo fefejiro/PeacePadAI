@@ -33,7 +33,7 @@ test('Complete onboarding flow as new guest user', async ({ page }) => {
   
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     console.log('📸 Welcome carousel detected, clicking Skip Intro...');
-    await skipButton.click();
+    await skipButton.click({ force: true });
     await page.waitForTimeout(1500);
     console.log('✅ Skip Intro clicked');
   } else {

@@ -44,7 +44,7 @@ test('Two co-parents connect via invite code', async ({ browser }) => {
     // Skip carousel if present
     const skipButtonA = pageA.locator('[data-testid="button-skip-intro"]');
     if (await skipButtonA.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await skipButtonA.click();
+      await skipButtonA.click({ force: true });
       await pageA.waitForTimeout(1500);
     }
 
@@ -118,7 +118,7 @@ test('Two co-parents connect via invite code', async ({ browser }) => {
     // Skip carousel if present
     const skipButtonB = pageB.locator('[data-testid="button-skip-intro"]');
     if (await skipButtonB.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await skipButtonB.click();
+      await skipButtonB.click({ force: true });
       await pageB.waitForTimeout(1500);
     }
 
