@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,23 @@ export default function TasksPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
+
+  // Form refs for Enter key navigation
+  const titleRef = useRef<HTMLInputElement>(null);
+  const dueDateRef = useRef<HTMLInputElement>(null);
+
+  // Helper function for Enter key navigation
+  const handleEnterKey = (e: React.KeyboardEvent, nextRef?: React.RefObject<any>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (nextRef?.current) {
+        nextRef.current?.focus();
+      } else {
+        // Last field - submit the form
+        handleCreateTask();
+      }
+    }
+  };
 
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
@@ -113,17 +130,19 @@ export default function TasksPage() {
               Add Task
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Create Task</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-4 overflow-y-auto flex-1 pr-2">
               <div>
                 <Label htmlFor="task-title">Task Title</Label>
                 <Input
+                  ref={titleRef}
                   id="task-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={(e) => handleEnterKey(e, dueDateRef)}
                   placeholder="e.g., Pick up kids from school"
                   data-testid="input-task-title"
                 />
@@ -131,10 +150,12 @@ export default function TasksPage() {
               <div>
                 <Label htmlFor="due-date">Due Date (Optional)</Label>
                 <Input
+                  ref={dueDateRef}
                   id="due-date"
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
+                  onKeyDown={(e) => handleEnterKey(e)}
                   data-testid="input-due-date"
                 />
               </div>
