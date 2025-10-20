@@ -71,6 +71,14 @@ export const partnerships = pgTable("partnerships", {
   allowVideo: boolean("allow_video").notNull().default(true),
   allowRecording: boolean("allow_recording").notNull().default(false),
   allowAiTone: boolean("allow_ai_tone").notNull().default(true), // Default on for co-parenting
+  // Custody schedule configuration
+  custodyEnabled: boolean("custody_enabled").notNull().default(false), // Toggle custody calendar feature
+  custodyPattern: text("custody_pattern"), // week_on_off, every_other_weekend, two_two_three, custom
+  custodyStartDate: timestamp("custody_start_date"), // When the pattern begins
+  custodyPrimaryParent: text("custody_primary_parent"), // user1 or user2 - who has custody first
+  custodyConfig: jsonb("custody_config"), // Custom pattern configuration (days of week, etc.)
+  user1Color: text("user1_color").default("#3b82f6"), // User 1 calendar color (soft blue)
+  user2Color: text("user2_color").default("#10b981"), // User 2 calendar color (soft green)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
