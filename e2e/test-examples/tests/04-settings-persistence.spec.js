@@ -36,10 +36,10 @@ test('Settings changes save and persist correctly', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  const skipButton = page.locator('text=Skip Intro');
+  const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
   }
 
   // Handle Consent Agreement (if present)

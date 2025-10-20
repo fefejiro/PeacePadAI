@@ -30,10 +30,10 @@ test('Mobile view shows bottom navigation', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  const skipButton = page.locator('text=Skip Intro');
+  const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
   }
 
   // Handle Consent Agreement (if present)
@@ -128,10 +128,10 @@ test('Desktop view shows sidebar navigation', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  const skipButton = page.locator('text=Skip Intro');
+  const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
   }
 
   // Handle Consent Agreement (if present)
@@ -261,10 +261,10 @@ test('Navigation adapts when resizing viewport', async ({ page }) => {
   await page.waitForLoadState('networkidle');
 
   // Complete onboarding
-  const skipButton = page.locator('text=Skip Intro');
+  const skipButton = page.locator('[data-testid="button-skip-intro"]');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
   }
 
   // Handle Consent Agreement (if present)

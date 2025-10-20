@@ -29,12 +29,13 @@ test('Complete onboarding flow as new guest user', async ({ page }) => {
   console.log('✅ Page loaded');
 
   // Step 2: Check for welcome carousel
-  const skipButton = page.locator('text=Skip Intro').or(page.locator('[data-testid*="skip"]'));
+  const skipButton = page.locator('[data-testid="button-skip-intro"]');
   
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     console.log('📸 Welcome carousel detected, clicking Skip Intro...');
     await skipButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
+    console.log('✅ Skip Intro clicked');
   } else {
     console.log('ℹ️  No carousel detected...');
   }
