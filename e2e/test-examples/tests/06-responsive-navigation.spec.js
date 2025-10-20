@@ -33,7 +33,21 @@ test('Mobile view shows bottom navigation', async ({ page }) => {
   const skipButton = page.locator('text=Skip Intro');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
+  }
+
+  // Handle Consent Agreement (if present)
+  const consentCheckbox = page.locator('[data-testid="checkbox-consent"]');
+  if (await consentCheckbox.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const scrollArea = page.locator('.h-\\[500px\\]').first();
+    if (await scrollArea.isVisible().catch(() => false)) {
+      await scrollArea.evaluate(el => el.scrollTop = el.scrollHeight);
+      await page.waitForTimeout(1000);
+    }
+    await consentCheckbox.click();
+    const acceptButton = page.locator('[data-testid="button-accept-consent"]');
+    await acceptButton.click();
+    await page.waitForTimeout(1000);
   }
 
   const nameInput = page.locator('[data-testid="input-display-name"]').or(
@@ -117,7 +131,21 @@ test('Desktop view shows sidebar navigation', async ({ page }) => {
   const skipButton = page.locator('text=Skip Intro');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
+  }
+
+  // Handle Consent Agreement (if present)
+  const consentCheckbox = page.locator('[data-testid="checkbox-consent"]');
+  if (await consentCheckbox.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const scrollArea = page.locator('.h-\\[500px\\]').first();
+    if (await scrollArea.isVisible().catch(() => false)) {
+      await scrollArea.evaluate(el => el.scrollTop = el.scrollHeight);
+      await page.waitForTimeout(1000);
+    }
+    await consentCheckbox.click();
+    const acceptButton = page.locator('[data-testid="button-accept-consent"]');
+    await acceptButton.click();
+    await page.waitForTimeout(1000);
   }
 
   const nameInput = page.locator('[data-testid="input-display-name"]').or(
@@ -236,7 +264,21 @@ test('Navigation adapts when resizing viewport', async ({ page }) => {
   const skipButton = page.locator('text=Skip Intro');
   if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipButton.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
+  }
+
+  // Handle Consent Agreement (if present)
+  const consentCheckbox = page.locator('[data-testid="checkbox-consent"]');
+  if (await consentCheckbox.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const scrollArea = page.locator('.h-\\[500px\\]').first();
+    if (await scrollArea.isVisible().catch(() => false)) {
+      await scrollArea.evaluate(el => el.scrollTop = el.scrollHeight);
+      await page.waitForTimeout(1000);
+    }
+    await consentCheckbox.click();
+    const acceptButton = page.locator('[data-testid="button-accept-consent"]');
+    await acceptButton.click();
+    await page.waitForTimeout(1000);
   }
 
   const nameInput = page.locator('[data-testid="input-display-name"]').or(
