@@ -52,7 +52,7 @@ Watch the tests run in a visible browser window! 🎉
 
 | Test | Duration | What It Tests |
 |------|----------|---------------|
-| **01-onboarding** | 10-15s | Creates guest account, skips carousel, sets display name |
+| **01-onboarding** | 10-15s | Skips carousel, accepts Terms of Service, creates guest account |
 | **02-partnership** | 25-30s | Two parents connect using invite code |
 | **03-messaging** | 30-35s | Real-time chat between connected parents |
 | **04-settings** | 15-20s | Updates save and persist after reload |
@@ -106,6 +106,14 @@ npx playwright show-report
 npx playwright test --headed
 ```
 Sometimes the app needs a moment to wake up from sleep.
+
+### ❌ Tests fail on consent screen
+**Fix:** The onboarding flow now requires accepting Terms of Service:
+1. Welcome carousel (Skip Intro button)
+2. **Terms of Service** (scroll to bottom → check checkbox → click continue)
+3. Guest entry form (display name)
+
+All tests have been updated to handle this flow automatically.
 
 ---
 

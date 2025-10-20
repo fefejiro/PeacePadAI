@@ -27,6 +27,7 @@ This test suite validates PeacePad's core functionality including:
 
 ### Test 1: Onboarding Flow (`01-onboarding.spec.js`)
 - ✅ Welcome carousel display and skip functionality
+- ✅ Terms of Service consent (scroll to bottom, accept checkbox, continue)
 - ✅ Guest account creation with display name
 - ✅ Emoji profile picture selection
 - ✅ Navigation to home page after onboarding
@@ -258,11 +259,16 @@ npm install @playwright/test@latest
 npx playwright install
 ```
 
-### Issue: Tests fail on "Skip Intro"
-**Solution:** Your app might have skipped the welcome carousel.
-- This is normal if you've already completed onboarding
-- The tests handle this with `.catch(() => false)`
-- Tests will continue to guest entry form
+### Issue: Tests fail on "Skip Intro" or consent screen
+**Solution:** The onboarding flow has multiple steps:
+1. Welcome carousel (can be skipped with "Skip Intro")
+2. Terms of Service consent (requires scrolling to bottom and accepting)
+3. Guest entry form (display name and profile setup)
+
+Tests handle all these steps automatically with conditional checks. If a test fails:
+- Check that the consent agreement is scrollable
+- Verify the checkbox is enabled after scrolling
+- Ensure the "Continue to Registration" button works
 
 ### Issue: Partnership tests fail
 **Solution:** Tests might be creating duplicate partnerships.
@@ -293,14 +299,34 @@ test('My new test', async ({ page }) => {
   // 1. Navigate to page
   await page.goto('/');
   
-  // 2. Interact with elements
+  // 2. Handle onboarding (carousel + consent)
+  const skipButton = page.locator('text=Skip Intro');
+  if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await skipButton.click();
+    await page.waitForTimeout(1000);
+  }
+  
+  // Handle consent agreement
+  const consentCheckbox = page.locator('[data-testid="checkbox-consent"]');
+  if (await consentCheckbox.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const scrollArea = page.locator('.h-\\[500px\\]').first();
+    if (await scrollArea.isVisible().catch(() => false)) {
+      await scrollArea.evaluate(el => el.scrollTop = el.scrollHeight);
+      await page.waitForTimeout(1000);
+    }
+    await consentCheckbox.click();
+    await page.locator('[data-testid="button-accept-consent"]').click();
+    await page.waitForTimeout(1000);
+  }
+  
+  // 3. Interact with elements
   await page.fill('[data-testid="input-name"]', 'Test User');
   await page.click('[data-testid="button-submit"]');
   
-  // 3. Verify results
+  // 4. Verify results
   await expect(page.locator('text=Success')).toBeVisible();
   
-  // 4. Take screenshot
+  // 5. Take screenshot
   await page.screenshot({ path: 'test-results/my-test.png' });
 });
 ```
