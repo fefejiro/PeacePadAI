@@ -8,10 +8,12 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
+import { useIncomingCalls } from "@/hooks/use-incoming-calls";
 import MoodCheckIn from "@/components/MoodCheckIn";
 import Clippy from "@/components/Clippy";
 import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
+import { IncomingCallModal } from "@/components/IncomingCallModal";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
 import JoinPartnershipPage from "@/pages/join-partnership";
@@ -120,7 +122,28 @@ export default function App() {
 }
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  const [, setLocation] = useLocation();
+  const { incomingCall, clearIncomingCall } = useIncomingCalls();
+
+  const handleAcceptCall = (callId: string) => {
+    clearIncomingCall();
+    setLocation(`/call/${callId}`);
+  };
+
+  const handleDeclineCall = (callId: string, reason?: string) => {
+    clearIncomingCall();
+  };
+
+  return (
+    <>
+      {children}
+      <IncomingCallModal
+        call={incomingCall}
+        onAccept={handleAcceptCall}
+        onDecline={handleDeclineCall}
+      />
+    </>
+  );
 }
 
 function ConditionalSidebar() {

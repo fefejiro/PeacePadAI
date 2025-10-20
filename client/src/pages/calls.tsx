@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Plus, Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type CallStatus = 'ringing' | 'active' | 'ended' | 'missed' | 'declined';
 type CallType = 'audio' | 'video';
@@ -24,15 +30,80 @@ interface Call {
   createdAt: string;
 }
 
+interface Partnership {
+  id: string;
+  userId: string;
+  partnerId: string;
+  partnerName: string;
+  partnerProfileImageUrl: string | null;
+  status: string;
+}
+
 export default function CallsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<'all' | 'missed' | 'received' | 'outgoing'>('all');
   const [showNewCallDialog, setShowNewCallDialog] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
+  const [callType, setCallType] = useState<CallType>('audio');
 
   const { data: calls = [], isLoading } = useQuery<Call[]>({
     queryKey: ['/api/calls', filter],
     enabled: !!user,
   });
+
+  const { data: partnerships = [] } = useQuery<Partnership[]>({
+    queryKey: ['/api/partnerships'],
+    enabled: !!user && showNewCallDialog,
+  });
+
+  const initiateCallMutation = useMutation({
+    mutationFn: async (data: { receiverId: string; callType: CallType; partnershipId?: string }) => {
+      return apiRequest('/api/calls/initiate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/calls'] });
+      setShowNewCallDialog(false);
+      toast({
+        title: "Call initiated",
+        description: "Your call request has been sent",
+      });
+      // Navigate to the active call screen
+      if (response?.callId) {
+        setLocation(`/call/${response.callId}`);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to initiate call",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInitiateCall = () => {
+    if (!selectedPartnerId) {
+      toast({
+        title: "Select a partner",
+        description: "Please select who you'd like to call",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const partnership = partnerships.find(p => p.partnerId === selectedPartnerId);
+    
+    initiateCallMutation.mutate({
+      receiverId: selectedPartnerId,
+      callType,
+      partnershipId: partnership?.id,
+    });
+  };
 
   const getCallIcon = (call: Call) => {
     if (call.status === 'missed') return <PhoneMissed className="w-5 h-5 text-destructive" data-testid="icon-call-missed" />;
@@ -156,6 +227,95 @@ export default function CallsPage() {
           ))
         )}
       </div>
+
+      {/* New Call Dialog */}
+      <Dialog open={showNewCallDialog} onOpenChange={setShowNewCallDialog}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-new-call">
+          <DialogHeader>
+            <DialogTitle>Start a Call</DialogTitle>
+            <DialogDescription>
+              Select who you'd like to call and the call type
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {/* Partner Selection */}
+            <div className="space-y-3">
+              <Label>Select Partner</Label>
+              {partnerships.length === 0 ? (
+                <div className="text-sm text-muted-foreground p-4 border rounded-lg text-center">
+                  No partnerships found. Connect with your co-parent first.
+                </div>
+              ) : (
+                <RadioGroup value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
+                  {partnerships.map((partnership) => (
+                    <div
+                      key={partnership.id}
+                      className="flex items-center space-x-2 p-3 border rounded-lg hover-elevate cursor-pointer"
+                      onClick={() => setSelectedPartnerId(partnership.partnerId)}
+                      data-testid={`option-partner-${partnership.partnerId}`}
+                    >
+                      <RadioGroupItem value={partnership.partnerId} id={partnership.partnerId} />
+                      <Label htmlFor={partnership.partnerId} className="flex-1 cursor-pointer">
+                        {partnership.partnerName}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
+            </div>
+
+            {/* Call Type Selection */}
+            <div className="space-y-3">
+              <Label>Call Type</Label>
+              <RadioGroup value={callType} onValueChange={(v) => setCallType(v as CallType)}>
+                <div
+                  className="flex items-center space-x-3 p-3 border rounded-lg hover-elevate cursor-pointer"
+                  onClick={() => setCallType('audio')}
+                  data-testid="option-audio-call"
+                >
+                  <RadioGroupItem value="audio" id="audio" />
+                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="audio" className="flex-1 cursor-pointer">
+                    Audio Call
+                  </Label>
+                </div>
+                <div
+                  className="flex items-center space-x-3 p-3 border rounded-lg hover-elevate cursor-pointer"
+                  onClick={() => setCallType('video')}
+                  data-testid="option-video-call"
+                >
+                  <RadioGroupItem value="video" id="video" />
+                  <Video className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="video" className="flex-1 cursor-pointer">
+                    Video Call
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowNewCallDialog(false)}
+                className="flex-1"
+                data-testid="button-cancel-call"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleInitiateCall}
+                disabled={!selectedPartnerId || initiateCallMutation.isPending}
+                className="flex-1"
+                data-testid="button-start-call"
+              >
+                {initiateCallMutation.isPending ? "Starting..." : "Start Call"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

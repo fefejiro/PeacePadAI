@@ -144,6 +144,30 @@ export default function ChatInterface() {
               return key[0] === "/api/conversations";
             }
           });
+        } else if (data.type === "incoming-call") {
+          // Dispatch custom event for incoming call
+          const incomingCallEvent = new CustomEvent('incoming-call', {
+            detail: {
+              callId: data.callId,
+              callerId: data.callerId,
+              callerName: data.callerName,
+              callerProfileImageUrl: data.callerProfileImageUrl,
+              callType: data.callType,
+            }
+          });
+          window.dispatchEvent(incomingCallEvent);
+        } else if (data.type === "call-accepted") {
+          // Dispatch custom event for call accepted
+          const callAcceptedEvent = new CustomEvent('call-accepted', { detail: data });
+          window.dispatchEvent(callAcceptedEvent);
+        } else if (data.type === "call-declined") {
+          // Dispatch custom event for call declined
+          const callDeclinedEvent = new CustomEvent('call-declined', { detail: data });
+          window.dispatchEvent(callDeclinedEvent);
+        } else if (data.type === "call-ended") {
+          // Dispatch custom event for call ended
+          const callEndedEvent = new CustomEvent('call-ended', { detail: data });
+          window.dispatchEvent(callEndedEvent);
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
