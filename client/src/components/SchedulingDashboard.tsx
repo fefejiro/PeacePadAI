@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, AlertTriangle, Plus, Download, CalendarDays, Sparkles } from "lucide-react";
+import { Calendar, Clock, AlertTriangle, Plus, Download, CalendarDays, Sparkles, ChevronDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Event, ScheduleTemplate } from "@shared/schema";
@@ -26,6 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface LocationData {
   displayName: string;
@@ -59,6 +65,36 @@ export default function SchedulingDashboard() {
   const [templateStartDate, setTemplateStartDate] = useState("");
   const [templateLocation, setTemplateLocation] = useState<LocationData | null>(null);
   const [templateChildName, setTemplateChildName] = useState("");
+
+  // Form refs for Enter key navigation
+  const titleRef = useRef<HTMLInputElement>(null);
+  const typeRef = useRef<HTMLButtonElement>(null);
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const childNameRef = useRef<HTMLInputElement>(null);
+  const recurringRef = useRef<HTMLButtonElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+
+  // Helper function for Enter key navigation
+  const handleEnterKey = (e: React.KeyboardEvent, nextRef: React.RefObject<any>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      nextRef.current?.focus();
+      // For select triggers, click to open
+      if (nextRef.current?.getAttribute('role') === 'combobox') {
+        nextRef.current?.click();
+      }
+    }
+  };
+
+  // For textareas: Enter for new line, Shift+Enter to navigate
+  const handleTextareaEnter = (e: React.KeyboardEvent, nextRef: React.RefObject<any>) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      nextRef.current?.focus();
+    }
+  };
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -241,27 +277,45 @@ export default function SchedulingDashboard() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Calendar className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-semibold text-foreground">Scheduling Dashboard</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleDownloadICal}
-            data-testid="button-download-ical"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download iCal
-          </Button>
-          <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" data-testid="button-use-template">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full md:w-auto" data-testid="button-add-event-menu">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Event
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem 
+                onClick={() => setDialogOpen(true)}
+                data-testid="menu-item-add-event"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Event
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setTemplateDialogOpen(true)}
+                data-testid="menu-item-use-template"
+              >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Use Template
-              </Button>
-            </DialogTrigger>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleDownloadICal}
+                data-testid="menu-item-download-ical"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download iCal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Apply Custody Schedule Template</DialogTitle>
@@ -331,23 +385,19 @@ export default function SchedulingDashboard() {
             </DialogContent>
           </Dialog>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-add-event">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Event
-              </Button>
-            </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Create Event</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-4 overflow-y-auto flex-1 pr-2">
               <div>
                 <Label htmlFor="event-title">Title</Label>
                 <Input
+                  ref={titleRef}
                   id="event-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={(e) => handleEnterKey(e, typeRef)}
                   placeholder="Event title"
                   data-testid="input-event-title"
                 />
@@ -355,7 +405,7 @@ export default function SchedulingDashboard() {
               <div>
                 <Label htmlFor="event-type">Type</Label>
                 <Select value={type} onValueChange={setType}>
-                  <SelectTrigger data-testid="select-event-type">
+                  <SelectTrigger ref={typeRef} data-testid="select-event-type">
                     <SelectValue placeholder="Select event type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -371,29 +421,35 @@ export default function SchedulingDashboard() {
               <div>
                 <Label htmlFor="start-date">Start Date & Time</Label>
                 <Input
+                  ref={startDateRef}
                   id="start-date"
                   type="datetime-local"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  onKeyDown={(e) => handleEnterKey(e, endDateRef)}
                   data-testid="input-start-date"
                 />
               </div>
               <div>
                 <Label htmlFor="end-date">End Date & Time (Optional)</Label>
                 <Input
+                  ref={endDateRef}
                   id="end-date"
                   type="datetime-local"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  onKeyDown={(e) => handleEnterKey(e, descriptionRef)}
                   data-testid="input-end-date"
                 />
               </div>
               <div>
                 <Label htmlFor="description">Description (Optional)</Label>
                 <Textarea
+                  ref={descriptionRef}
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onKeyDown={(e) => handleTextareaEnter(e, childNameRef)}
                   placeholder="Add any notes or details"
                   data-testid="input-event-description"
                 />
@@ -410,9 +466,11 @@ export default function SchedulingDashboard() {
               <div>
                 <Label htmlFor="child-name">Child Name (Optional)</Label>
                 <Input
+                  ref={childNameRef}
                   id="child-name"
                   value={childName}
                   onChange={(e) => setChildName(e.target.value)}
+                  onKeyDown={(e) => handleEnterKey(e, recurringRef)}
                   placeholder="Which child this relates to"
                   data-testid="input-child-name"
                 />
@@ -420,7 +478,7 @@ export default function SchedulingDashboard() {
               <div>
                 <Label htmlFor="recurring">Recurring (Optional)</Label>
                 <Select value={recurring} onValueChange={setRecurring}>
-                  <SelectTrigger data-testid="select-recurring">
+                  <SelectTrigger ref={recurringRef} data-testid="select-recurring">
                     <SelectValue placeholder="Select recurring pattern" />
                   </SelectTrigger>
                   <SelectContent>
@@ -435,9 +493,16 @@ export default function SchedulingDashboard() {
               <div>
                 <Label htmlFor="notes">Additional Notes (Optional)</Label>
                 <Textarea
+                  ref={notesRef}
                   id="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.shiftKey) {
+                      e.preventDefault();
+                      handleCreateEvent();
+                    }
+                  }}
                   placeholder="Any additional notes or reminders"
                   data-testid="input-event-notes"
                 />
