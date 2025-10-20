@@ -353,7 +353,17 @@ export default function SchedulingDashboard() {
                 Use Template
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => setCustodyScheduleOpen(true)}
+                onClick={() => {
+                  if (partnerships.length === 0) {
+                    toast({
+                      title: "Connect with co-parent first",
+                      description: "Share your invite code with your co-parent to start using the custody calendar together",
+                      duration: 5000,
+                    });
+                  } else {
+                    setCustodyScheduleOpen(true);
+                  }
+                }}
                 data-testid="menu-item-custody-schedule"
               >
                 <Palette className="h-4 w-4 mr-2" />
