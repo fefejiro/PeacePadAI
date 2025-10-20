@@ -6,6 +6,12 @@ PeacePad is an AI-powered co-parenting communication platform designed to foster
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 20, 2025)
+- **CRITICAL FIX - Onboarding State Management**: Fixed cross-user state leakage bug where multiple users on the same browser would inherit each other's onboarding completion status. Implemented user-scoped localStorage keys (`onboarding_completed_${user.id}`) for completion flags while keeping global keys for active progress (cleared on logout/completion). Prevents users from skipping onboarding inappropriately.
+- **Smart Onboarding State Recovery**: Users can now refresh mid-onboarding without losing progress. Authenticated users are intelligently routed to the appropriate step based on profile completion (Step 1 if missing name/invite, Step 2 if missing optional details, Step 3 if ready to join).
+- **Mobile-First Bottom Navigation**: Implemented responsive navigation with bottom nav for mobile (<768px) and traditional sidebar for desktop (≥768px). Bottom nav features Chat, Schedule, Tasks, and More menu for optimal mobile UX.
+- **Database Resilience**: Added retry logic and graceful error handling for database connections to handle Neon serverless cold starts and temporary unavailability.
+
 ## Recent Changes (October 18, 2025)
 - **CRITICAL FIX - Partnership Data Sharing**: Fixed all shared data queries (tasks, notes, child updates, pets, expenses, events) to return data from ALL partnered users, not just the logged-in user. This enables proper co-parent collaboration where both parents can see all shared information.
 - **Database Safety Enhancement**: Added unique index on `users.invite_code` column to prevent race conditions during concurrent invite code generation and ensure database-level uniqueness enforcement.
