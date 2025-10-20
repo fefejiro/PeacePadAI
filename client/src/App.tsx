@@ -25,6 +25,7 @@ import TherapistLocatorPage from "@/pages/therapist-locator";
 import TherapistDirectoryPage from "@/pages/therapist-directory";
 import AuditTrailPage from "@/pages/audit-trail";
 import JoinCallPage from "@/pages/join-call";
+import CallsPage from "@/pages/calls";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -45,6 +46,7 @@ function Router() {
       <Switch>
         <Route path="/" component={ChatPage} />
         <Route path="/chat" component={ChatPage} />
+        <Route path="/calls" component={CallsPage} />
         <Route path="/onboarding" component={OnboardingPage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/scheduling" component={SchedulingPage} />

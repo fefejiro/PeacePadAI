@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { MessageCircle, Calendar, CheckSquare, Menu, Heart, DollarSign, PawPrint, FileText, Settings, User } from "lucide-react";
+import { MessageCircle, Phone, Calendar, CheckSquare, Menu, Heart, DollarSign, PawPrint, FileText, Settings, User } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -16,6 +16,7 @@ export function BottomNav() {
 
   const navItems = [
     { path: "/chat", icon: MessageCircle, label: "Chat" },
+    { path: "/calls", icon: Phone, label: "Calls" },
     { path: "/scheduling", icon: Calendar, label: "Schedule" },
     { path: "/tasks", icon: CheckSquare, label: "Tasks" },
   ];
