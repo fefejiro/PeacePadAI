@@ -28,7 +28,6 @@ export default function OnboardingPage() {
   const [childName, setChildName] = useState("");
   const [relationshipType, setRelationshipType] = useState("");
   const [inviteCodeCopied, setInviteCodeCopied] = useState(false);
-  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -248,27 +247,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const copyInviteLink = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      setInviteLinkCopied(true);
-      toast({ title: "Copied!", description: "Invite link copied to clipboard", duration: 3000 });
-      setTimeout(() => setInviteLinkCopied(false), 2000);
-    } catch (error) {
-      toast({ title: "Failed to copy", variant: "destructive", duration: 5000 });
-    }
-  };
-
   const shareMessage = `I'm using PeacePad for co-parenting coordination. Join me: ${inviteLink}`;
-
-  const copyShareMessage = async () => {
-    try {
-      await navigator.clipboard.writeText(shareMessage);
-      toast({ title: "Copied!", description: "Share message copied to clipboard", duration: 3000 });
-    } catch (error) {
-      toast({ title: "Failed to copy", variant: "destructive", duration: 5000 });
-    }
-  };
 
   const handleShare = async () => {
     const shareData = {
@@ -525,53 +504,6 @@ export default function OnboardingPage() {
                     {inviteCodeCopied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                     {inviteCodeCopied ? "Copied!" : "Copy Code"}
                   </Button>
-                </div>
-
-                {/* QR Code */}
-                <div className="flex flex-col items-center gap-3 pt-4 border-t">
-                  <Label className="text-sm font-medium">Or scan this QR code</Label>
-                  <div className="bg-white p-4 rounded-lg">
-                    <QRCodeSVG value={inviteLink} size={180} data-testid="qr-code" />
-                  </div>
-                </div>
-
-                {/* Shareable Link */}
-                <div className="space-y-3 pt-4 border-t">
-                  <Label className="text-sm font-medium">Share this link</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={inviteLink}
-                      readOnly
-                      className="font-mono text-sm"
-                      data-testid="input-invite-link"
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={copyInviteLink}
-                      data-testid="button-copy-link"
-                    >
-                      {inviteLinkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Pre-written Message */}
-                <div className="space-y-3 pt-4 border-t">
-                  <Label className="text-sm font-medium">Quick share message</Label>
-                  <div className="relative">
-                    <div className="bg-muted p-3 rounded-lg text-sm border">
-                      {shareMessage}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={copyShareMessage}
-                      className="absolute top-2 right-2"
-                      data-testid="button-copy-message"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
                 </div>
               </div>
 
