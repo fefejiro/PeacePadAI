@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, AlertTriangle, Plus, Download, CalendarDays, Sparkles, ChevronDown } from "lucide-react";
+import { Calendar, Clock, AlertTriangle, Plus, Download, CalendarDays, Sparkles, ChevronDown, Palette } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Event, ScheduleTemplate } from "@shared/schema";
+import type { Event, ScheduleTemplate, Partnership } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { LocationAutocomplete } from "./LocationAutocomplete";
+import { CustodyScheduleBuilder, type CustodyConfig } from "./CustodyScheduleBuilder";
+import { CustodyCalendarView } from "./CustodyCalendarView";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -48,8 +51,10 @@ interface ConflictAnalysis {
 
 export default function SchedulingDashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [custodyScheduleOpen, setCustodyScheduleOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState("pickup");
   const [startDate, setStartDate] = useState("");
@@ -107,6 +112,11 @@ export default function SchedulingDashboard() {
   const { data: conflictAnalysis } = useQuery<ConflictAnalysis>({
     queryKey: ["/api/events/analyze"],
     enabled: events.length > 0,
+  });
+
+  const { data: partnerships = [] } = useQuery<Partnership[]>({
+    queryKey: ["/api/partnerships"],
+    enabled: !!user,
   });
 
   const createEvent = useMutation({
@@ -236,6 +246,38 @@ export default function SchedulingDashboard() {
       location: templateLocation || undefined,
     });
   };
+
+  const handleSaveCustodySchedule = async (config: CustodyConfig) => {
+    if (partnerships.length === 0) {
+      toast({
+        title: "Error",
+        description: "No partnership found",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
+
+    const partnershipId = partnerships[0].id;
+    try {
+      const res = await apiRequest("PATCH", `/api/partnerships/${partnershipId}/custody`, config);
+      await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
+      toast({ 
+        title: "Custody schedule saved",
+        description: "Your calendar will now show color-coded custody days",
+        duration: 4000,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save custody schedule",
+        variant: "destructive",
+        duration: 5000,
+      });
+      throw error;
+    }
+  };
   
   const handleDownloadICal = () => {
     window.location.href = '/api/events/export/ical';
@@ -262,6 +304,10 @@ export default function SchedulingDashboard() {
         return "bg-red-100 dark:bg-red-950 border-red-300 dark:border-red-700";
       case "activity":
         return "bg-amber-100 dark:bg-amber-950 border-amber-300 dark:border-amber-700";
+      case "vacation":
+        return "bg-cyan-100 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-700";
+      case "holiday":
+        return "bg-rose-100 dark:bg-rose-950 border-rose-300 dark:border-rose-700";
       default:
         return "bg-gray-100 dark:bg-gray-950 border-gray-300 dark:border-gray-700";
     }
@@ -305,6 +351,13 @@ export default function SchedulingDashboard() {
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Use Template
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setCustodyScheduleOpen(true)}
+                data-testid="menu-item-custody-schedule"
+              >
+                <Palette className="h-4 w-4 mr-2" />
+                Set Up Custody Schedule
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={handleDownloadICal}
@@ -414,6 +467,8 @@ export default function SchedulingDashboard() {
                     <SelectItem value="school">School Event</SelectItem>
                     <SelectItem value="medical">Medical Appointment</SelectItem>
                     <SelectItem value="activity">Activity</SelectItem>
+                    <SelectItem value="vacation">Vacation with Child</SelectItem>
+                    <SelectItem value="holiday">Holiday with Child</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -520,6 +575,15 @@ export default function SchedulingDashboard() {
         </div>
       </div>
 
+      {/* Custody Calendar View */}
+      {partnerships.length > 0 && user && (
+        <CustodyCalendarView
+          partnership={partnerships[0]}
+          events={events}
+          currentUserId={user.id}
+        />
+      )}
+
       {conflictAnalysis?.hasConflicts && (
         <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
           <CardHeader className="pb-3">
@@ -614,6 +678,17 @@ export default function SchedulingDashboard() {
           </div>
         )}
       </div>
+
+      {/* Custody Schedule Builder */}
+      {partnerships.length > 0 && user && (
+        <CustodyScheduleBuilder
+          open={custodyScheduleOpen}
+          onClose={() => setCustodyScheduleOpen(false)}
+          partnership={partnerships[0]}
+          currentUserId={user.id}
+          onSave={handleSaveCustodySchedule}
+        />
+      )}
     </div>
   );
 }
