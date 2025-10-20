@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone, Sparkles } from "lucide-react";
+import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone, Sparkles, Moon, Sun, Monitor } from "lucide-react";
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
@@ -11,6 +11,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLocation } from "wouter";
+import { QRCodeSVG } from "qrcode.react";
+import { useTheme } from "@/components/ThemeProvider";
 
 
 export default function SettingsPage() {
@@ -36,7 +38,6 @@ export default function SettingsPage() {
     const stored = localStorage.getItem("ai_listening_enabled");
     return stored !== null ? stored === "true" : false; // Default OFF
   });
-  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -44,6 +45,8 @@ export default function SettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [sharePhoneWithContacts, setSharePhoneWithContacts] = useState(user?.sharePhoneWithContacts ?? false);
   const [inviteCodeCopied, setInviteCodeCopied] = useState(false);
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const updateProfile = useMutation({
     mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string; sharePhoneWithContacts?: boolean }) => {
@@ -91,7 +94,7 @@ export default function SettingsPage() {
     }
 
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append('file', file);
 
     try {
       const res = await fetch('/api/profile-upload', {
@@ -117,17 +120,18 @@ export default function SettingsPage() {
 
   const currentProfileImage = user?.profileImageUrl || "";
 
-  // Generate shareable session link - only show if session ID exists
-  const sessionId = localStorage.getItem("peacepad_session_id") || "";
-  const hasValidSession = sessionId && sessionId.length > 0;
-  const shareableLink = hasValidSession ? `${window.location.origin}?session=${sessionId}` : "";
+  // Generate shareable invite link based on user's invite code
+  const inviteCode = user?.inviteCode || "";
+  const inviteLink = inviteCode ? `${window.location.origin}/join/${inviteCode}` : "";
+  const shareMessage = `I'm using PeacePad for co-parenting coordination. Join me: ${inviteLink}`;
 
-  const copySessionLink = async () => {
+  const copyInviteLink = async () => {
+    if (!inviteLink) return;
     try {
-      await navigator.clipboard.writeText(shareableLink);
-      setCopied(true);
+      await navigator.clipboard.writeText(inviteLink);
+      setInviteLinkCopied(true);
       toast({ title: "Link copied!", description: "Share this link with your co-parent", duration: 3000 });
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setInviteLinkCopied(false), 2000);
     } catch (error) {
       toast({
         title: "Failed to copy",
@@ -138,26 +142,41 @@ export default function SettingsPage() {
     }
   };
 
-  const shareViaSystem = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Join PeacePad",
-          text: "Join me on PeacePad for co-parenting communication",
-          url: shareableLink,
+  const handleShareInvite = async () => {
+    const shareData = {
+      title: "Join me on PeacePad",
+      text: shareMessage,
+      url: inviteLink,
+    };
+
+    try {
+      // Check if Web Share API is supported (mobile devices, modern browsers)
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast({ 
+          title: "Shared!", 
+          description: "Invite sent successfully", 
+          duration: 3000 
         });
-      } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          toast({
-            title: "Share failed",
-            description: "Please copy the link instead",
-            variant: "destructive",
-            duration: 5000,
-          });
-        }
+      } else {
+        // Fallback to copying to clipboard on desktop
+        await navigator.clipboard.writeText(shareMessage);
+        toast({ 
+          title: "Message copied!", 
+          description: "Paste this message in SMS, WhatsApp, or email", 
+          duration: 4000 
+        });
       }
-    } else {
-      copySessionLink();
+    } catch (error: any) {
+      // User cancelled share or error occurred
+      if (error.name !== 'AbortError') {
+        toast({ 
+          title: "Error sharing", 
+          description: "Please try copying the link manually", 
+          variant: "destructive", 
+          duration: 5000 
+        });
+      }
     }
   };
 
@@ -252,7 +271,7 @@ export default function SettingsPage() {
     },
   });
 
-  const copyInviteCode = async () => {
+  const copyInviteCodeOnly = async () => {
     if (!user?.inviteCode) return;
     try {
       await navigator.clipboard.writeText(user.inviteCode);
@@ -523,7 +542,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     size="default"
-                    onClick={copyInviteCode}
+                    onClick={copyInviteCodeOnly}
                     disabled={!user?.inviteCode}
                     data-testid="button-copy-invite-code"
                     className="flex-1 sm:flex-none min-h-10"
@@ -559,58 +578,112 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-{hasValidSession && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Share Your Session</h2>
-              <CardDescription>Invite your co-parent to join this conversation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Your Session Link</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Share this link with your co-parent to join the same conversation
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="flex-1 px-3 py-2 bg-muted rounded-md border border-border text-sm font-mono break-all" data-testid="text-session-link">
-                    {shareableLink}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="default"
-                      onClick={copySessionLink}
-                      data-testid="button-copy-session-link"
-                      className="flex-1 sm:flex-none min-h-10"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="default"
-                      onClick={shareViaSystem}
-                      data-testid="button-share-session-link"
-                      className="flex-1 sm:flex-none min-h-10"
-                    >
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share
-                    </Button>
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Share Invite Link</h2>
+            <CardDescription>Send this link to your co-parent to connect instantly</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {inviteCode && (
+              <>
+                <div className="flex justify-center p-4 bg-white rounded-md border border-border">
+                  <QRCodeSVG value={inviteLink} size={150} level="M" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Invite Link</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Anyone with this link can connect with you as a co-parent
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <div className="px-3 py-2 bg-muted rounded-md border border-border text-sm font-mono break-all" data-testid="text-invite-link">
+                      {inviteLink}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="default"
+                        onClick={copyInviteLink}
+                        disabled={!inviteLink}
+                        data-testid="button-copy-invite-link"
+                        className="min-h-10"
+                      >
+                        {inviteLinkCopied ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Link
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="default"
+                        onClick={handleShareInvite}
+                        disabled={!inviteLink}
+                        data-testid="button-share-invite"
+                        className="min-h-10"
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                    </div>
                   </div>
                 </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Appearance</h2>
+            <CardDescription>Customize how PeacePad looks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Theme</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant={theme === "light" ? "default" : "outline"}
+                  size="default"
+                  onClick={() => setTheme("light")}
+                  data-testid="button-theme-light"
+                  className="min-h-10"
+                >
+                  <Sun className="h-4 w-4 mr-2" />
+                  Light
+                </Button>
+                <Button
+                  variant={theme === "dark" ? "default" : "outline"}
+                  size="default"
+                  onClick={() => setTheme("dark")}
+                  data-testid="button-theme-dark"
+                  className="min-h-10"
+                >
+                  <Moon className="h-4 w-4 mr-2" />
+                  Dark
+                </Button>
+                <Button
+                  variant={theme === "system" ? "default" : "outline"}
+                  size="default"
+                  onClick={() => setTheme("system")}
+                  data-testid="button-theme-system"
+                  className="min-h-10"
+                >
+                  <Monitor className="h-4 w-4 mr-2" />
+                  System
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <p className="text-xs text-muted-foreground mt-2">
+                System theme automatically matches your device settings
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

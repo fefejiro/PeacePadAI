@@ -39,7 +39,7 @@ export function AudioWaveform({
       const analyzer = audioContext.createAnalyser();
       analyzerRef.current = analyzer;
 
-      analyzer.fftSize = 2048;
+      analyzer.fftSize = 256; // Reduced from 2048 for better performance
       const bufferLength = analyzer.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
@@ -57,10 +57,12 @@ export function AudioWaveform({
         ctx.strokeStyle = "hsl(var(--primary))";
         ctx.beginPath();
 
-        const sliceWidth = canvas.offsetWidth / bufferLength;
+        // Downsample to 128 points for smoother rendering
+        const downsampleRate = Math.floor(bufferLength / 128);
+        const sliceWidth = canvas.offsetWidth / 128;
         let x = 0;
 
-        for (let i = 0; i < bufferLength; i++) {
+        for (let i = 0; i < bufferLength; i += downsampleRate) {
           const v = dataArray[i] / 128.0;
           const y = (v * canvas.offsetHeight) / 2;
 

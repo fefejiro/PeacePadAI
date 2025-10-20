@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import ThemeToggle from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
@@ -98,7 +97,6 @@ export default function App() {
                   <div className="flex flex-col flex-1 min-w-0">
                     <header className="flex items-center justify-between p-3 sm:p-2 border-b sticky top-0 z-50 bg-background">
                       <ConditionalSidebarTrigger />
-                      <ThemeToggle />
                     </header>
                     <main className="flex-1 overflow-auto pb-16 lg:pb-0">
                       <Router />
