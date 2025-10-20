@@ -470,27 +470,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile photo upload endpoint
   app.post('/api/profile-upload', isSoftAuthenticated, profileUpload.single('file'), async (req: any, res) => {
     try {
+      console.log('[Profile Upload] Starting upload for user:', req.user?.id);
+      console.log('[Profile Upload] Content-Type:', req.headers['content-type']);
+      
       const userId = req.user.id;
       const file = req.file;
       
+      console.log('[Profile Upload] File received:', file ? {
+        filename: file.filename,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        path: file.path
+      } : 'NO FILE');
+      
       if (!file) {
+        console.error('[Profile Upload] No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
       
       // Validate file type (images only)
       if (!file.mimetype.startsWith('image/')) {
+        console.error('[Profile Upload] Invalid file type:', file.mimetype);
         return res.status(400).json({ message: "Only image files are allowed" });
       }
       
       const profileImageUrl = `/uploads/profiles/${file.filename}`;
       
+      console.log('[Profile Upload] Success! File saved at:', profileImageUrl);
       res.json({
         profileImageUrl,
         fileName: file.originalname,
         fileSize: file.size.toString(),
       });
     } catch (error: any) {
-      console.error("Error uploading profile photo:", error);
+      console.error("[Profile Upload] Error:", error);
+      console.error("[Profile Upload] Error stack:", error.stack);
       res.status(400).json({ message: error.message || "Failed to upload profile photo" });
     }
   });
