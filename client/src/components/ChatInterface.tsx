@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle, Menu, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Mic, Camera, X, FileText, Check, Trash2, Sparkles, AlertTriangle, Menu, Wifi, WifiOff, RefreshCw, MessageCircle } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import VideoCallDialog from "./VideoCallDialog";
 import { ConversationList } from "./ConversationList";
@@ -97,6 +97,12 @@ export default function ChatInterface() {
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const conversationId = selectedConversation?.id;
+  
+  // Fetch all conversations to check if user has any
+  const { data: conversations = [] } = useQuery<Conversation[]>({
+    queryKey: ["/api/conversations"],
+    enabled: !!user,
+  });
   
   const { data: messages = [], isLoading } = useQuery<MessageWithSender[]>({
     queryKey: conversationId ? ["/api/conversations", conversationId, "messages"] : [],
@@ -614,76 +620,98 @@ export default function ChatInterface() {
 
       {/* Main Chat Area */}
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Mobile & Desktop Header */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-card sticky top-0 z-10">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            {/* Mobile Conversations Menu */}
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="lg:hidden h-9 w-9 shrink-0"
-                  data-testid="button-mobile-conversations"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
-                <SheetHeader className="p-4 border-b">
-                  <SheetTitle>Conversations</SheetTitle>
-                </SheetHeader>
-                <div className="p-4">
-                  <ConversationList
-                    onSelectConversation={(conv) => {
-                      setSelectedConversation(conv);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    selectedConversationId={selectedConversation?.id}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
+        {/* Mobile & Desktop Header - Only show if there are conversations */}
+        {conversations.length > 0 && (
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-card sticky top-0 z-10">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              {/* Mobile Conversations Menu */}
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="lg:hidden h-9 w-9 shrink-0"
+                    data-testid="button-mobile-conversations"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80 p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Conversations</SheetTitle>
+                  </SheetHeader>
+                  <div className="p-4">
+                    <ConversationList
+                      onSelectConversation={(conv) => {
+                        setSelectedConversation(conv);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      selectedConversationId={selectedConversation?.id}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
 
-            <div className="flex flex-col gap-1 min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-foreground truncate">
-                {selectedConversation
-                  ? selectedConversation.type === 'direct'
-                    ? selectedConversation.members?.find(m => m.id !== user?.id)?.displayName || 'Chat'
-                    : selectedConversation.name || 'Group Chat'
-                  : 'Select a conversation'
-                }
-              </h2>
+              <div className="flex flex-col gap-1 min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground truncate">
+                  {selectedConversation
+                    ? selectedConversation.type === 'direct'
+                      ? selectedConversation.members?.find(m => m.id !== user?.id)?.displayName || 'Chat'
+                      : selectedConversation.name || 'Group Chat'
+                    : 'Chat'
+                  }
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <Button
+                size="icon"
+                variant="secondary"
+                onClick={startAudioCall}
+                className="h-9 w-9"
+                data-testid="button-start-audio-call"
+                disabled={!selectedConversation}
+              >
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="secondary"
+                onClick={startVideoCall}
+                className="h-9 w-9"
+                data-testid="button-start-video-call"
+                disabled={!selectedConversation}
+              >
+                <Video className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
             </div>
           </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <Button
-              size="icon"
-              variant="secondary"
-              onClick={startAudioCall}
-              className="h-9 w-9"
-              data-testid="button-start-audio-call"
-              disabled={!selectedConversation}
-            >
-              <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="secondary"
-              onClick={startVideoCall}
-              className="h-9 w-9"
-              data-testid="button-start-video-call"
-              disabled={!selectedConversation}
-            >
-              <Video className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-          </div>
-        </div>
+        )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {messages.length === 0 ? (
+        {conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center max-w-md mx-auto">
+            <div className="bg-muted rounded-full p-6">
+              <MessageCircle className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">Welcome to PeacePad!</h3>
+              <p className="text-sm text-muted-foreground">
+                Get started by inviting your co-parent to connect with you. Once connected, you'll be able to chat, share schedules, and coordinate together.
+              </p>
+            </div>
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => window.location.href = '/settings'}
+              data-testid="button-go-to-settings"
+            >
+              Share Your Invite Code
+            </Button>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">No messages yet. Start a conversation!</p>
           </div>
