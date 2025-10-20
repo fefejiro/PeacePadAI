@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone, Sparkles, Moon, Sun, Monitor } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -47,6 +47,19 @@ export default function SettingsPage() {
   const [inviteCodeCopied, setInviteCodeCopied] = useState(false);
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  // Sync local state with user data when it changes
+  useEffect(() => {
+    if (user?.displayName) {
+      setDisplayName(user.displayName);
+    }
+  }, [user?.displayName]);
+
+  useEffect(() => {
+    if (user?.phoneNumber !== undefined) {
+      setPhoneNumber(user.phoneNumber || "");
+    }
+  }, [user?.phoneNumber]);
 
   const updateProfile = useMutation({
     mutationFn: async (data: { profileImageUrl?: string; displayName?: string; phoneNumber?: string }) => {
