@@ -1334,6 +1334,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ NEW DIRECT CALLING SYSTEM ============
+
+  // POST /api/calls - Initiate a direct call to a co-parent
+  app.post('/api/calls', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { receiverId, callType, partnershipId } = req.body;
+
+      // Validate call type
+      if (!['audio', 'video'].includes(callType)) {
+        return res.status(400).json({ message: "Invalid call type. Must be 'audio' or 'video'" });
+      }
+
+      // Verify receiver exists
+      const receiver = await storage.getUser(receiverId);
+      if (!receiver) {
+        return res.status(404).json({ message: "Receiver not found" });
+      }
+
+      // Create the call record
+      const call = await storage.createCall({
+        callerId: userId,
+        receiverId,
+        partnershipId: partnershipId || null,
+        callType,
+        status: 'ringing',
+      });
+
+      // Broadcast call notification to receiver via WebSocket
+      // This will be handled in the WebSocket section
+      broadcastNewMessage(); // Temporary - will add specific call notification
+
+      res.json(call);
+    } catch (error) {
+      console.error("Error initiating call:", error);
+      res.status(500).json({ message: "Failed to initiate call" });
+    }
+  });
+
+  // GET /api/calls - Get call history with optional filters
+  app.get('/api/calls', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { filter } = req.query; // 'all', 'missed', 'received', 'outgoing'
+
+      const calls = await storage.getCalls(userId, filter as string);
+      res.json(calls);
+    } catch (error) {
+      console.error("Error fetching calls:", error);
+      res.status(500).json({ message: "Failed to fetch calls" });
+    }
+  });
+
+  // PATCH /api/calls/:id/accept - Accept an incoming call
+  app.patch('/api/calls/:id/accept', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const call = await storage.getCall(id);
+      
+      if (!call) {
+        return res.status(404).json({ message: "Call not found" });
+      }
+
+      if (call.receiverId !== userId) {
+        return res.status(403).json({ message: "You can only accept calls made to you" });
+      }
+
+      if (call.status !== 'ringing') {
+        return res.status(400).json({ message: "Call is not in ringing state" });
+      }
+
+      const updatedCall = await storage.updateCall(id, {
+        status: 'active',
+        startedAt: new Date(),
+      });
+
+      // Broadcast call status update via WebSocket
+      broadcastNewMessage();
+
+      res.json(updatedCall);
+    } catch (error) {
+      console.error("Error accepting call:", error);
+      res.status(500).json({ message: "Failed to accept call" });
+    }
+  });
+
+  // PATCH /api/calls/:id/decline - Decline an incoming call
+  app.patch('/api/calls/:id/decline', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const { reason } = req.body; // "Busy", "Can't talk now", "Will call back", "Other"
+
+      const call = await storage.getCall(id);
+      
+      if (!call) {
+        return res.status(404).json({ message: "Call not found" });
+      }
+
+      if (call.receiverId !== userId) {
+        return res.status(403).json({ message: "You can only decline calls made to you" });
+      }
+
+      if (call.status !== 'ringing') {
+        return res.status(400).json({ message: "Call is not in ringing state" });
+      }
+
+      const updatedCall = await storage.updateCall(id, {
+        status: 'declined',
+        declineReason: reason || 'No reason provided',
+        endedAt: new Date(),
+      });
+
+      // Broadcast call status update via WebSocket
+      broadcastNewMessage();
+
+      res.json(updatedCall);
+    } catch (error) {
+      console.error("Error declining call:", error);
+      res.status(500).json({ message: "Failed to decline call" });
+    }
+  });
+
+  // PATCH /api/calls/:id/end - End an active call
+  app.patch('/api/calls/:id/end', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const call = await storage.getCall(id);
+      
+      if (!call) {
+        return res.status(404).json({ message: "Call not found" });
+      }
+
+      // Either caller or receiver can end the call
+      if (call.callerId !== userId && call.receiverId !== userId) {
+        return res.status(403).json({ message: "You can only end calls you're part of" });
+      }
+
+      if (call.status !== 'active' && call.status !== 'ringing') {
+        return res.status(400).json({ message: "Call is not active or ringing" });
+      }
+
+      const endedAt = new Date();
+      let duration = '0';
+
+      // Calculate duration if call was active
+      if (call.status === 'active' && call.startedAt) {
+        const durationMs = endedAt.getTime() - new Date(call.startedAt).getTime();
+        duration = Math.floor(durationMs / 1000).toString(); // Duration in seconds
+      }
+
+      // If call was ringing and ended, mark as missed
+      const finalStatus = call.status === 'ringing' ? 'missed' : 'ended';
+
+      const updatedCall = await storage.updateCall(id, {
+        status: finalStatus,
+        endedAt,
+        duration,
+      });
+
+      // Broadcast call status update via WebSocket
+      broadcastNewMessage();
+
+      res.json(updatedCall);
+    } catch (error) {
+      console.error("Error ending call:", error);
+      res.status(500).json({ message: "Failed to end call" });
+    }
+  });
+
+  // POST /api/scheduled-calls - Schedule a future call
+  app.post('/api/scheduled-calls', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { participantId, callType, scheduledFor, title, notes, partnershipId } = req.body;
+
+      // Validate call type
+      if (!['audio', 'video'].includes(callType)) {
+        return res.status(400).json({ message: "Invalid call type. Must be 'audio' or 'video'" });
+      }
+
+      // Verify participant exists
+      const participant = await storage.getUser(participantId);
+      if (!participant) {
+        return res.status(404).json({ message: "Participant not found" });
+      }
+
+      // Validate scheduled time is in the future
+      const scheduledDate = new Date(scheduledFor);
+      if (scheduledDate <= new Date()) {
+        return res.status(400).json({ message: "Scheduled time must be in the future" });
+      }
+
+      const scheduledCall = await storage.createScheduledCall({
+        schedulerId: userId,
+        participantId,
+        partnershipId: partnershipId || null,
+        callType,
+        scheduledFor: scheduledDate,
+        title: title || 'Scheduled Call',
+        notes: notes || null,
+      });
+
+      res.json(scheduledCall);
+    } catch (error) {
+      console.error("Error scheduling call:", error);
+      res.status(500).json({ message: "Failed to schedule call" });
+    }
+  });
+
+  // GET /api/scheduled-calls - Get scheduled calls
+  app.get('/api/scheduled-calls', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const scheduledCalls = await storage.getScheduledCalls(userId);
+      res.json(scheduledCalls);
+    } catch (error) {
+      console.error("Error fetching scheduled calls:", error);
+      res.status(500).json({ message: "Failed to fetch scheduled calls" });
+    }
+  });
+
+  // ============ END NEW DIRECT CALLING SYSTEM ============
+
   // Authenticated file serving for uploads
   app.get('/uploads/recordings/:filename', isSoftAuthenticated, (req: any, res) => {
     const { filename } = req.params;
