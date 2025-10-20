@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, Check, ChevronRight, Upload, User } from "lucide-react";
+import { Copy, Check, ChevronRight, Upload, User, Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
 import ConsentAgreement from "@/components/ConsentAgreement";
@@ -270,6 +270,44 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: "Join me on PeacePad",
+      text: shareMessage,
+      url: inviteLink,
+    };
+
+    try {
+      // Check if Web Share API is supported (mobile devices, modern browsers)
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast({ 
+          title: "Shared!", 
+          description: "Invite sent successfully", 
+          duration: 3000 
+        });
+      } else {
+        // Fallback to copying to clipboard on desktop
+        await navigator.clipboard.writeText(shareMessage);
+        toast({ 
+          title: "Link copied!", 
+          description: "Paste this message in SMS, WhatsApp, or email", 
+          duration: 4000 
+        });
+      }
+    } catch (error: any) {
+      // User cancelled share or error occurred
+      if (error.name !== 'AbortError') {
+        toast({ 
+          title: "Error sharing", 
+          description: "Please try copying the link manually", 
+          variant: "destructive", 
+          duration: 5000 
+        });
+      }
+    }
+  };
+
   // Show intro slideshow for users joining via invite link
   if (showIntro) {
     return <LandingIntroSlideshow onComplete={handleIntroComplete} />;
@@ -466,8 +504,21 @@ export default function OnboardingPage() {
                       {inviteCode}
                     </span>
                   </div>
+                  
+                  {/* Primary Share Button (AppClose-style) */}
+                  <Button
+                    size="lg"
+                    onClick={handleShare}
+                    className="w-full max-w-sm"
+                    data-testid="button-share-invite"
+                  >
+                    <Share2 className="h-5 w-5 mr-2" />
+                    Share Invite
+                  </Button>
+                  
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={copyInviteCode}
                     data-testid="button-copy-code"
                   >
