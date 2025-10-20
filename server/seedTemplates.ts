@@ -164,7 +164,12 @@ export async function seedScheduleTemplates() {
     }
 
     console.log(`Successfully seeded ${systemTemplates.length} schedule templates!`);
-  } catch (error) {
-    console.error("Error seeding schedule templates:", error);
+  } catch (error: any) {
+    // Gracefully handle database suspension - this is normal for Neon auto-suspend
+    if (error.message?.includes('disabled') || error.message?.includes('suspended')) {
+      console.log('[Seed Templates] Database suspended - templates will be seeded when database wakes up');
+    } else {
+      console.error("Error seeding schedule templates:", error);
+    }
   }
 }
