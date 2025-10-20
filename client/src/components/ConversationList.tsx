@@ -5,6 +5,7 @@ import { User, Users, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface ConversationMember {
   id: string;
@@ -28,6 +29,7 @@ interface ConversationListProps {
 
 export function ConversationList({ onSelectConversation, selectedConversationId }: ConversationListProps) {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -82,9 +84,27 @@ export function ConversationList({ onSelectConversation, selectedConversationId 
 
   if (conversations.length === 0) {
     return (
-      <div className="flex items-center gap-2 p-2 text-muted-foreground">
-        <MessageCircle className="h-4 w-4" />
-        <span className="text-sm">No conversations yet</span>
+      <div className="flex flex-col items-center gap-4 p-4 text-center">
+        <div className="bg-muted rounded-full p-4">
+          <MessageCircle className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <div className="space-y-2">
+          <p className="font-medium text-foreground">No Conversations Yet</p>
+          <p className="text-sm text-muted-foreground max-w-[250px]">
+            Invite your co-parent to start chatting, or join using their invite code
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 w-full">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setLocation('/settings')}
+            className="w-full"
+            data-testid="button-invite-partner"
+          >
+            Share Invite Code
+          </Button>
+        </div>
       </div>
     );
   }

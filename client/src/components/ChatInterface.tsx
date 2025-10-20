@@ -995,7 +995,7 @@ export default function ChatInterface() {
       )}
 
       {/* Input Area - Mobile Optimized */}
-      <div className="p-3 sm:p-4 bg-background border-t">
+      <div className="p-3 sm:p-4 pb-20 sm:pb-4 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.3)]">
         <div className="max-w-4xl mx-auto">
           {/* File Preview */}
           {selectedFile && (
