@@ -45,7 +45,21 @@ test('Two co-parents connect via invite code', async ({ browser }) => {
     const skipButtonA = pageA.locator('text=Skip Intro');
     if (await skipButtonA.isVisible({ timeout: 3000 }).catch(() => false)) {
       await skipButtonA.click();
-      await pageA.waitForTimeout(500);
+      await pageA.waitForTimeout(1000);
+    }
+
+    // Handle Consent Agreement (if present)
+    const consentCheckboxA = pageA.locator('[data-testid="checkbox-consent"]');
+    if (await consentCheckboxA.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const scrollAreaA = pageA.locator('.h-\\[500px\\]').first();
+      if (await scrollAreaA.isVisible().catch(() => false)) {
+        await scrollAreaA.evaluate(el => el.scrollTop = el.scrollHeight);
+        await pageA.waitForTimeout(1000);
+      }
+      await consentCheckboxA.click();
+      const acceptButtonA = pageA.locator('[data-testid="button-accept-consent"]');
+      await acceptButtonA.click();
+      await pageA.waitForTimeout(1000);
     }
 
     // Fill in Parent A details
@@ -105,7 +119,21 @@ test('Two co-parents connect via invite code', async ({ browser }) => {
     const skipButtonB = pageB.locator('text=Skip Intro');
     if (await skipButtonB.isVisible({ timeout: 3000 }).catch(() => false)) {
       await skipButtonB.click();
-      await pageB.waitForTimeout(500);
+      await pageB.waitForTimeout(1000);
+    }
+
+    // Handle Consent Agreement (if present)
+    const consentCheckboxB = pageB.locator('[data-testid="checkbox-consent"]');
+    if (await consentCheckboxB.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const scrollAreaB = pageB.locator('.h-\\[500px\\]').first();
+      if (await scrollAreaB.isVisible().catch(() => false)) {
+        await scrollAreaB.evaluate(el => el.scrollTop = el.scrollHeight);
+        await pageB.waitForTimeout(1000);
+      }
+      await consentCheckboxB.click();
+      const acceptButtonB = pageB.locator('[data-testid="button-accept-consent"]');
+      await acceptButtonB.click();
+      await pageB.waitForTimeout(1000);
     }
 
     // Fill in Parent B details
