@@ -44,9 +44,22 @@ export default function OnboardingPage() {
     const pendingCode = localStorage.getItem("pending_join_code");
     const hasSeenIntro = localStorage.getItem("hasSeenIntro");
     const hasAcceptedConsent = localStorage.getItem("hasAcceptedConsent");
+    
+    // Use global keys for active onboarding progress (simple)
     const hasCompletedStep2 = localStorage.getItem("onboarding_completed_step2");
     
-    console.log("[Onboarding] Auth loaded - User:", user?.id, "Step:", step, "Pending code:", pendingCode);
+    // Use user-scoped key ONLY for completion flag (prevents cross-user leakage)
+    const userCompletedOnboardingKey = user?.id ? `onboarding_completed_${user.id}` : null;
+    const hasCompletedOnboarding = userCompletedOnboardingKey ? localStorage.getItem(userCompletedOnboardingKey) : null;
+    
+    console.log("[Onboarding] Auth loaded - User:", user?.id, "Step:", step, "Pending code:", pendingCode, "Completed:", hasCompletedOnboarding);
+    
+    // Redirect users who already completed onboarding to chat (user-scoped check)
+    if (hasCompletedOnboarding && user) {
+      console.log("[Onboarding] User already completed onboarding, redirecting to /chat");
+      setLocation("/chat");
+      return;
+    }
     
     // Handle intro/consent flow for users joining via invite link
     if (pendingCode && !hasSeenIntro) {
@@ -59,7 +72,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    // If user is NOT authenticated, reset to Step 1 and clear stale storage
+    // If user is NOT authenticated, reset to Step 1 and clear global onboarding state
     if (!user) {
       console.log("[Onboarding] No authenticated user, resetting to Step 1");
       setStep(1);
@@ -188,8 +201,11 @@ export default function OnboardingPage() {
       
       if (pendingCode) {
         localStorage.removeItem("pending_join_code");
-        localStorage.setItem("hasCompletedOnboarding", "true");
-        // Clear onboarding state when redirecting to partnership
+        // Mark as completed with user-scoped key
+        if (user?.id) {
+          localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+        }
+        // Clear global onboarding state when redirecting to partnership
         localStorage.removeItem("onboarding_current_step");
         localStorage.removeItem("onboarding_completed_step2");
         console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
@@ -400,8 +416,11 @@ export default function OnboardingPage() {
                     
                     if (pendingCode) {
                       localStorage.removeItem("pending_join_code");
-                      localStorage.setItem("hasCompletedOnboarding", "true");
-                      // Clear onboarding state when redirecting to partnership
+                      // Mark as completed with user-scoped key
+                      if (user?.id) {
+                        localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+                      }
+                      // Clear global onboarding state when redirecting to partnership
                       localStorage.removeItem("onboarding_current_step");
                       localStorage.removeItem("onboarding_completed_step2");
                       await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -508,8 +527,11 @@ export default function OnboardingPage() {
               <Button
                 className="w-full"
                 onClick={async () => {
-                  // Mark onboarding as complete and clear step tracking
-                  localStorage.setItem("hasCompletedOnboarding", "true");
+                  // Mark onboarding as complete with user-scoped key
+                  if (user?.id) {
+                    localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+                  }
+                  // Clear global onboarding state
                   localStorage.removeItem("onboarding_current_step");
                   localStorage.removeItem("onboarding_completed_step2");
                   
