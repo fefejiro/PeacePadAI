@@ -994,8 +994,8 @@ export default function ChatInterface() {
         </div>
       )}
 
-      {/* Input Area - Mobile Optimized with Sticky Bottom */}
-      <div className="p-3 sm:p-4 bg-background border-t sticky bottom-0 z-10">
+      {/* Input Area - Mobile Optimized */}
+      <div className="p-3 sm:p-4 bg-background border-t">
         <div className="max-w-4xl mx-auto">
           {/* File Preview */}
           {selectedFile && (

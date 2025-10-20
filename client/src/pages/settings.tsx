@@ -42,6 +42,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [sharePhoneWithContacts, setSharePhoneWithContacts] = useState(user?.sharePhoneWithContacts ?? false);
   const [inviteCodeCopied, setInviteCodeCopied] = useState(false);
@@ -54,7 +55,7 @@ export default function SettingsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: "Profile updated successfully", duration: 3000 });
     },
     onError: () => {
@@ -222,6 +223,21 @@ export default function SettingsPage() {
     });
   };
 
+  const handleDisplayNameSave = () => {
+    // Validate display name is not empty
+    if (!displayName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
+    
+    updateProfile.mutate({ displayName: displayName.trim() });
+  };
+
   const handlePhoneNumberSave = () => {
     // Basic validation for phone number format
     const phoneRegex = /^[\d\s\-\+\(\)]+$/;
@@ -339,6 +355,38 @@ export default function SettingsPage() {
                   Recommended: Square image, max 5MB
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Profile Information</h2>
+            <CardDescription>Update your display name</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="display-name">Display Name</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="display-name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  data-testid="input-display-name"
+                />
+                <Button
+                  onClick={handleDisplayNameSave}
+                  disabled={updateProfile.isPending || !displayName.trim()}
+                  data-testid="button-save-name"
+                >
+                  {updateProfile.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This name will be shown to your co-parent in messages
+              </p>
             </div>
           </CardContent>
         </Card>
