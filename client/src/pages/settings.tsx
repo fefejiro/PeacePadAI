@@ -524,117 +524,65 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <h2 className="text-xl font-semibold">Your Invite Code</h2>
-            <CardDescription>Share this code with your co-parent to connect</CardDescription>
+            <CardDescription>Share this code with your co-parent to connect on PeacePad</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Invite Code</Label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Your co-parent needs this 6-character code to add you as a partner
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 px-4 py-3 bg-muted rounded-md border border-border text-center">
-                  <span className="text-2xl font-mono font-bold tracking-widest" data-testid="text-invite-code">
-                    {user?.inviteCode || "Loading..."}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={copyInviteCodeOnly}
-                    disabled={!user?.inviteCode}
-                    data-testid="button-copy-invite-code"
-                    className="flex-1 sm:flex-none min-h-10"
-                  >
-                    {inviteCodeCopied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => regenerateInviteCode.mutate()}
-                    disabled={regenerateInviteCode.isPending}
-                    data-testid="button-regenerate-invite-code"
-                    className="flex-1 sm:flex-none min-h-10"
-                  >
-                    {regenerateInviteCode.isPending ? "Regenerating..." : "Regenerate"}
-                  </Button>
-                </div>
+            <div className="space-y-4">
+              <div className="px-6 py-4 bg-muted rounded-md border border-border text-center">
+                <span className="text-3xl sm:text-4xl font-mono font-bold tracking-widest" data-testid="text-invite-code">
+                  {user?.inviteCode || "Loading..."}
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                💡 Regenerate your code if you want to revoke access or shared it by mistake
+              
+              <Button
+                variant="default"
+                size="default"
+                onClick={handleShareInvite}
+                disabled={!inviteLink}
+                data-testid="button-share-invite"
+                className="w-full min-h-12"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Invite
+              </Button>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyInviteCodeOnly}
+                  disabled={!user?.inviteCode}
+                  data-testid="button-copy-invite-code"
+                  className="flex-1"
+                >
+                  {inviteCodeCopied ? (
+                    <>
+                      <Check className="h-3 w-3 mr-2" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3 mr-2" />
+                      Copy Code
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => regenerateInviteCode.mutate()}
+                  disabled={regenerateInviteCode.isPending}
+                  data-testid="button-regenerate-invite-code"
+                  className="flex-1"
+                >
+                  {regenerateInviteCode.isPending ? "Regenerating..." : "Regenerate"}
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                💡 Your co-parent needs this code to connect with you
               </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <h2 className="text-xl font-semibold">Share Invite Link</h2>
-            <CardDescription>Send this link to your co-parent to connect instantly</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {inviteCode && (
-              <>
-                <div className="flex justify-center p-4 bg-white rounded-md border border-border">
-                  <QRCodeSVG value={inviteLink} size={150} level="M" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Invite Link</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Anyone with this link can connect with you as a co-parent
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <div className="px-3 py-2 bg-muted rounded-md border border-border text-sm font-mono break-all" data-testid="text-invite-link">
-                      {inviteLink}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="default"
-                        onClick={copyInviteLink}
-                        disabled={!inviteLink}
-                        data-testid="button-copy-invite-link"
-                        className="min-h-10"
-                      >
-                        {inviteLinkCopied ? (
-                          <>
-                            <Check className="h-4 w-4 mr-2" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy Link
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="default"
-                        onClick={handleShareInvite}
-                        disabled={!inviteLink}
-                        data-testid="button-share-invite"
-                        className="min-h-10"
-                      >
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 
