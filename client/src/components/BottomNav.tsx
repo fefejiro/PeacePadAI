@@ -73,7 +73,7 @@ export function BottomNav() {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start gap-3 h-12",
+                      "w-full justify-start gap-3",
                       isActive(item.path) && "bg-primary/10 text-primary"
                     )}
                     onClick={() => setMoreMenuOpen(false)}
