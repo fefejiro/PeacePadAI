@@ -14,6 +14,8 @@ import {
   conversations,
   conversationMembers,
   callSessions,
+  calls,
+  scheduledCalls,
   callRecordings,
   therapists,
   auditLogs,
@@ -50,6 +52,10 @@ import {
   type InsertConversationMember,
   type CallSession,
   type InsertCallSession,
+  type Call,
+  type InsertCall,
+  type ScheduledCall,
+  type InsertScheduledCall,
   type CallRecording,
   type InsertCallRecording,
   type Therapist,
@@ -145,10 +151,22 @@ export interface IStorage {
   getEvents(userId: string): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   
-  // Call session operations
+  // Call session operations (legacy)
   createCallSession(session: InsertCallSession): Promise<CallSession>;
   getCallSessionByCode(sessionCode: string): Promise<CallSession | undefined>;
   endCallSession(sessionCode: string): Promise<void>;
+  
+  // New direct calling operations
+  createCall(call: InsertCall): Promise<Call>;
+  getCall(id: string): Promise<Call | undefined>;
+  getCalls(userId: string, filter?: string): Promise<Call[]>;
+  updateCall(id: string, updates: Partial<Call>): Promise<Call>;
+  
+  // Scheduled call operations
+  createScheduledCall(scheduledCall: InsertScheduledCall): Promise<ScheduledCall>;
+  getScheduledCalls(userId: string): Promise<ScheduledCall[]>;
+  getScheduledCall(id: string): Promise<ScheduledCall | undefined>;
+  updateScheduledCall(id: string, updates: Partial<ScheduledCall>): Promise<ScheduledCall>;
   
   // Call recording operations
   createCallRecording(recording: InsertCallRecording): Promise<CallRecording>;
@@ -821,6 +839,77 @@ export class DatabaseStorage implements IStorage {
     await db.update(callSessions)
       .set({ isActive: false, endedAt: new Date() })
       .where(eq(callSessions.sessionCode, sessionCode));
+  }
+
+  // New direct calling operations
+  async createCall(callData: InsertCall): Promise<Call> {
+    const [call] = await db.insert(calls).values(callData).returning();
+    return call;
+  }
+
+  async getCall(id: string): Promise<Call | undefined> {
+    const [call] = await db.select().from(calls).where(eq(calls.id, id));
+    return call;
+  }
+
+  async getCalls(userId: string, filter?: string): Promise<Call[]> {
+    // Get all calls where user is either caller or receiver
+    const userCalls = await db.select().from(calls)
+      .where(or(eq(calls.callerId, userId), eq(calls.receiverId, userId)))
+      .orderBy(desc(calls.createdAt));
+
+    // Apply filters
+    if (!filter || filter === 'all') {
+      return userCalls;
+    }
+
+    if (filter === 'missed') {
+      return userCalls.filter(c => c.status === 'missed' && c.receiverId === userId);
+    }
+
+    if (filter === 'received') {
+      return userCalls.filter(c => c.receiverId === userId && (c.status === 'ended' || c.status === 'active'));
+    }
+
+    if (filter === 'outgoing') {
+      return userCalls.filter(c => c.callerId === userId);
+    }
+
+    return userCalls;
+  }
+
+  async updateCall(id: string, updates: Partial<Call>): Promise<Call> {
+    const [updatedCall] = await db.update(calls)
+      .set({ ...updates, createdAt: undefined } as any) // Don't update createdAt
+      .where(eq(calls.id, id))
+      .returning();
+    return updatedCall;
+  }
+
+  // Scheduled call operations
+  async createScheduledCall(scheduledCallData: InsertScheduledCall): Promise<ScheduledCall> {
+    const [scheduledCall] = await db.insert(scheduledCalls).values(scheduledCallData).returning();
+    return scheduledCall;
+  }
+
+  async getScheduledCalls(userId: string): Promise<ScheduledCall[]> {
+    // Get scheduled calls where user is either scheduler or participant
+    return await db.select().from(scheduledCalls)
+      .where(or(eq(scheduledCalls.schedulerId, userId), eq(scheduledCalls.participantId, userId)))
+      .orderBy(scheduledCalls.scheduledFor);
+  }
+
+  async getScheduledCall(id: string): Promise<ScheduledCall | undefined> {
+    const [scheduledCall] = await db.select().from(scheduledCalls).where(eq(scheduledCalls.id, id));
+    return scheduledCall;
+  }
+
+  async updateScheduledCall(id: string, updates: Partial<ScheduledCall>): Promise<ScheduledCall> {
+    const [updated] = await db.update(scheduledCalls)
+      .set({ ...updates, createdAt: undefined } as any)
+      .where(eq(scheduledCalls.id, id))
+      .returning();
+    return updated;
   }
 
   // Call recording operations
