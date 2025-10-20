@@ -15,7 +15,6 @@ import Clippy from "@/components/Clippy";
 import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
-import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
