@@ -701,6 +701,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/partnerships/:id/custody', isSoftAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const partnershipId = req.params.id;
+      const { custodyEnabled, custodyPattern, custodyStartDate, custodyPrimaryParent, custodyConfig, user1Color, user2Color } = req.body;
+
+      // Verify user is part of this partnership
+      const partnership = await storage.getPartnership(partnershipId);
+      if (!partnership) {
+        return res.status(404).json({ message: "Partnership not found" });
+      }
+      if (partnership.user1Id !== userId && partnership.user2Id !== userId) {
+        return res.status(403).json({ message: "You are not part of this partnership" });
+      }
+
+      // Update custody settings
+      const updates: any = {};
+      if (custodyEnabled !== undefined) updates.custodyEnabled = custodyEnabled;
+      if (custodyPattern !== undefined) updates.custodyPattern = custodyPattern;
+      if (custodyStartDate !== undefined) updates.custodyStartDate = custodyStartDate ? new Date(custodyStartDate) : null;
+      if (custodyPrimaryParent !== undefined) updates.custodyPrimaryParent = custodyPrimaryParent;
+      if (custodyConfig !== undefined) updates.custodyConfig = custodyConfig;
+      if (user1Color !== undefined) updates.user1Color = user1Color;
+      if (user2Color !== undefined) updates.user2Color = user2Color;
+
+      const updatedPartnership = await storage.updatePartnership(partnershipId, updates);
+      res.json(updatedPartnership);
+    } catch (error) {
+      console.error("Error updating custody schedule:", error);
+      res.status(500).json({ message: "Failed to update custody schedule" });
+    }
+  });
+
   // Conversation routes
   app.get('/api/conversations', isSoftAuthenticated, async (req: any, res) => {
     try {

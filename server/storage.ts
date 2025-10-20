@@ -100,7 +100,9 @@ export interface IStorage {
   // Partnership operations
   getPartnerships(userId: string): Promise<Partnership[]>;
   getPartnershipByCode(inviteCode: string): Promise<Partnership | undefined>;
+  getPartnership(partnershipId: string): Promise<Partnership | undefined>;
   createPartnership(partnership: InsertPartnership): Promise<Partnership>;
+  updatePartnership(partnershipId: string, updates: Partial<Partnership>): Promise<Partnership>;
   getUserByInviteCode(inviteCode: string): Promise<User | undefined>;
   generateInviteCode(): Promise<string>;
   regenerateInviteCode(userId: string): Promise<string>;
@@ -427,8 +429,24 @@ export class DatabaseStorage implements IStorage {
     return partnership;
   }
 
+  async getPartnership(partnershipId: string): Promise<Partnership | undefined> {
+    const [partnership] = await db
+      .select()
+      .from(partnerships)
+      .where(eq(partnerships.id, partnershipId));
+    return partnership;
+  }
+
   async createPartnership(partnershipData: InsertPartnership): Promise<Partnership> {
     const [partnership] = await db.insert(partnerships).values(partnershipData).returning();
+    return partnership;
+  }
+
+  async updatePartnership(partnershipId: string, updates: Partial<Partnership>): Promise<Partnership> {
+    const [partnership] = await db.update(partnerships)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(partnerships.id, partnershipId))
+      .returning();
     return partnership;
   }
 
