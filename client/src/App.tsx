@@ -16,6 +16,7 @@ import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { UpdateNotification } from "@/components/UpdateNotification";
+import { InstallPWA } from "@/components/InstallPWA";
 import { useToast } from "@/hooks/use-toast";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
@@ -129,6 +130,7 @@ export default function App() {
             {clippyEnabled && <Clippy />}
             <Toaster />
             <UpdateNotification />
+            <InstallPWA />
           </ActivityProvider>
         </TooltipProvider>
       </ThemeProvider>
