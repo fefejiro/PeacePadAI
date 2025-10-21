@@ -1,64 +1,126 @@
-const CACHE_NAME = 'peacepad-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
+// Dynamic cache versioning - updates automatically on each deployment
+const CACHE_VERSION = 'peacepad-' + new Date().toISOString().split('T')[0];
+const CACHE_NAME = `${CACHE_VERSION}-v${Date.now()}`;
+
+const STATIC_ASSETS = [
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
+// Install event - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName.startsWith('peacepad-') && cacheName !== CACHE_NAME) {
+            console.log('[ServiceWorker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // Notify all clients that a new version is available
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'UPDATE_AVAILABLE',
+            version: CACHE_NAME
+          });
+        });
+      });
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
+// Fetch event - Network-first for HTML/JS/CSS, cache-first for images
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // Skip API calls and websocket
+  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/ws')) {
+    return;
+  }
+
+  // Network-first strategy for HTML, JS, CSS (always get fresh version)
+  if (
+    request.destination === 'document' ||
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css')
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Clone and cache the fresh response
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
           return response;
+        })
+        .catch(() => {
+          // Fallback to cache if network fails
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('/');
+          });
+        })
+    );
+    return;
+  }
+
+  // Cache-first for images and static assets (faster loading)
+  event.respondWith(
+    caches.match(request)
+      .then((cached) => {
+        if (cached) {
+          return cached;
         }
         
-        return fetch(event.request).then((response) => {
+        return fetch(request).then((response) => {
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
           
           const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
           
           return response;
-        }).catch(() => {
-          if (event.request.destination === 'document') {
-            return caches.match('/');
-          }
         });
+      })
+      .catch(() => {
+        // Return offline fallback for documents
+        if (request.destination === 'document') {
+          return caches.match('/');
+        }
       })
   );
 });
 
-// Push notification support
+// Push notification support for incoming calls
 self.addEventListener('push', (event) => {
   let data = {
     title: 'PeacePad',
@@ -98,14 +160,12 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
-        // Check if there's already a window/tab open
         for (let i = 0; i < windowClients.length; i++) {
           const client = windowClients[i];
           if (client.url === urlToOpen && 'focus' in client) {
             return client.focus();
           }
         }
-        // If not, open a new window
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }

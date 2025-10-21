@@ -60,7 +60,7 @@ Respond ONLY in this JSON format:
       : `Transcript: "${transcript}"`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Updated to gpt-4o-mini via Replit AI integration
+      model: "gpt-3.5-turbo", // Using cost-effective legacy model (75x cheaper than GPT-4)
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -151,7 +151,7 @@ Keep tone supportive, non-judgmental, and focused on progress.`;
     const userPrompt = `Emotional Timeline:\n${timelineText}\n\nDistribution: ${JSON.stringify(emotionCounts)}`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Updated to gpt-4o-mini via Replit AI integration
+      model: "gpt-3.5-turbo", // Using cost-effective legacy model (75x cheaper than GPT-4)
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

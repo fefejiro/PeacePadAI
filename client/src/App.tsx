@@ -15,6 +15,7 @@ import Clippy from "@/components/Clippy";
 import TransitionPrompt from "@/components/TransitionPrompt";
 import { ActivityProvider } from "@/components/ActivityProvider";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
+import { UpdateNotification } from "@/components/UpdateNotification";
 import { useToast } from "@/hooks/use-toast";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
@@ -127,6 +128,7 @@ export default function App() {
             {moodCheckInsEnabled && <MoodCheckIn />}
             {clippyEnabled && <Clippy />}
             <Toaster />
+            <UpdateNotification />
           </ActivityProvider>
         </TooltipProvider>
       </ThemeProvider>

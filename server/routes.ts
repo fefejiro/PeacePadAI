@@ -136,7 +136,7 @@ async function analyzeTone(content: string): Promise<{
     const maxTokens = getMaxTokens(150);
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Using improved model via Replit AI integration
+      model: "gpt-3.5-turbo", // Using cost-effective legacy model (75x cheaper than GPT-4)
       messages: [
         {
           role: "system",
