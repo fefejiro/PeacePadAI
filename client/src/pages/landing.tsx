@@ -35,6 +35,9 @@ export default function LandingPage() {
     console.log("[Landing] Consent accepted");
     localStorage.setItem('hasAcceptedConsent', 'true');
     setShowConsent(false);
+    
+    // Scroll to top to show hero image
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Show intro slideshow for first-time visitors
