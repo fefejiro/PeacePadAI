@@ -77,7 +77,6 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
-  getUserByGuestId(guestId: string): Promise<User | undefined>;
   getOtherUsers(currentUserId: string): Promise<User[]>;
   
   // Guest session operations
@@ -253,10 +252,6 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserByGuestId(guestId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.guestId, guestId));
-    return user;
-  }
 
   async getOtherUsers(currentUserId: string): Promise<User[]> {
     const { ne } = await import("drizzle-orm");

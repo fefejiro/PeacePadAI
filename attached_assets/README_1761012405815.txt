@@ -1,0 +1,41 @@
+
+PeacePad – App Store Asset Pack
+================================
+
+Generated: Auto (Python/PIL)
+
+Included assets
+---------------
+1) iOS App Icon (1024x1024, PNG, no alpha): ios_app_icon_1024.png
+   - Apple masks the corners automatically. Keep this exact file for App Store Connect.
+
+2) Logo Lockups (PNG):
+   - logo_lockup_dark_2400x1000.png
+   - logo_lockup_light_2400x1000.png
+
+3) Social/OG Image (for links, press, website):
+   - og_image_1200x630.png
+
+4) Transparent Symbol Mark:
+   - logo_mark_transparent_1024.png
+
+5) Screenshot Templates (place your real device screenshots inside the rounded rectangle area):
+   - 6.7in iPhone: screenshot_6.7in_template_01..05.png (1290x2796)
+   - 6.5in iPhone: screenshot_6.5in_template_01.png (1242x2688)
+   - 5.5in iPhone: screenshot_5.5in_template_01.png (1242x2208)
+
+How to use the templates
+------------------------
+- Capture real in-app screenshots from your iPhone simulator or device at the exact sizes.
+- Paste them onto the template inside the rounded rectangle.
+- Add short captions if you like, but avoid violating Apple's guideline that screenshots must represent the app UI.
+
+Theme
+-----
+- Background gradient: (16, 30, 48) → (33, 62, 95)
+- Accents: Blue (99, 162, 255), Orange (242, 142, 51), Green (64, 201, 140)
+
+Notes
+-----
+- If you want alternate colors or the earlier "star" motif instead of the hug+heart mark, say the word and I'll generate a variant set.
+- For iPad sizes: 12.9in (2048x2732) and 11in (1668x2388) can be added on request.

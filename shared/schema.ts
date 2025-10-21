@@ -14,7 +14,8 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Soft Auth (supports both guests and named users)
+// User storage table for Replit Auth (Google OAuth)
+// IMPORTANT: Keep the .default() config for id column (required for Replit Auth migration)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
@@ -24,8 +25,6 @@ export const users = pgTable("users", {
   displayName: varchar("display_name"),
   phoneNumber: varchar("phone_number"), // Optional phone number for contact info
   sharePhoneWithContacts: boolean("share_phone_with_contacts").notNull().default(false), // User must opt-in to share phone
-  isGuest: boolean("is_guest").notNull().default(true),
-  guestId: varchar("guest_id").unique(),
   inviteCode: varchar("invite_code", { length: 6 }).unique(), // 6-character invite code for partnership invites
   relationshipType: varchar("relationship_type"), // ex-spouse, separated, never-married, other
   childName: varchar("child_name"), // Primary child's name (optional)
