@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 - **Design System**: Custom calming color palette, Inter and JetBrains Mono fonts, accessibility-first.
 - **Responsive Design**: Mobile-first approach with bottom navigation for mobile and sidebar for desktop.
 - **Onboarding**: Streamlined 3-step flow (welcome/photo, optional details, invite code display) with smart state recovery.
-- **PWA**: `manifest.json`, service worker for offline support, "Add to Home Screen", push notifications.
+- **PWA**: `manifest.json`, dynamic cache versioning service worker with auto-update notifications, network-first strategy for instant updates, offline support, "Add to Home Screen", push notifications.
 - **System Theme Detection**: ThemeProvider defaults to system preference with light/dark/system options.
 
 ### Technical Implementations
@@ -25,10 +25,16 @@ Preferred communication style: Simple, everyday language.
 - **Partnership Model**: Invite code system (unique 6-digit alphanumeric) for creating co-parenting partnerships, supporting multiple partnerships. Privacy-first with no user directory.
 - **WebRTC Real-Time Communication**: WebSocket signaling server for multi-user voice/video calls (2-12 participants), STUN server configuration, role-based negotiation, offer caching. Unauthenticated join flow for guests.
 - **AI Integration**:
-    - **Tone Analysis**: GPT-4o-mini for real-time message tone analysis (calm, cooperative, neutral, frustrated, defensive, hostile) and rewording suggestions. Low temperature (0.3) for consistency.
+    - **Production Model**: GPT-3.5-turbo (75x cheaper than GPT-4, ~$0.002/1K messages vs $0.15/1K)
+    - **Tone Analysis**: Real-time message tone analysis (calm, cooperative, neutral, frustrated, defensive, hostile) with AI rewording suggestions. Low temperature (0.3) for consistency.
     - **Scheduling Conflict Detection**: AI identifies scheduling overlaps in shared calendars.
-    - **AI Listening (Opt-in)**: Real-time speech analysis during calls using Web Audio API, Whisper for transcription, and GPT-4o-mini for emotional tone analysis with visual feedback (MoodRing).
-    - **Cost Optimization**: Dev mode protection (mock responses), response caching (`node-cache` with 5-minute TTL), token budget controls, frontend debounce (1.5-second) for typing, and usage logging.
+    - **AI Listening (Opt-in)**: Real-time speech analysis during calls using Web Audio API, Whisper for transcription, and emotional tone analysis with visual feedback (MoodRing).
+    - **Cost Optimization**: 
+      - Dev mode protection with enhanced mock AI (30+ contextual responses covering all tones and scenarios)
+      - Response caching (`node-cache` with 5-minute TTL)
+      - Token budget controls (512 token cap)
+      - Frontend debounce (1.5-second) for typing
+      - Usage logging for cost tracking
 - **Security**: Secure session cookies, CSRF protection, API authentication, user-scoped data access, Zod schema validation, secure WebSocket signaling.
 
 ### Feature Specifications
@@ -42,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### Third-Party Services
-- **OpenAI API**: GPT-4o-mini (via Replit AI Integrations) for AI capabilities.
+- **OpenAI API**: GPT-3.5-turbo (via Replit AI Integrations) for cost-effective AI capabilities in production. Enhanced mock AI with 30+ responses for development testing.
 - **Neon Database**: Serverless PostgreSQL hosting.
 - **Replit Authentication**: OAuth 2.0 / OpenID Connect provider.
 - **OpenStreetMap Nominatim API**: Geocoding and location data for the support directory.
