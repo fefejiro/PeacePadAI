@@ -67,7 +67,7 @@ export default function SettingsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({ title: "Profile updated successfully", duration: 3000 });
     },
     onError: () => {
@@ -282,7 +282,7 @@ export default function SettingsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Invite code regenerated",
         description: "Your new invite code is ready to share",

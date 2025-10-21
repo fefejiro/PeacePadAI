@@ -112,19 +112,14 @@ export default function OnboardingPage() {
     setShowConsent(false);
   };
 
-  const createGuestAccount = useMutation({
+  const updateInitialProfile = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/auth/guest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ displayName: displayName || `Guest${Math.random().toString(36).substring(7)}` }),
+      await apiRequest("PATCH", "/api/user/profile", {
+        displayName: displayName || user?.displayName || "User",
       });
-      if (!res.ok) throw new Error("Failed to create account");
-      return await res.json();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Upload profile image if provided
       if (profileImage) {
         uploadProfileImage.mutate();
@@ -136,7 +131,7 @@ export default function OnboardingPage() {
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to create account. Please try again.",
+        description: "Failed to update profile. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
@@ -162,7 +157,7 @@ export default function OnboardingPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setStep(2);
       localStorage.setItem("onboarding_current_step", "2");
     },
@@ -189,7 +184,7 @@ export default function OnboardingPage() {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
       // Mark Step 2 as completed
       localStorage.setItem("onboarding_completed_step2", "true");
@@ -365,11 +360,11 @@ export default function OnboardingPage() {
 
               <Button
                 className="w-full"
-                onClick={() => createGuestAccount.mutate()}
-                disabled={!displayName.trim() || createGuestAccount.isPending}
+                onClick={() => updateInitialProfile.mutate()}
+                disabled={!displayName.trim() || updateInitialProfile.isPending}
                 data-testid="button-continue-step1"
               >
-                {createGuestAccount.isPending ? "Creating Account..." : "Continue"}
+                {updateInitialProfile.isPending ? "Saving..." : "Continue"}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -440,7 +435,7 @@ export default function OnboardingPage() {
                       // Clear global onboarding state when redirecting to partnership
                       localStorage.removeItem("onboarding_current_step");
                       localStorage.removeItem("onboarding_completed_step2");
-                      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+                      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
                       console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
                       setLocation(`/join/${pendingCode}`);
                     } else {
@@ -519,7 +514,7 @@ export default function OnboardingPage() {
                   localStorage.removeItem("onboarding_completed_step2");
                   
                   // Refresh auth state before redirecting
-                  await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+                  await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
                   
                   // Check if there's a pending join code from /join/:code link
                   const pendingCode = localStorage.getItem("pending_join_code");

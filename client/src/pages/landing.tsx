@@ -1,50 +1,28 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Brain, Calendar, Shield, TrendingUp, Users } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
-import GuestEntry from "@/components/GuestEntry";
+import { useAuth } from "@/hooks/useAuth";
 import LandingIntroSlideshow from "@/components/LandingIntroSlideshow";
 import ConsentAgreement from "@/components/ConsentAgreement";
 import heroImage from "@assets/stock_images/peaceful_diverse_fam_f2239163.jpg";
 
 export default function LandingPage() {
-  const [showGuestEntry, setShowGuestEntry] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
-  const [, setLocation] = useLocation();
+  const { login } = useAuth();
 
   // Check for intro on first mount
   useEffect(() => {
     const hasSeenIntro = localStorage.getItem('hasSeenIntro');
     const hasAcceptedConsent = localStorage.getItem('hasAcceptedConsent');
-    const pendingCode = localStorage.getItem('pending_join_code');
     
-    if (pendingCode) {
-      // Auto-show guest entry if there's a pending call to join (skip intro)
-      setShowGuestEntry(true);
-    } else if (!hasSeenIntro) {
-      // Show intro slideshow for first-time visitors
+    if (!hasSeenIntro) {
       setShowIntro(true);
     } else if (!hasAcceptedConsent) {
-      // Show consent if intro seen but consent not accepted
       setShowConsent(true);
     }
-  }, [setLocation]);
-
-  const handleAuthenticated = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-    
-    // Check for pending join code and redirect
-    const pendingCode = localStorage.getItem('pending_join_code');
-    if (pendingCode) {
-      // Clear the pending code
-      localStorage.removeItem('pending_join_code');
-      // Redirect to join with the code
-      setLocation(`/join/${pendingCode}`);
-    }
-  };
+  }, []);
 
   const handleIntroComplete = () => {
     console.log("[Landing] Intro slideshow completed");
@@ -57,8 +35,6 @@ export default function LandingPage() {
     console.log("[Landing] Consent accepted");
     localStorage.setItem('hasAcceptedConsent', 'true');
     setShowConsent(false);
-    // After consent, navigate to onboarding
-    setLocation('/onboarding');
   };
 
   // Show intro slideshow for first-time visitors
@@ -69,11 +45,6 @@ export default function LandingPage() {
   // Show consent agreement after intro
   if (showConsent) {
     return <ConsentAgreement onAccept={handleConsentAccept} />;
-  }
-
-  // Show guest entry after intro or when joining with code
-  if (showGuestEntry) {
-    return <GuestEntry onAuthenticated={handleAuthenticated} />;
   }
 
   const features = [
@@ -141,11 +112,11 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="backdrop-blur-md bg-white/20 border border-white/30 text-white hover:bg-white/30"
-                onClick={() => setShowGuestEntry(true)}
+                onClick={login}
                 data-testid="button-get-started"
               >
                 <Shield className="mr-2 h-5 w-5" />
-                Get Started Free
+                Sign in with Google
               </Button>
             </div>
           </div>

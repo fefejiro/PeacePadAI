@@ -83,33 +83,24 @@ export function AppSidebar() {
     try {
       // 1. Clear React Query cache FIRST to prevent any refetches during logout
       console.log("[Logout] Clearing React Query cache...");
-      queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.setQueryData(["/api/auth/user"], null);
       
-      // 2. Call logout endpoint to destroy server session and clear cookie
-      console.log("[Logout] Calling /api/auth/logout...");
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-      
-      // 3. Clear client-side localStorage
+      // 2. Clear client-side localStorage
       console.log("[Logout] Clearing localStorage...");
       localStorage.removeItem("peacepad_session_id");
       localStorage.removeItem("pending_join_code");
       
-      // 4. Invalidate all queries to force refetch with new auth state
-      console.log("[Logout] Invalidating queries...");
-      await queryClient.invalidateQueries();
-      
-      // 5. Navigate to landing page - React will handle the re-render
-      console.log("[Logout] Navigating to landing...");
-      setLocation("/");
+      // 3. Redirect to logout endpoint (GET request that handles OIDC logout)
+      console.log("[Logout] Redirecting to /api/logout...");
+      window.location.href = "/api/logout";
     } catch (error) {
       console.error("[Logout] Error during logout:", error);
       
-      // Even on error, clear local state
-      queryClient.setQueryData(["/api/auth/me"], null);
+      // Even on error, clear local state and redirect
+      queryClient.setQueryData(["/api/auth/user"], null);
       localStorage.removeItem("peacepad_session_id");
       localStorage.removeItem("pending_join_code");
-      await queryClient.invalidateQueries();
-      setLocation("/");
+      window.location.href = "/api/logout";
     }
   };
 
@@ -135,10 +126,10 @@ export function AppSidebar() {
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-displayname">
-                {user.displayName || "Guest"}
+                {user.displayName || "User"}
               </p>
-              {user.isGuest && (
-                <p className="text-xs text-muted-foreground">Guest User</p>
+              {user.email && (
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               )}
             </div>
           </div>
