@@ -53,12 +53,8 @@ export default function OnboardingPage() {
     
     console.log("[Onboarding] Auth loaded - User:", user?.id, "Step:", step, "Pending code:", pendingCode, "Completed:", hasCompletedOnboarding);
     
-    // Redirect users who already completed onboarding to chat (user-scoped check)
-    if (hasCompletedOnboarding && user) {
-      console.log("[Onboarding] User already completed onboarding, redirecting to /chat");
-      setLocation("/chat");
-      return;
-    }
+    // IMPORTANT: Check for pending join codes FIRST, before checking completion status
+    // This allows users to join new partnerships even if they've completed onboarding before
     
     // Handle intro/consent flow for users joining via invite link
     if (pendingCode && !hasSeenIntro) {
@@ -68,6 +64,22 @@ export default function OnboardingPage() {
     } else if (pendingCode && !hasAcceptedConsent) {
       console.log("[Onboarding] Showing consent for invite link user");
       setShowConsent(true);
+      return;
+    }
+    
+    // If user IS authenticated and has a pending join code, skip onboarding and join partnership
+    if (user && pendingCode && hasSeenIntro && hasAcceptedConsent) {
+      console.log("[Onboarding] Authenticated user with pending code - redirecting to join partnership:", pendingCode);
+      // Don't clear pending_join_code yet - let join-partnership page handle cleanup after successful join
+      setLocation(`/join/${pendingCode}`);
+      return;
+    }
+    
+    // Redirect users who already completed onboarding to chat (user-scoped check)
+    // This check comes AFTER pending code check to allow joining new partnerships
+    if (hasCompletedOnboarding && user) {
+      console.log("[Onboarding] User already completed onboarding, redirecting to /chat");
+      setLocation("/chat");
       return;
     }
 
@@ -200,15 +212,8 @@ export default function OnboardingPage() {
       console.log("[Onboarding] Step 2 complete. Pending code:", pendingCode);
       
       if (pendingCode) {
-        localStorage.removeItem("pending_join_code");
-        // Mark as completed with user-scoped key
-        if (user?.id) {
-          localStorage.setItem(`onboarding_completed_${user.id}`, "true");
-        }
-        // Clear global onboarding state when redirecting to partnership
-        localStorage.removeItem("onboarding_current_step");
-        localStorage.removeItem("onboarding_completed_step2");
         console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
+        // Don't clear pending_join_code yet - let join-partnership page handle cleanup after successful join
         setLocation(`/join/${pendingCode}`);
       } else {
         setStep(3);
@@ -433,16 +438,9 @@ export default function OnboardingPage() {
                     console.log("[Onboarding] Step 2 skipped. Pending code:", pendingCode);
                     
                     if (pendingCode) {
-                      localStorage.removeItem("pending_join_code");
-                      // Mark as completed with user-scoped key
-                      if (user?.id) {
-                        localStorage.setItem(`onboarding_completed_${user.id}`, "true");
-                      }
-                      // Clear global onboarding state when redirecting to partnership
-                      localStorage.removeItem("onboarding_current_step");
-                      localStorage.removeItem("onboarding_completed_step2");
-                      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
                       console.log("[Onboarding] Redirecting to join partnership:", pendingCode);
+                      // Don't clear pending_join_code yet - let join-partnership page handle cleanup after successful join
+                      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
                       setLocation(`/join/${pendingCode}`);
                     } else {
                       setStep(3);
@@ -511,23 +509,24 @@ export default function OnboardingPage() {
               <Button
                 className="w-full"
                 onClick={async () => {
-                  // Mark onboarding as complete with user-scoped key
-                  if (user?.id) {
-                    localStorage.setItem(`onboarding_completed_${user.id}`, "true");
-                  }
-                  // Clear global onboarding state
-                  localStorage.removeItem("onboarding_current_step");
-                  localStorage.removeItem("onboarding_completed_step2");
-                  
                   // Refresh auth state before redirecting
                   await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
                   
                   // Check if there's a pending join code from /join/:code link
                   const pendingCode = localStorage.getItem("pending_join_code");
                   if (pendingCode) {
-                    localStorage.removeItem("pending_join_code");
+                    console.log("[Onboarding] Step 3 complete. Redirecting to join partnership:", pendingCode);
+                    // Don't mark onboarding complete or clear pending_join_code yet
+                    // Let join-partnership page handle everything after successful join
                     setLocation(`/join/${pendingCode}`);
                   } else {
+                    // Only mark onboarding as complete if NOT joining via invite link
+                    if (user?.id) {
+                      localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+                    }
+                    // Clear global onboarding state
+                    localStorage.removeItem("onboarding_current_step");
+                    localStorage.removeItem("onboarding_completed_step2");
                     setLocation("/chat");
                   }
                 }}

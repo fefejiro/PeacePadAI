@@ -28,6 +28,18 @@ export default function JoinPartnershipPage() {
       console.log("[JoinPartnership] Successfully joined partnership:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      
+      // Clean up localStorage after successful join
+      localStorage.removeItem("pending_join_code");
+      localStorage.removeItem("hasSeenIntro");
+      localStorage.removeItem("hasAcceptedConsent");
+      localStorage.removeItem("onboarding_current_step");
+      localStorage.removeItem("onboarding_completed_step2");
+      // Mark onboarding as completed for this user
+      if (user?.id) {
+        localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+      }
+      
       toast({
         title: "Partnership created!",
         description: "You're now connected with your co-parent",
