@@ -1,0 +1,37 @@
+Got it 👌🏽
+
+Here’s the clean description-only version you can drop directly into Replit’s planning or dev iteration — no hardcoding, no predefined logic. This way Replit decides the best technical approach for creating, expanding, and managing the mock AI system internally.
+
+⸻
+
+🧩 Description for Replit — Mock AI Integration (DEV Mode Only)
+
+Objective:
+Expand PeacePad’s mock AI response system to simulate realistic mediation feedback for testing and development environments without incurring token or API costs.
+
+Context:
+During development (DEV mode), PeacePad currently uses a placeholder AI response. This update should introduce a structured, scalable mock AI dataset that produces intelligent, varied responses for chat, tone, and mediation use cases, without external API calls.
+
+Key Requirements:
+	1.	Mock AI Database (Local or Lightweight):
+	•	Create a local or lightweight database of predefined tone and context-based responses.
+	•	Include diverse categories such as parenting, scheduling, expenses, co-parenting tone analysis, and emotional regulation prompts.
+	•	Each response should feel natural and context-aware, representing how PeacePad’s AI mediator would respond in production.
+	2.	Dynamic Simulation Logic:
+	•	The system should automatically choose responses based on detected message tone, keywords, or conversation context.
+	•	Simulated tone detection and mediation suggestions should still mimic AI intelligence.
+	•	The logic should be scalable so more mock responses can be added easily over time.
+	3.	Environment Toggle:
+	•	PeacePad should switch between Mock AI (DEV) and Live AI (PROD) using environment flags (e.g., AI_MODE=MOCK or AI_MODE=LIVE).
+	•	No hardcoded API calls or dependencies — just logical separation that Replit can manage internally.
+	4.	Production Configuration:
+	•	When switched to production, the app should default to using a lighter AI model (e.g., GPT 3.5 Turbo or 4o-mini) instead of the main GPT-4.4 model, to reduce token cost.
+	•	The system should cache or store frequently used responses to minimize repeated API calls.
+	5.	Development Goals:
+	•	Ensure mock responses are consistent, cost-free, and representative of real AI tone and flow.
+	•	Mock AI should integrate seamlessly into the chat, call, and tone analysis systems during testing.
+	•	Replit should handle the mock AI logic generation and data storage approach dynamically — without static or hardcoded references.
+
+⸻
+
+Would you like me to add a short Replit iteration title + summary line (like the ones you’ve used before) so you can paste it directly into the Replit “Plan” section?

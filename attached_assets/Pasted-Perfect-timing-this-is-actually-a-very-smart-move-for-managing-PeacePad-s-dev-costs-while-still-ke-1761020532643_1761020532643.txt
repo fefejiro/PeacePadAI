@@ -1,0 +1,109 @@
+Perfect timing — this is actually a very smart move for managing PeacePad’s dev costs while still keeping your AI mediation feature working properly during tests. Here’s how we can structure it:
+
+⸻
+
+🧠 Goal
+
+Create a mock AI response database that mimics real mediation tone analysis and response behavior for development, instead of making live API calls to ChatGPT.
+Then, in production, switch back to a lighter legacy OpenAI model (like gpt-3.5-turbo or gpt-4o-mini) only when needed.
+
+⸻
+
+⚙️ Implementation Plan for Replit
+
+1️⃣ Mock AI Response Database (for DEV only)
+
+We’ll create a small JSON file or local SQLite DB that holds sample responses based on:
+	•	Tone (e.g., calm, frustrated, defensive, reflective)
+	•	Category (e.g., parenting discussion, scheduling conflict, expense disagreement)
+	•	Response Type (suggestion, empathy prompt, neutral summary)
+
+Example (JSON snippet):
+
+[
+  {
+    "tone": "frustrated",
+    "category": "scheduling",
+    "ai_response": "It sounds like both of you are feeling unheard about the schedule. How about we take a breath and review one week at a time?"
+  },
+  {
+    "tone": "calm",
+    "category": "expense",
+    "ai_response": "You both seem aligned on the main expenses. Let’s make sure each transaction is visible to both of you before it’s finalized."
+  },
+  {
+    "tone": "defensive",
+    "category": "child_update",
+    "ai_response": "It might help to focus on your shared goal — keeping your child’s day smooth — rather than who’s right or wrong."
+  }
+]
+
+You can store this as /mock/ai_responses.json and load it dynamically depending on the detected context.
+
+⸻
+
+2️⃣ Replit Environment Toggle
+
+In your Replit .env or config file, define:
+
+ENV=DEV
+AI_MODE=MOCK
+
+Then in your code:
+
+if (process.env.AI_MODE === "MOCK") {
+  const mockResponses = require('./mock/ai_responses.json');
+  const matched = mockResponses.find(r => r.tone === userTone && r.category === category);
+  return matched ? matched.ai_response : "Let's take a step back and revisit this calmly.";
+} else {
+  // Use production API
+  const completion = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",  // lightweight model for prod
+    messages: [{ role: "user", content: userMessage }]
+  });
+  return completion.choices[0].message.content;
+}
+
+
+⸻
+
+3️⃣ Production Optimization
+
+When deploying to production:
+	•	Switch .env to:
+
+ENV=PROD
+AI_MODE=LIVE
+OPENAI_MODEL=gpt-3.5-turbo
+
+
+	•	Limit live AI usage only to critical mediation features (tone summary or resolution suggestions).
+	•	Cache AI outputs (e.g., in Redis or a local store) to reduce repeated costs.
+
+⸻
+
+4️⃣ Optional Enhancement: Tone Detection Mock
+
+If your mock AI should also simulate tone detection, you can extend the dataset with “user tone inputs” and sample “tone outputs” for testing.
+
+Example:
+
+{
+  "input": "You never listen to what I say about the weekends!",
+  "detected_tone": "angry",
+  "ai_response": "I can hear that this topic is stressful. Maybe let’s refocus on what’s most important to the kids this weekend."
+}
+
+
+⸻
+
+✅ Benefits
+	•	Zero token cost during dev
+	•	Offline capability — devs can test without network latency
+	•	Consistent test results for Playwright E2E
+	•	Easy switch to production AI
+
+⸻
+
+Would you like me to create the full mock AI JSON dataset (expanded version with 30–40 sample responses) and a small .env + switch script you can drop into Replit directly?
+That way, you can plug it into PeacePad dev right away.
