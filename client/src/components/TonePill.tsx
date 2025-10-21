@@ -46,17 +46,17 @@ export default function TonePill({ tone, summary }: TonePillProps) {
   const Icon = config.icon;
 
   return (
-    <div className="flex items-start gap-2 mt-2">
+    <div className="flex flex-col gap-1.5 animate-fade-in">
       <Badge
         variant="outline"
-        className={`${config.color} text-xs font-medium gap-1.5 border`}
+        className={`${config.color} text-xs font-medium gap-1.5 border rounded-full px-3 py-1 shadow-sm`}
         data-testid={`badge-tone-${tone}`}
       >
         <Icon className="h-3 w-3" />
-        <span>Tone: {config.label}</span>
+        <span>{config.label}</span>
       </Badge>
       {summary && (
-        <p className="text-xs italic text-muted-foreground mt-0.5">
+        <p className="text-xs italic text-muted-foreground leading-relaxed max-w-xs">
           {summary}
         </p>
       )}

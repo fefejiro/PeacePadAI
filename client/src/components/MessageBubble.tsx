@@ -110,29 +110,29 @@ export default function MessageBubble({
   const emojiValue = isEmoji && senderAvatar ? senderAvatar.replace("emoji:", "") : "";
 
   return (
-    <div className={`flex gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-      <Avatar className="h-8 w-8 flex-shrink-0">
+    <div className={`flex gap-3 sm:gap-4 animate-slide-up ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+      <Avatar className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 border-2 border-background shadow-sm">
         {isEmoji ? (
           <div className="flex items-center justify-center text-xl">{emojiValue}</div>
         ) : senderAvatar ? (
           <AvatarImage src={senderAvatar} alt={senderName} />
         ) : (
-          <AvatarFallback>{senderName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="bg-primary/10 text-primary font-medium">{senderName.slice(0, 2).toUpperCase()}</AvatarFallback>
         )}
       </Avatar>
 
-      <div className={`flex flex-col max-w-[70%] ${isMe ? "items-end" : "items-start"}`}>
-        <div className="flex items-baseline gap-2 mb-1">
+      <div className={`flex flex-col max-w-[75%] sm:max-w-[70%] ${isMe ? "items-end" : "items-start"}`}>
+        <div className="flex items-baseline gap-2 mb-2 px-1">
           <span className="text-sm font-medium text-foreground">
             {senderName}
           </span>
-          <span className="text-xs font-mono text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {timestamp}
           </span>
         </div>
 
         <div
-          className={`rounded-2xl ${messageType === "text" ? "px-4 py-3" : "p-2 overflow-hidden"} ${
+          className={`rounded-3xl shadow-sm ${messageType === "text" ? "px-5 py-3.5" : "p-2.5 overflow-hidden"} ${
             isMe
               ? "bg-primary text-primary-foreground"
               : "bg-card text-card-foreground border border-card-border"
@@ -143,18 +143,18 @@ export default function MessageBubble({
         </div>
 
         {tone && (
-          <div className={`flex items-center gap-2 mt-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-            {toneEmoji && <span className="text-lg" data-testid="tone-emoji">{toneEmoji}</span>}
+          <div className={`flex items-center gap-2 mt-2 px-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+            {toneEmoji && <span className="text-base" data-testid="tone-emoji">{toneEmoji}</span>}
             <TonePill tone={tone} summary={toneSummary || ""} />
           </div>
         )}
 
         {rewordingSuggestion && (
-          <Alert className="mt-2 bg-accent/50 border-accent-border" data-testid="rewording-suggestion">
-            <Lightbulb className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <span className="font-medium">Suggestion: </span>
-              {rewordingSuggestion}
+          <Alert className="mt-3 bg-accent/30 border-accent/40 rounded-2xl shadow-sm animate-scale-in" data-testid="rewording-suggestion">
+            <Lightbulb className="h-4 w-4 text-accent-foreground" />
+            <AlertDescription className="text-sm text-accent-foreground">
+              <span className="font-semibold">AI Suggests: </span>
+              <span className="italic">{rewordingSuggestion}</span>
             </AlertDescription>
           </Alert>
         )}

@@ -75,57 +75,67 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-foreground">Family Dashboard</h1>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Family Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Keep your family organized together</p>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-4">
+      {/* Main Content Grid */}
+      <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
+        {/* Shared Notes Section */}
+        <div className="space-y-4 animate-slide-up">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-medium text-foreground">Shared Notes</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground">Shared Notes</h2>
             <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
               <DialogTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
+                  className="gap-1.5 shadow-sm"
                   data-testid="button-add-note"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Note
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Note</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="rounded-3xl">
                 <DialogHeader>
-                  <DialogTitle>Create Note</DialogTitle>
+                  <DialogTitle className="text-2xl">Create a New Note</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div>
-                    <Label htmlFor="note-title">Title</Label>
+                <div className="space-y-5 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="note-title" className="text-sm font-medium">Title</Label>
                     <Input
                       id="note-title"
                       value={noteTitle}
                       onChange={(e) => setNoteTitle(e.target.value)}
-                      placeholder="Note title"
+                      placeholder="Enter note title..."
+                      className="rounded-xl"
                       data-testid="input-note-title"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="note-content">Content</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="note-content" className="text-sm font-medium">Content</Label>
                     <Textarea
                       id="note-content"
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
-                      placeholder="Note content"
+                      placeholder="What would you like to remember?"
+                      className="rounded-xl min-h-[120px]"
                       data-testid="input-note-content"
                     />
                   </div>
                   <Button
                     onClick={handleAddNote}
                     disabled={createNote.isPending}
+                    className="w-full rounded-xl shadow-sm"
                     data-testid="button-save-note"
                   >
-                    Create Note
+                    {createNote.isPending ? "Creating..." : "Create Note"}
                   </Button>
                 </div>
               </DialogContent>
@@ -133,39 +143,46 @@ export default function Dashboard() {
           </div>
           <div className="space-y-3">
             {notes.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No notes yet. Create one to get started!</p>
+              <div className="p-8 text-center bg-accent/20 rounded-2xl border border-accent/30 animate-scale-in">
+                <p className="text-muted-foreground text-sm">No notes yet. Create your first one to get started!</p>
+              </div>
             ) : (
               notes.map((note) => (
-                <NoteCard
-                  key={note.id}
-                  id={note.id}
-                  title={note.title}
-                  content={note.content}
-                  createdBy="You"
-                  date={new Date(note.createdAt).toLocaleDateString()}
-                />
+                <div key={note.id} className="animate-slide-up">
+                  <NoteCard
+                    id={note.id}
+                    title={note.title}
+                    content={note.content}
+                    createdBy="You"
+                    date={new Date(note.createdAt).toLocaleDateString()}
+                  />
+                </div>
               ))
             )}
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* Tasks & Updates Column */}
+        <div className="space-y-6 animate-slide-up" style={{animationDelay: "100ms"}}>
           <TaskList />
           
           <div className="space-y-4">
-            <h2 className="text-xl font-medium text-foreground">Child Updates</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground">Child Updates</h2>
             <div className="space-y-3">
               {updates.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No updates yet.</p>
+                <div className="p-8 text-center bg-accent/20 rounded-2xl border border-accent/30 animate-scale-in">
+                  <p className="text-muted-foreground text-sm">No updates yet. Share your first update!</p>
+                </div>
               ) : (
                 updates.map((update) => (
-                  <ChildUpdateCard
-                    key={update.id}
-                    childName={update.childName}
-                    update={update.update}
-                    author="You"
-                    timestamp={new Date(update.createdAt).toLocaleString()}
-                  />
+                  <div key={update.id} className="animate-slide-up">
+                    <ChildUpdateCard
+                      childName={update.childName}
+                      update={update.update}
+                      author="You"
+                      timestamp={new Date(update.createdAt).toLocaleString()}
+                    />
+                  </div>
                 ))
               )}
             </div>
@@ -173,7 +190,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 mt-6">
+      {/* Bottom Grid - Pets & Expenses */}
+      <div className="grid gap-5 sm:gap-6 lg:grid-cols-2 animate-slide-up" style={{animationDelay: "200ms"}}>
         <PetManagement />
         <ExpenseTracking />
       </div>

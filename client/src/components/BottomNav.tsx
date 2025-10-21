@@ -57,7 +57,7 @@ export function BottomNav() {
 
   return (
     <nav 
-      className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t z-50"
+      className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t shadow-2xl z-50 safe-area-bottom"
       data-testid="bottom-nav"
     >
       <div className="flex items-center justify-around h-16 px-2">
@@ -66,14 +66,17 @@ export function BottomNav() {
           <Link key={item.path} href={item.path}>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors min-w-[60px] hover-elevate active-elevate-2",
+                "flex flex-col items-center justify-center gap-1 px-3 sm:px-4 py-2 rounded-2xl min-w-[60px] sm:min-w-[68px] hover-elevate active-elevate-2",
                 isActive(item.path)
-                  ? "text-primary bg-primary/10"
+                  ? "text-primary bg-primary/15"
                   : "text-muted-foreground"
               )}
               data-testid={`nav-${item.label.toLowerCase()}`}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className={cn(
+                "h-5 w-5 sm:h-6 sm:w-6",
+                isActive(item.path) && "animate-gentle-bounce"
+              )} />
               <span className="text-xs font-medium">{item.label}</span>
             </button>
           </Link>
@@ -83,25 +86,25 @@ export function BottomNav() {
         <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
           <SheetTrigger asChild>
             <button
-              className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors min-w-[60px] text-muted-foreground hover-elevate active-elevate-2"
+              className="flex flex-col items-center justify-center gap-1 px-3 sm:px-4 py-2 rounded-2xl min-w-[60px] sm:min-w-[68px] text-muted-foreground hover-elevate active-elevate-2"
               data-testid="nav-more"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="text-xs font-medium">More</span>
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[60vh]">
-            <SheetHeader>
-              <SheetTitle>More Options</SheetTitle>
+          <SheetContent side="bottom" className="h-[65vh] rounded-t-3xl">
+            <SheetHeader className="mb-4">
+              <SheetTitle className="text-2xl">More Options</SheetTitle>
             </SheetHeader>
-            <div className="mt-6 space-y-2">
+            <div className="space-y-1.5">
               {moreItems.map((item) => (
                 <Link key={item.path} href={item.path}>
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start gap-3",
-                      isActive(item.path) && "bg-primary/10 text-primary"
+                      "w-full justify-start gap-3 h-12 rounded-xl text-base",
+                      isActive(item.path) && "bg-primary/15 text-primary"
                     )}
                     onClick={() => setMoreMenuOpen(false)}
                     data-testid={`more-${item.label.toLowerCase()}`}
@@ -113,10 +116,10 @@ export function BottomNav() {
               ))}
               
               {/* Sign Out Button */}
-              <div className="pt-4 border-t">
+              <div className="pt-3 border-t mt-3">
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+                  className="w-full justify-start gap-3 h-12 rounded-xl text-base text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleLogout}
                   data-testid="button-logout-mobile"
                 >

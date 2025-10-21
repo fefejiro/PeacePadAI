@@ -295,21 +295,21 @@ export default function SchedulingDashboard() {
   const getEventColor = (eventType: string) => {
     switch (eventType) {
       case "pickup":
-        return "bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700";
+        return "bg-primary/10 border-primary/30 dark:bg-primary/20 dark:border-primary/40";
       case "dropoff":
-        return "bg-green-100 dark:bg-green-950 border-green-300 dark:border-green-700";
+        return "bg-accent/30 border-accent/50 dark:bg-accent/40 dark:border-accent/60";
       case "school":
-        return "bg-purple-100 dark:bg-purple-950 border-purple-300 dark:border-purple-700";
+        return "bg-chart-5/10 border-chart-5/30 dark:bg-chart-5/20 dark:border-chart-5/40";
       case "medical":
-        return "bg-red-100 dark:bg-red-950 border-red-300 dark:border-red-700";
+        return "bg-destructive/10 border-destructive/30 dark:bg-destructive/20 dark:border-destructive/40";
       case "activity":
-        return "bg-amber-100 dark:bg-amber-950 border-amber-300 dark:border-amber-700";
+        return "bg-chart-3/10 border-chart-3/30 dark:bg-chart-3/20 dark:border-chart-3/40";
       case "vacation":
-        return "bg-cyan-100 dark:bg-cyan-950 border-cyan-300 dark:border-cyan-700";
+        return "bg-chart-4/10 border-chart-4/30 dark:bg-chart-4/20 dark:border-chart-4/40";
       case "holiday":
-        return "bg-rose-100 dark:bg-rose-950 border-rose-300 dark:border-rose-700";
+        return "bg-chart-1/10 border-chart-1/30 dark:bg-chart-1/20 dark:border-chart-1/40";
       default:
-        return "bg-gray-100 dark:bg-gray-950 border-gray-300 dark:border-gray-700";
+        return "bg-muted/50 border-muted dark:bg-muted/70 dark:border-muted";
     }
   };
 
@@ -322,16 +322,21 @@ export default function SchedulingDashboard() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Calendar className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-semibold text-foreground">Scheduling Dashboard</h1>
+          <div className="p-2 bg-primary/10 rounded-2xl">
+            <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Schedule</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Organize your family time</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="w-full md:w-auto" data-testid="button-add-event-menu">
+              <Button className="w-full sm:w-auto shadow-sm" data-testid="button-add-event-menu">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Event
                 <ChevronDown className="h-4 w-4 ml-2" />
@@ -626,59 +631,75 @@ export default function SchedulingDashboard() {
         </Card>
       )}
 
-      <div className="grid gap-4">
-        <h2 className="text-xl font-semibold text-foreground">Upcoming Events</h2>
+      <div className="space-y-4 animate-slide-up" style={{animationDelay: "100ms"}}>
+        <h2 className="text-lg sm:text-xl font-semibold text-foreground">Upcoming Events</h2>
         {events.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              No events scheduled. Add one to get started!
+          <Card className="rounded-2xl shadow-sm animate-scale-in">
+            <CardContent className="p-8 sm:p-12 text-center">
+              <div className="max-w-sm mx-auto space-y-3">
+                <div className="inline-flex p-3 bg-primary/10 rounded-full mb-2">
+                  <CalendarDays className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-muted-foreground">No events scheduled yet. Add your first event to get started!</p>
+              </div>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {events.map((event) => (
+            {events.map((event, index) => (
               <Card
                 key={event.id}
-                className={`${getEventColor(event.type)} hover-elevate`}
+                className={`${getEventColor(event.type)} hover-elevate rounded-2xl shadow-sm border-2 animate-slide-up`}
+                style={{animationDelay: `${index * 50}ms`}}
                 data-testid={`event-card-${event.id}`}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-foreground">{event.title}</h3>
-                        <Badge variant="outline" className="capitalize">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-foreground text-base sm:text-lg">{event.title}</h3>
+                        <Badge variant="outline" className="capitalize rounded-full text-xs">
                           {event.type}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          {new Date(event.startDate).toLocaleString()}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4 shrink-0" />
+                        <span className="text-xs sm:text-sm">
+                          {new Date(event.startDate).toLocaleString([], { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
                           {event.endDate &&
-                            ` - ${new Date(event.endDate).toLocaleString()}`}
+                            ` - ${new Date(event.endDate).toLocaleString([], { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}`}
                         </span>
                       </div>
                       {event.childName && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          <span className="font-medium">Child:</span> {event.childName}
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">Child:</span> {event.childName}
                         </p>
                       )}
                       {event.location && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          <span className="font-medium">Location:</span> {event.location}
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">Location:</span> {event.location}
                         </p>
                       )}
                       {event.recurring && event.recurring !== "none" && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          <span className="font-medium">Recurring:</span> {event.recurring}
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">Recurring:</span> {event.recurring}
                         </p>
                       )}
                       {event.description && (
-                        <p className="text-sm text-muted-foreground mb-1">{event.description}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{event.description}</p>
                       )}
                       {event.notes && (
-                        <p className="text-sm text-muted-foreground italic">{event.notes}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground italic leading-relaxed">{event.notes}</p>
                       )}
                     </div>
                   </div>
