@@ -124,6 +124,9 @@ export default function OnboardingPage() {
     localStorage.setItem("hasAcceptedConsent", "true");
     setShowConsent(false);
     
+    // Scroll to top when transitioning from consent to onboarding
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     // If not authenticated, they need to sign in before continuing
     if (!user && !isLoading) {
       console.log("[Onboarding] User not authenticated after consent, redirecting to login");
@@ -305,8 +308,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-start justify-center p-4 py-12">
+      <Card className="w-full max-w-2xl rounded-3xl shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-3xl font-bold">Welcome to PeacePad</h1>

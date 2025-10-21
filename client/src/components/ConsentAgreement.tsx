@@ -67,9 +67,9 @@ export default function ConsentAgreement({ onAccept }: ConsentAgreementProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl">
-        <CardContent className="p-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-start justify-center p-4 py-12">
+      <Card className="w-full max-w-4xl rounded-3xl shadow-lg">
+        <CardContent className="p-6 sm:p-8">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-4">
               <Shield className="h-16 w-16 text-primary" />
