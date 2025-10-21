@@ -1,17 +1,43 @@
 import { Link, useLocation } from "wouter";
-import { MessageCircle, Phone, Calendar, CheckSquare, Menu, Heart, DollarSign, PawPrint, FileText, Settings, User } from "lucide-react";
+import { MessageCircle, Phone, Calendar, CheckSquare, Menu, Heart, DollarSign, PawPrint, FileText, Settings, User, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { queryClient } from "@/lib/queryClient";
 
 export function BottomNav() {
   const [location] = useLocation();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const { logout } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/chat" && (location === "/" || location === "/chat")) return true;
     return location === path;
+  };
+
+  const handleLogout = async () => {
+    console.log("[BottomNav Logout] Starting logout process...");
+    try {
+      // Clear React Query cache
+      queryClient.setQueryData(["/api/auth/user"], null);
+      
+      // Clear localStorage
+      localStorage.removeItem("peacepad_session_id");
+      localStorage.removeItem("pending_join_code");
+      
+      // Redirect to logout endpoint
+      window.location.href = "/api/logout";
+    } catch (error) {
+      console.error("[BottomNav Logout] Error during logout:", error);
+      
+      // Even on error, clear local state and redirect
+      queryClient.setQueryData(["/api/auth/user"], null);
+      localStorage.removeItem("peacepad_session_id");
+      localStorage.removeItem("pending_join_code");
+      window.location.href = "/api/logout";
+    }
   };
 
   const navItems = [
@@ -85,6 +111,19 @@ export function BottomNav() {
                   </Button>
                 </Link>
               ))}
+              
+              {/* Sign Out Button */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+                  onClick={handleLogout}
+                  data-testid="button-logout-mobile"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span>Sign Out</span>
+                </Button>
+              </div>
             </div>
           </SheetContent>
         </Sheet>
