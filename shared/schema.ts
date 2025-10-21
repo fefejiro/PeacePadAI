@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   relationshipType: varchar("relationship_type"), // ex-spouse, separated, never-married, other
   childName: varchar("child_name"), // Primary child's name (optional)
   consentAcceptedAt: timestamp("consent_accepted_at"), // Timestamp when user accepted consent agreement
+  termsAcceptedAt: timestamp("terms_accepted_at"), // Timestamp when user accepted Terms & Conditions (including NDA)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

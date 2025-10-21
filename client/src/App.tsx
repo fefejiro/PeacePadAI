@@ -30,7 +30,9 @@ import TherapistDirectoryPage from "@/pages/therapist-directory";
 import AuditTrailPage from "@/pages/audit-trail";
 import JoinCallPage from "@/pages/join-call";
 import CallsPage from "@/pages/calls";
+import TermsPage from "@/pages/terms";
 import NotFound from "@/pages/not-found";
+import { TermsAcceptanceDialog } from "@/components/TermsAcceptanceDialog";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -46,25 +48,34 @@ function Router() {
 
   // If authenticated, show authenticated routes
   if (isAuthenticated && user) {
+    // Check if user needs to accept terms
+    const needsTermsAcceptance = !user.termsAcceptedAt;
+
     return (
-      <Switch>
-        <Route path="/" component={ChatPage} />
-        <Route path="/chat" component={ChatPage} />
-        <Route path="/calls" component={CallsPage} />
-        <Route path="/onboarding" component={OnboardingPage} />
-        <Route path="/dashboard" component={DashboardPage} />
-        <Route path="/scheduling" component={SchedulingPage} />
-        <Route path="/tasks" component={TasksPage} />
-        <Route path="/expenses" component={ExpensesPage} />
-        <Route path="/therapist-locator" component={TherapistLocatorPage} />
-        <Route path="/therapist-directory" component={TherapistDirectoryPage} />
-        <Route path="/audit-trail" component={AuditTrailPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route path="/join/:code" component={JoinPartnershipPage} />
-        <Route path="/call/:code" component={JoinCallPage} />
-        <Route path="/call" component={JoinCallPage} />
-        <Route component={NotFound} />
-      </Switch>
+      <>
+        <Switch>
+          <Route path="/" component={ChatPage} />
+          <Route path="/chat" component={ChatPage} />
+          <Route path="/calls" component={CallsPage} />
+          <Route path="/onboarding" component={OnboardingPage} />
+          <Route path="/dashboard" component={DashboardPage} />
+          <Route path="/scheduling" component={SchedulingPage} />
+          <Route path="/tasks" component={TasksPage} />
+          <Route path="/expenses" component={ExpensesPage} />
+          <Route path="/therapist-locator" component={TherapistLocatorPage} />
+          <Route path="/therapist-directory" component={TherapistDirectoryPage} />
+          <Route path="/audit-trail" component={AuditTrailPage} />
+          <Route path="/settings" component={SettingsPage} />
+          <Route path="/terms" component={TermsPage} />
+          <Route path="/join/:code" component={JoinPartnershipPage} />
+          <Route path="/call/:code" component={JoinCallPage} />
+          <Route path="/call" component={JoinCallPage} />
+          <Route component={NotFound} />
+        </Switch>
+        {needsTermsAcceptance && (
+          <TermsAcceptanceDialog open={true} userId={user.id} />
+        )}
+      </>
     );
   }
 

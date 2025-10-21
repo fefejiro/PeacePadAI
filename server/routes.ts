@@ -299,6 +299,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Accept terms and conditions (including NDA)
+  app.post('/api/users/accept-terms', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const updatedUser = await storage.upsertUser({
+        id: userId,
+        termsAcceptedAt: new Date(),
+      });
+      
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      console.error("Error accepting terms:", error);
+      res.status(500).json({ message: "Failed to accept terms" });
+    }
+  });
+
   // Message routes
   app.get('/api/messages', isAuthenticated, async (req: any, res) => {
     try {
