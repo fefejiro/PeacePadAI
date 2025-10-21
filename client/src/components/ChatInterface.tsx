@@ -705,8 +705,48 @@ export default function ChatInterface() {
             <Button
               variant="default"
               size="default"
-              onClick={() => window.location.href = '/settings'}
-              data-testid="button-go-to-settings"
+              onClick={async () => {
+                const inviteCode = user?.inviteCode;
+                if (!inviteCode) {
+                  toast({ title: "Error", description: "Invite code not found", variant: "destructive" });
+                  return;
+                }
+                const baseUrl = window.location.origin;
+                const inviteLink = `${baseUrl}/join/${inviteCode}`;
+                const shareMessage = `I'm using PeacePad for co-parenting coordination. Join me: ${inviteLink}`;
+                
+                try {
+                  if (navigator.share) {
+                    await navigator.share({
+                      title: "Join me on PeacePad",
+                      text: shareMessage,
+                      url: inviteLink,
+                    });
+                    toast({ 
+                      title: "Shared!", 
+                      description: "Invite sent successfully", 
+                      duration: 3000 
+                    });
+                  } else {
+                    await navigator.clipboard.writeText(shareMessage);
+                    toast({ 
+                      title: "Link copied!", 
+                      description: "Paste this message in SMS, WhatsApp, or email", 
+                      duration: 4000 
+                    });
+                  }
+                } catch (error: any) {
+                  if (error.name !== 'AbortError') {
+                    toast({ 
+                      title: "Error sharing", 
+                      description: "Please try copying the link manually", 
+                      variant: "destructive", 
+                      duration: 5000 
+                    });
+                  }
+                }
+              }}
+              data-testid="button-share-invite"
             >
               Share Your Invite Code
             </Button>
