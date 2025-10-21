@@ -1,0 +1,94 @@
+Great — here’s a detailed breakdown of how a shared-expense feature like Splitwise works in the backend, and how you can adapt that logic for PeacePad to add acknowledgement of payments (including splits like 70/30, 40/60, etc.). Then I’ll map out how to apply it to PeacePad’s architecture.
+
+⸻
+
+🔍 How Splitwise handles shared expenses & payment acknowledgement
+
+From Splitwise’s API documentation and product behavior:
+	1.	Expense creation
+	•	A user logs an expense (e.g., cost = CA$ 100) and selects the shares for each participant. For example: Parent A paid CA$100, Parent B owes CA$40, Parent A owes CA$60 (or vice-versa).
+￼
+	•	The payload includes users__{index}__paid_share and users__{index}__owed_share.  ￼
+	•	The expense is stored with status fields like transaction_confirmed (bool) to indicate whether a payment has been settled.  ￼
+	2.	Balance calculation & tracking
+	•	After creation, the system calculates each user’s net balance (paid minus owed) and updates group ledger accordingly.  ￼
+	•	Users see how much they owe or are owed.
+	3.	Payment / settlement step
+	•	When someone pays, the app logs a settlement-entry (e.g., “Parent B paid Parent A CA$40 on 2025-10-11”).
+	•	Splitwise includes a “Settle Up” feature and supports linking external payment methods (PayPal, Venmo, etc.) to mark an expense as “paid”.  ￼
+	•	The field transaction_confirmed may switch from false → true when the settlement is recorded.  ￼
+	4.	Acknowledgement / confirmation
+	•	The system allows the user receiving the payment to confirm that it was received (or optionally verify). For example, one feature request said: “add a lightweight ‘payment received’ tick box” for clarity.  ￼
+	•	Once confirmed, the expense status becomes “settled” and it may disappear (or be flagged) in the owed list.
+	5.	Split percentages & flexibility
+	•	The API supports custom splits not just 50/50. When creating an expense, you can define specific owed_share amounts, e.g., Parent A owes CA$60, Parent B owes CA$40 (which is 60/40 split).  ￼
+	•	The UI shows percentages behind the scenes and the ledger reflects it accordingly.
+
+⸻
+
+🛠 How to implement this for PeacePad’s “Shared Expense” feature
+
+A. Data Model
+	•	Expense table/collection:
+
+id: UUID
+description: string
+total_amount: decimal
+currency: string
+date: timestamp
+created_by_user_id: UUID
+status: enum { “pending”, “partially_settled”, “settled”, “cancelled” }
+
+
+	•	ExpenseParticipant table:
+
+expense_id: UUID (FK)
+user_id: UUID
+paid_amount: decimal
+owed_amount: decimal
+percentage: decimal (optional for UI/logic)
+settlement_confirmed: boolean
+
+
+	•	Settlement table (optional but recommended):
+
+id: UUID
+expense_id: UUID (FK)
+from_user_id: UUID
+to_user_id: UUID
+amount: decimal
+date: timestamp
+confirmed_by_to_user: boolean
+
+
+
+B. Workflow Steps for PeacePad
+	1.	Create Expense: Parent A logs CA$100 expense. They specify split (e.g., Parent A owes CA$30, Parent B owes CA$70) OR default 50/50 if no custom.
+	2.	Display Split: UI shows both parents share (30/70) and what each owes/paid.
+	3.	Mark Payment Initiated: Parent B makes e-transfer to Parent A (off-app or via integrated payment). Parent B then taps “I paid” for their owed share.
+	4.	Record Settlement: The backend creates a Settlement record (from Parent B → Parent A, amount CA$70).
+	5.	Confirm Receipt: Parent A receives notification “Parent B says they paid CA$70 — confirm receipt.” Parent A taps “Confirm received”. This toggles confirmed_by_to_user=true.
+	6.	Update Status: Once confirmed by both sides, update Expense status to settled. If partially settled (e.g., only 30% done), status becomes partially_settled.
+	7.	UI Feedback: In chat/expense list, flagged as “🟢 Settled” or “⏳ Awaiting confirmation”.
+	8.	Ledger update: Net balances updated (owing=0). Historical record kept for transparency.
+
+C. Edge Cases & Considerations
+	•	Multiple payments: If Parent B splits owed amount into two payments, allow multiple Settlement entries. Only mark settled when sum of confirmed payments ≥ owed_amount.
+	•	Disputed payment: Parent B taps “Paid” but Parent A disagrees – provide “Dispute” flow and maybe mediation via PeacePad.
+	•	Recurring expenses: If expense recurs (e.g., weekly kids expense), allow recurring flag and status resets each period.
+	•	Different percentages: UI should allow custom %, e.g., 40/60, 30/70, 50/50.
+	•	Currency & conversion: If cross-border or different currencies (less likely for your target), include conversion logic.
+	•	Audit trail: Keep history of who created, edited, confirmed, for transparency and record.
+
+D. Integration with PeacePad Features
+	•	Tie into chat: When expense is settled, send in chat “Parent B has paid CA$70 — use Calm Pass if you’d like to discuss.”
+	•	Tie into analytics: Track percentage splits used (50/50, 70/30 etc.), payment time lag, confirmation time for insight.
+	•	UI: On expense card, show small icon/badge indicating settlement status; colour code for clarity.
+
+⸻
+
+✅ Summary
+
+You can absolutely build a robust expense-settlement feature in PeacePad by borrowing from Splitwise’s backend logic but tailoring it to your co-parenting context. Focus on these key elements: expense creation + custom split, settlement records & confirmation, smart status tracking, transparent UI, and a link back to your mediation and tone analysis features.
+
+If you like, I can generate a database schema (SQL + Prisma/ORM model) and a REST API specification (endpoints with request/response shapes) for PeacePad’s expense-feature — ready for you or Replit devs to plug in. Would that be helpful?

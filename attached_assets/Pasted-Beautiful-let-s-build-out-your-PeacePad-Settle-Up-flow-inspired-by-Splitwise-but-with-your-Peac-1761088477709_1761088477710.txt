@@ -1,0 +1,168 @@
+Beautiful — let’s build out your PeacePad “Settle Up” flow inspired by Splitwise, but with your PeacePad UX philosophy (cooperative, not transactional).
+Below is a complete design, logic, and database integration outline to hand to Replit for implementation.
+
+⸻
+
+🧾 PeacePad “Settle Up” Flow (Expense Settlement)
+
+🌟 Purpose
+
+The “Settle Up” feature allows two parents (Parent A & Parent B) to acknowledge and confirm shared expenses such as school supplies, childcare, or extracurricular costs.
+It ensures transparency without direct banking integration — using a hybrid manual + external payment link confirmation approach.
+
+⸻
+
+🧩 1. Flow Overview
+
+Step 1 — Expense Added
+	•	Parent A creates an expense:
+	•	Description: “Soccer uniform”
+	•	Total: $120
+	•	Split: 60% (Parent A) / 40% (Parent B)
+
+Step 2 — Expense Auto-balancing
+	•	The backend creates ExpenseParticipants entries with:
+	•	owedAmount
+	•	paidAmount
+	•	percentage
+	•	status = 'pending'
+
+Step 3 — Initiate Settlement
+	•	Parent A clicks “Settle Up” → options:
+	1.	Mark as Paid (Manual)
+	•	Updates status to initiated
+	2.	Send Payment Link (External)
+	•	Opens external options (e.g., Interac e-Transfer, PayPal, or Wise)
+	•	PeacePad app deep-links to the preferred payment method
+
+Step 4 — Confirmation Workflow
+
+Actor	Action	System Update
+Parent A	Marks as paid or shares payment link	status → pending confirmation
+Parent B	Confirms receipt	status → confirmed
+Either Parent	Disputes (if incorrect)	status → rejected
+
+
+⸻
+
+🧠 2. Backend Model Update
+
+In your Prisma schema (or Supabase SQL):
+
+model Settlement {
+  id             String   @id @default(uuid())
+  expenseId      String
+  payerId        String
+  receiverId     String
+  amount         Float
+  method         String   // 'manual', 'etransfer', 'paypal', 'wise'
+  status         String   // 'initiated', 'pending_confirmation', 'confirmed', 'rejected'
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+
+⸻
+
+⚙️ 3. Logic Flow (Simplified Pseudocode)
+
+// Initiate Settlement
+POST /api/settle
+{
+  expenseId,
+  payerId,
+  receiverId,
+  amount,
+  method
+}
+
+// Backend Action
+if (method === 'manual') {
+  status = 'pending_confirmation';
+} else {
+  generatePaymentLink(method);
+  status = 'initiated';
+}
+
+// Confirm Settlement
+PATCH /api/settle/:id
+{
+  status: 'confirmed'
+}
+
+// Dispute Settlement
+PATCH /api/settle/:id
+{
+  status: 'rejected',
+  reason
+}
+
+
+⸻
+
+💬 4. Frontend UI Behavior
+
+Expense Page
+	•	Each expense shows:
+	•	💰 Total, Split Ratio
+	•	🔁 Settle Up Button
+	•	🕒 Status Badge: Pending / Confirmed / Rejected
+
+Modal Dialog
+	•	“How would you like to settle this expense?”
+	•	🟢 Mark as Paid
+	•	💳 Send via PayPal / Interac / Wise
+
+After Action
+	•	Show “Awaiting Confirmation” to payer
+	•	Show “Confirm / Dispute” to receiver
+
+⸻
+
+🔔 5. Notifications (In-App + Email)
+	1.	Parent B receives:
+“Parent A has marked ‘Soccer uniform’ as paid. Please confirm.”
+	2.	Parent A receives:
+“Your payment for ‘Soccer uniform’ has been confirmed.”
+
+⸻
+
+📊 6. Reporting and Balance Logic
+	•	partnership_balances table recalculates automatically on confirmation:
+
+UPDATE partnership_balances
+SET net_balance = net_balance - {amount}
+WHERE partnership_id = {id};
+
+
+	•	Optional: Create a view to summarize by parent:
+
+CREATE VIEW balance_summary AS
+SELECT partnership_id, user_id, SUM(owedAmount - paidAmount) AS net_balance
+FROM expenses
+GROUP BY partnership_id, user_id;
+
+
+
+⸻
+
+🔒 7. Privacy & Security
+	•	No bank logins or credentials stored.
+	•	All external payments happen off-platform.
+	•	PeacePad only records what’s confirmed by both users.
+
+⸻
+
+🚀 8. Future Expansion
+	•	Add Plaid API (optional) for verified payment detection.
+	•	Add auto reminders for unconfirmed settlements after X days.
+	•	Gamify fairness — “Your co-parent consistency score” (like a credit meter).
+
+⸻
+
+Would you like me to now package this as a PeacePad_SettleUp_Iteration.zip (containing:
+📄 dev instruction doc,
+📜 backend model schema,
+🖥️ frontend flow pseudocode, and
+🎨 wireframe reference)?
+You could drop it straight into Replit for iteration tracking.
