@@ -20,7 +20,8 @@ Preferred communication style: Simple, everyday language.
 - **Frontend**: Modular component architecture, real profile photo uploads.
 - **Backend**: Node.js, Express.js, TypeScript, ES Modules, Drizzle ORM, PostgreSQL (Neon serverless), RESTful API with Replit Auth middleware.
 - **Database**: Neon Serverless PostgreSQL with UUID primary keys, `createdAt`/`updatedAt` timestamps, Drizzle Kit for migrations. Added retry logic and graceful error handling for database connections.
-- **Authentication**: Soft authentication with guest entry (session ID) or Replit Auth, no email/password required.
+- **Authentication**: Replit Auth OAuth (supports Google, Apple, GitHub, X, email). All users must authenticate via OAuth before using the platform.
+- **Terms & Conditions**: Mandatory acceptance flow with Non-Disclosure Agreement (NDA) for all users. First-time users must accept terms via modal dialog before accessing the platform. Terms acceptance tracked via `termsAcceptedAt` timestamp in user profile.
 - **Partnership Model**: Invite code system (unique 6-digit alphanumeric) for creating co-parenting partnerships, supporting multiple partnerships. Privacy-first with no user directory.
 - **WebRTC Real-Time Communication**: WebSocket signaling server for multi-user voice/video calls (2-12 participants), STUN server configuration, role-based negotiation, offer caching. Unauthenticated join flow for guests.
 - **AI Integration**:

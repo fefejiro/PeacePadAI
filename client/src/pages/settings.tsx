@@ -3,14 +3,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone, Sparkles, Moon, Sun, Monitor } from "lucide-react";
+import { Settings as SettingsIcon, Upload, User, Copy, Share2, Check, Phone, Sparkles, Moon, Sun, Monitor, FileText } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -699,6 +699,12 @@ export default function SettingsPage() {
             <CardDescription>Manage your account settings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Link href="/terms">
+              <Button variant="outline" className="w-full justify-start" data-testid="button-view-terms">
+                <FileText className="h-4 w-4 mr-2" />
+                View Terms & Conditions
+              </Button>
+            </Link>
             <Button variant="outline" data-testid="button-change-password">
               Change Password
             </Button>
