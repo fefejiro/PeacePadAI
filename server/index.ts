@@ -79,4 +79,32 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown handlers to prevent EADDRINUSE errors
+  const shutdown = (signal: string) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+    server.close(() => {
+      console.log('Server closed. Exiting process.');
+      process.exit(0);
+    });
+    
+    // Force close after 10 seconds
+    setTimeout(() => {
+      console.error('Could not close connections in time, forcefully shutting down');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  
+  // Handle uncaught errors without crashing
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    shutdown('UNCAUGHT_EXCEPTION');
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
 })();

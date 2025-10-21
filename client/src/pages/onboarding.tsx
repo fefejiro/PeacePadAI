@@ -110,6 +110,12 @@ export default function OnboardingPage() {
     console.log("[Onboarding] Consent accepted");
     localStorage.setItem("hasAcceptedConsent", "true");
     setShowConsent(false);
+    
+    // If not authenticated, they need to sign in before continuing
+    if (!user && !isLoading) {
+      console.log("[Onboarding] User not authenticated after consent, redirecting to login");
+      window.location.href = '/api/login';
+    }
   };
 
   const updateInitialProfile = useMutation({
