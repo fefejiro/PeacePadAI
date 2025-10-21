@@ -55,17 +55,15 @@ export default function CallsPage() {
 
   const { data: partnerships = [] } = useQuery<Partnership[]>({
     queryKey: ['/api/partnerships'],
-    enabled: !!user && showNewCallDialog,
+    enabled: !!user,
   });
 
   const initiateCallMutation = useMutation({
     mutationFn: async (data: { receiverId: string; callType: CallType; partnershipId?: string }) => {
-      return apiRequest('/api/calls/initiate', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/calls/initiate', data);
+      return await response.json();
     },
-    onSuccess: (response) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/calls'] });
       setShowNewCallDialog(false);
       toast({
@@ -73,8 +71,8 @@ export default function CallsPage() {
         description: "Your call request has been sent",
       });
       // Navigate to the active call screen
-      if (response?.callId) {
-        setLocation(`/call/${response.callId}`);
+      if (data?.callId) {
+        setLocation(`/call/${data.callId}`);
       }
     },
     onError: (error: any) => {
@@ -132,9 +130,9 @@ export default function CallsPage() {
   };
 
   const getPartnerName = (call: Call) => {
-    // TODO: Fetch partner names from partnerships/users
     const partnerId = call.callerId === user?.id ? call.receiverId : call.callerId;
-    return `Partner ${partnerId.slice(0, 8)}...`; // Placeholder
+    const partnership = partnerships.find(p => p.partnerId === partnerId);
+    return partnership?.partnerName || `Partner ${partnerId.slice(0, 8)}...`;
   };
 
   return (

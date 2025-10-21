@@ -117,9 +117,32 @@ export default function TherapistDirectoryPage() {
     }
   };
 
-  const { data: resources = [], isLoading } = useQuery({
+  // Always fetch crisis resources (available everywhere)
+  const { data: crisisResources = [], isLoading: crisisLoading } = useQuery({
+    queryKey: ["/api/support-resources", "crisis", resourceType],
+    enabled: !!user && (resourceType === "all" || resourceType === "crisis"),
+    queryFn: async () => {
+      // Fetch crisis resources without location (they're always available)
+      const params = new URLSearchParams({
+        lat: "43.6532", // Default Toronto coords for mock data
+        lng: "-79.3832",
+        maxDistance: "1",
+        resourceType: "crisis",
+      });
+      
+      const response = await fetch(`/api/support-resources?${params}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch crisis resources');
+      return response.json();
+    },
+  });
+
+  // Fetch location-based resources when user searches
+  const { data: localResources = [], isLoading: localLoading } = useQuery({
     queryKey: ["/api/support-resources", userLocation?.lat, userLocation?.lng, searchDistance, userLocation?.address, userLocation?.isCanada, resourceType],
-    enabled: !!user && !!userLocation,
+    enabled: !!user && !!userLocation && resourceType !== "crisis",
     queryFn: async () => {
       // Convert miles to km if not Canadian (server expects km)
       const distanceInKm = userLocation!.isCanada 
@@ -131,7 +154,7 @@ export default function TherapistDirectoryPage() {
         lng: userLocation!.lng.toString(),
         maxDistance: distanceInKm.toString(),
         address: userLocation!.address || '',
-        resourceType: resourceType,
+        resourceType: resourceType === "all" ? "therapist" : resourceType, // Don't duplicate crisis
       });
       
       const response = await fetch(`/api/support-resources?${params}`, {
@@ -142,6 +165,13 @@ export default function TherapistDirectoryPage() {
       return response.json();
     },
   });
+
+  // Combine crisis and local resources
+  const resources = resourceType === "crisis" 
+    ? crisisResources 
+    : [...crisisResources, ...localResources];
+  
+  const isLoading = crisisLoading || localLoading;
 
   const openInMaps = (address: string, lat: string, lng: string) => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -278,6 +308,15 @@ export default function TherapistDirectoryPage() {
 
         {/* Support Resources */}
         <div className="space-y-4">
+          {!userLocation && resources.length > 0 && (
+            <Card className="mb-6 bg-muted/50">
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  Showing 24/7 crisis resources available across Canada. Enter a location above to find local therapists and family services.
+                </p>
+              </CardContent>
+            </Card>
+          )}
           {resources.length === 0 && userLocation ? (
             <Card>
               <CardContent className="pt-6">
