@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupSoftAuth, isSoftAuthenticated, trackUsage } from "./softAuth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
 import { 
   setupWebRTCSignaling, 
@@ -201,17 +201,17 @@ Rewording: [suggestion or "none"]`,
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  await setupSoftAuth(app);
+  await setupAuth(app);
   
   // Seed schedule templates on server startup (non-blocking)
   seedScheduleTemplates().catch(err => {
     console.error("Failed to seed schedule templates (will retry on next startup):", err.message);
   });
 
-  // Get current authenticated user
-  app.get('/api/auth/user', isSoftAuthenticated, async (req: any, res) => {
+  // Get current authenticated user (Replit Auth)
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       let user = await storage.getUser(userId);
       
       // Ensure user has an invite code (for legacy users)
@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all users (for contact selection) - phone numbers excluded for privacy
-  app.get('/api/users', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
       const users = await storage.getAllUsers();
       // Return only basic user info for privacy - NO phone numbers to non-contacts
@@ -248,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get specific user by ID (basic info only for assigned tasks, etc.)
-  app.get('/api/users/:userId', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/users/:userId', isAuthenticated, async (req: any, res) => {
     try {
       const { userId } = req.params;
       const user = await storage.getUser(userId);
@@ -274,9 +274,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update user profile
-  app.patch('/api/user/profile', isSoftAuthenticated, async (req: any, res) => {
+  app.patch('/api/user/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { profileImageUrl, displayName, phoneNumber, sharePhoneWithContacts, childName, relationshipType } = req.body;
       
       const updateData: any = {};
@@ -300,9 +300,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message routes
-  app.get('/api/messages', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { recipientId } = req.query;
       
       // Get all messages for the user
@@ -324,7 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Preview tone analysis without sending (AI-first feature)
-  app.post('/api/messages/preview', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/messages/preview', isAuthenticated, async (req: any, res) => {
     try {
       const { content } = req.body;
       
@@ -347,9 +347,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/messages', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const sessionId = req.user.sessionId;
       
       let conversationId = req.body.conversationId;
@@ -408,10 +408,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rewordingSuggestion,
       });
 
-      // Track usage metrics
-      await trackUsage(sessionId, 'messagesSent', 1);
-      await trackUsage(sessionId, 'toneAnalyzed', 1);
-
       // Broadcast to all conversation members that a new message was posted
       broadcastNewMessage();
 
@@ -423,9 +419,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Chat attachments upload endpoint
-  app.post('/api/chat-attachments', isSoftAuthenticated, chatUpload.single('file'), async (req: any, res) => {
+  app.post('/api/chat-attachments', isAuthenticated, chatUpload.single('file'), async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const file = req.file;
       
       if (!file) {
@@ -452,9 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Receipt upload endpoint for expenses
-  app.post('/api/receipt-upload', isSoftAuthenticated, receiptUpload.single('file'), async (req: any, res) => {
+  app.post('/api/receipt-upload', isAuthenticated, receiptUpload.single('file'), async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const file = req.file;
       
       if (!file) {
@@ -476,12 +472,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Profile photo upload endpoint
-  app.post('/api/profile-upload', isSoftAuthenticated, profileUpload.single('file'), async (req: any, res) => {
+  app.post('/api/profile-upload', isAuthenticated, profileUpload.single('file'), async (req: any, res) => {
     try {
       console.log('[Profile Upload] Starting upload for user:', req.user?.id);
       console.log('[Profile Upload] Content-Type:', req.headers['content-type']);
       
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const file = req.file;
       
       console.log('[Profile Upload] File received:', file ? {
@@ -519,9 +515,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Partnership routes
-  app.get('/api/partnerships', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/partnerships', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const partnerships = await storage.getPartnerships(userId);
       
       // Fetch co-parent info for each partnership
@@ -548,9 +544,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/partnerships/join', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/partnerships/join', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { inviteCode } = req.body;
 
       console.log(`[Partnership Join] User ${userId} attempting to join with code: ${inviteCode}`);
@@ -698,9 +694,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/partnerships/regenerate-code', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/partnerships/regenerate-code', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const newCode = await storage.regenerateInviteCode(userId);
       res.json({ inviteCode: newCode });
     } catch (error) {
@@ -709,9 +705,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/partnerships/:id/custody', isSoftAuthenticated, async (req: any, res) => {
+  app.patch('/api/partnerships/:id/custody', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const partnershipId = req.params.id;
       const { custodyEnabled, custodyPattern, custodyStartDate, custodyPrimaryParent, custodyConfig, user1Color, user2Color } = req.body;
 
@@ -743,9 +739,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Conversation routes
-  app.get('/api/conversations', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/conversations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const conversations = await storage.getConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -754,9 +750,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/conversations', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/conversations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { name, type, memberIds } = req.body;
 
       if (!type || !memberIds || !Array.isArray(memberIds)) {
@@ -801,9 +797,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/conversations/:id/messages', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const conversationId = req.params.id;
 
       // Verify user is a member of this conversation
@@ -823,9 +819,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Note routes
-  app.get('/api/notes', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/notes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const notes = await storage.getNotes(userId);
       res.json(notes);
     } catch (error) {
@@ -834,9 +830,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/notes', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/notes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const parsed = insertNoteSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -849,7 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/notes/:id', isSoftAuthenticated, async (req, res) => {
+  app.patch('/api/notes/:id', isAuthenticated, async (req, res) => {
     try {
       const note = await storage.updateNote(req.params.id, req.body);
       res.json(note);
@@ -859,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/notes/:id', isSoftAuthenticated, async (req, res) => {
+  app.delete('/api/notes/:id', isAuthenticated, async (req, res) => {
     try {
       await storage.deleteNote(req.params.id);
       res.json({ success: true });
@@ -870,9 +866,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task routes
-  app.get('/api/tasks', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/tasks', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const tasks = await storage.getTasks(userId);
       res.json(tasks);
     } catch (error) {
@@ -881,9 +877,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/tasks', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/tasks', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const parsed = insertTaskSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -896,7 +892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/tasks/:id', isSoftAuthenticated, async (req, res) => {
+  app.patch('/api/tasks/:id', isAuthenticated, async (req, res) => {
     try {
       const task = await storage.updateTask(req.params.id, req.body);
       res.json(task);
@@ -906,7 +902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/tasks/:id', isSoftAuthenticated, async (req, res) => {
+  app.delete('/api/tasks/:id', isAuthenticated, async (req, res) => {
     try {
       await storage.deleteTask(req.params.id);
       res.json({ success: true });
@@ -917,9 +913,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Child update routes
-  app.get('/api/child-updates', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/child-updates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const updates = await storage.getChildUpdates(userId);
       res.json(updates);
     } catch (error) {
@@ -928,9 +924,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/child-updates', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/child-updates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const parsed = insertChildUpdateSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -943,7 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/child-updates/:id', isSoftAuthenticated, async (req, res) => {
+  app.delete('/api/child-updates/:id', isAuthenticated, async (req, res) => {
     try {
       await storage.deleteChildUpdate(req.params.id);
       res.json({ success: true });
@@ -954,9 +950,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Pet routes
-  app.get('/api/pets', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/pets', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const pets = await storage.getPets(userId);
       res.json(pets);
     } catch (error) {
@@ -965,9 +961,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/pets', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/pets', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const parsed = insertPetSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -981,9 +977,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expense routes
-  app.get('/api/expenses', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/expenses', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const expenses = await storage.getExpenses(userId);
       res.json(expenses);
     } catch (error) {
@@ -992,9 +988,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/expenses', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/expenses', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const parsed = insertExpenseSchema.parse({
         ...req.body,
         paidBy: userId,
@@ -1008,17 +1004,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Therapist search endpoint
-  app.get('/api/therapists/search', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/therapists/search', isAuthenticated, async (req: any, res) => {
     try {
-      const sessionId = req.user.sessionId;
       const postalCode = req.query.postalCode as string;
       
       if (!postalCode) {
         return res.status(400).json({ message: "Postal code required" });
       }
-
-      // Track usage
-      await trackUsage(sessionId, 'therapistSearches', 1);
 
       // Mock therapist data - in production, this would integrate with Google Places API or OpenStreetMap
       const mockTherapists = [
@@ -1059,9 +1051,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Event routes
-  app.get('/api/events', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/events', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const events = await storage.getEvents(userId);
       res.json(events);
     } catch (error) {
@@ -1070,9 +1062,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/events', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/events', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const parsed = insertEventSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -1088,9 +1080,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export events as iCal/ICS file for calendar apps (Google Calendar, Apple Calendar, Outlook, etc.)
-  app.get('/api/events/export/ical', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/events/export/ical', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const events = await storage.getEvents(userId);
       
       // Get user's display name for calendar title
@@ -1116,9 +1108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule template routes
-  app.get('/api/schedule-templates', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/schedule-templates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const templates = await storage.getScheduleTemplates(userId);
       res.json(templates);
     } catch (error) {
@@ -1127,9 +1119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/schedule-templates', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/schedule-templates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const template = await storage.createScheduleTemplate({
         ...req.body,
         createdBy: userId,
@@ -1143,9 +1135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/schedule-templates/:id/apply', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/schedule-templates/:id/apply', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const templateId = req.params.id;
       const { startDate, childName, location } = req.body;
 
@@ -1189,7 +1181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/schedule-templates/:id', isSoftAuthenticated, async (req: any, res) => {
+  app.delete('/api/schedule-templates/:id', isAuthenticated, async (req: any, res) => {
     try {
       const templateId = req.params.id;
       await storage.deleteScheduleTemplate(templateId);
@@ -1201,9 +1193,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI conflict detection for events
-  app.get('/api/events/analyze', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/events/analyze', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const events = await storage.getEvents(userId);
       const conflicts: string[] = [];
       const suggestions: string[] = [];
@@ -1272,9 +1264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Call session routes
-  app.post('/api/call-sessions', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/call-sessions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { callType } = req.body;
       
       // Validate call type
@@ -1331,7 +1323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/call-sessions/:code/end', isSoftAuthenticated, async (req, res) => {
+  app.post('/api/call-sessions/:code/end', isAuthenticated, async (req, res) => {
     try {
       const { code } = req.params;
       await storage.endCallSession(code);
@@ -1345,9 +1337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ NEW DIRECT CALLING SYSTEM ============
 
   // POST /api/calls - Initiate a direct call to a co-parent
-  app.post('/api/calls', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/calls', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { receiverId, callType, partnershipId } = req.body;
 
       // Validate call type
@@ -1381,9 +1373,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/calls - Get call history with optional filters
-  app.get('/api/calls', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/calls', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { filter } = req.query; // 'all', 'missed', 'received', 'outgoing'
 
       const calls = await storage.getCalls(userId, filter as string);
@@ -1395,9 +1387,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH /api/calls/:id/accept - Accept an incoming call
-  app.patch('/api/calls/:id/accept', isSoftAuthenticated, async (req: any, res) => {
+  app.patch('/api/calls/:id/accept', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { id } = req.params;
 
       const call = await storage.getCall(id);
@@ -1430,9 +1422,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH /api/calls/:id/decline - Decline an incoming call
-  app.patch('/api/calls/:id/decline', isSoftAuthenticated, async (req: any, res) => {
+  app.patch('/api/calls/:id/decline', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { id } = req.params;
       const { reason } = req.body; // "Busy", "Can't talk now", "Will call back", "Other"
 
@@ -1467,9 +1459,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH /api/calls/:id/end - End an active call
-  app.patch('/api/calls/:id/end', isSoftAuthenticated, async (req: any, res) => {
+  app.patch('/api/calls/:id/end', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { id } = req.params;
 
       const call = await storage.getCall(id);
@@ -1517,9 +1509,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/scheduled-calls - Schedule a future call
-  app.post('/api/scheduled-calls', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/scheduled-calls', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { participantId, callType, scheduledFor, title, notes, partnershipId } = req.body;
 
       // Validate call type
@@ -1557,9 +1549,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/scheduled-calls - Get scheduled calls
-  app.get('/api/scheduled-calls', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/scheduled-calls', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const scheduledCalls = await storage.getScheduledCalls(userId);
       res.json(scheduledCalls);
     } catch (error) {
@@ -1571,7 +1563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ END NEW DIRECT CALLING SYSTEM ============
 
   // Authenticated file serving for uploads
-  app.get('/uploads/recordings/:filename', isSoftAuthenticated, (req: any, res) => {
+  app.get('/uploads/recordings/:filename', isAuthenticated, (req: any, res) => {
     const { filename } = req.params;
     const filePath = path.join(uploadDir, filename);
     
@@ -1584,9 +1576,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Call recording routes
-  app.post('/api/call-recordings', isSoftAuthenticated, upload.single('file'), async (req: any, res) => {
+  app.post('/api/call-recordings', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const file = req.file;
       
       if (!file) {
@@ -1643,9 +1635,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/call-recordings', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/call-recordings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const recordings = await storage.getCallRecordings(userId);
       res.json(recordings);
     } catch (error) {
@@ -1660,9 +1652,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ publicKey: getVapidPublicKey() });
   });
 
-  app.post('/api/push/subscribe', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { endpoint, keys } = req.body;
 
       if (!endpoint || !keys?.p256dh || !keys?.auth) {
@@ -1687,7 +1679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/push/unsubscribe', isSoftAuthenticated, async (req: any, res) => {
+  app.delete('/api/push/unsubscribe', isAuthenticated, async (req: any, res) => {
     try {
       const { endpoint } = req.body;
 
@@ -1704,7 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Geocoding route - convert address/postal code to coordinates
-  app.get('/api/geocode', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/geocode', isAuthenticated, async (req, res) => {
     try {
       const { query, address } = req.query;
       const searchTerm = (query || address) as string;
@@ -1879,7 +1871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Support Resources directory - includes therapists, crisis support, government services, etc.
-  app.get('/api/support-resources', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/support-resources', isAuthenticated, async (req, res) => {
     try {
       const { lat, lng, maxDistance, address, resourceType } = req.query;
       
@@ -2389,7 +2381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Keep old therapists endpoint for backward compatibility
-  app.get('/api/therapists', isSoftAuthenticated, async (req, res) => {
+  app.get('/api/therapists', isAuthenticated, async (req, res) => {
     // Redirect to support-resources with therapist filter
     req.query.resourceType = 'therapist';
     return app._router.handle(
@@ -2399,7 +2391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     );
   });
 
-  app.post('/api/therapists', isSoftAuthenticated, async (req, res) => {
+  app.post('/api/therapists', isAuthenticated, async (req, res) => {
     try {
       const parsed = insertTherapistSchema.parse(req.body);
       const therapist = await storage.createTherapist(parsed);
@@ -2411,9 +2403,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit log and export routes
-  app.get('/api/audit-trail', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/audit-trail', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { startDate, endDate, format } = req.query;
       
       const auditTrail = await storage.getUserAuditTrail(
@@ -2467,9 +2459,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/audit-logs', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/audit-logs', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const logs = await storage.getAuditLogs(userId);
       res.json(logs);
     } catch (error) {
@@ -2479,7 +2471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Listening - Emotion analysis from audio
-  app.post('/api/analyze-emotion', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/analyze-emotion', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId, audioData, mimeType, timestamp } = req.body;
       
@@ -2513,7 +2505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Listening - Generate session summary
-  app.post('/api/session-summary', isSoftAuthenticated, async (req: any, res) => {
+  app.post('/api/session-summary', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId, emotionTimeline } = req.body;
       
@@ -2528,7 +2520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save to database
       await storage.createSessionMoodSummary({
         sessionId,
-        participants: [req.user.id], // Will be updated with actual participants
+        participants: [req.user.claims.sub], // Will be updated with actual participants
         emotionsTimeline: emotionTimeline,
         summary,
       });
@@ -2543,7 +2535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get session mood summary
-  app.get('/api/session-mood/:sessionId', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/session-mood/:sessionId', isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId } = req.params;
       const summary = await storage.getSessionMoodSummary(sessionId);
@@ -2560,7 +2552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Geocoding API for location autocomplete (using OpenStreetMap Nominatim)
-  app.get('/api/geocode', isSoftAuthenticated, async (req: any, res) => {
+  app.get('/api/geocode', isAuthenticated, async (req: any, res) => {
     try {
       const { query } = req.query;
       
