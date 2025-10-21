@@ -205,13 +205,55 @@ export const expenses = pgTable("expenses", {
   amount: text("amount").notNull(),
   category: text("category").notNull(),
   paidBy: varchar("paid_by").notNull().references(() => users.id),
-  splitWith: varchar("split_with").references(() => users.id),
+  partnershipId: varchar("partnership_id").notNull().references(() => partnerships.id), // Link to partnership
   status: text("status").notNull().default("pending"), // pending, paid, settled
   receiptUrl: text("receipt_url"), // URL to uploaded receipt image/PDF
   fileName: text("file_name"), // Original file name of receipt
   fileSize: text("file_size"), // File size in bytes
-  splitPercentage: text("split_percentage").default("50"), // Default 50/50 split
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Expense participants - tracks who owes what on each expense
+export const expenseParticipants = pgTable("expense_participants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  expenseId: varchar("expense_id").notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  partnershipId: varchar("partnership_id").notNull().references(() => partnerships.id),
+  owedAmount: text("owed_amount").notNull(), // How much this person owes
+  paidAmount: text("paid_amount").notNull().default("0"), // How much they've paid back
+  percentage: text("percentage").notNull(), // Their share percentage (e.g., "60" for 60%)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Settlements - payment acknowledgements for expenses
+export const settlements = pgTable("settlements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  expenseId: varchar("expense_id").notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  payerId: varchar("payer_id").notNull().references(() => users.id), // Who is paying
+  receiverId: varchar("receiver_id").notNull().references(() => users.id), // Who receives payment
+  partnershipId: varchar("partnership_id").notNull().references(() => partnerships.id),
+  amount: text("amount").notNull(), // Amount being settled
+  method: text("method").notNull(), // manual, etransfer, paypal, wise, other
+  paymentLink: text("payment_link"), // Optional link to external payment (e.g., PayPal.me)
+  status: text("status").notNull().default("initiated"), // initiated, pending_confirmation, confirmed, rejected
+  initiatedAt: timestamp("initiated_at").notNull().defaultNow(),
+  confirmedAt: timestamp("confirmed_at"), // When receiver confirmed receipt
+  rejectedAt: timestamp("rejected_at"), // When receiver disputed
+  rejectedReason: text("rejected_reason"), // Why settlement was rejected
+  reminderSentAt: timestamp("reminder_sent_at"), // Track when reminder was sent
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Partnership balances - running total of who owes what
+export const partnershipBalances = pgTable("partnership_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnershipId: varchar("partnership_id").notNull().references(() => partnerships.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  netBalance: text("net_balance").notNull().default("0"), // Positive = they owe others, Negative = others owe them
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
 });
 
 // Call sessions for shareable video/audio calls (legacy - for session code approach)
@@ -329,7 +371,7 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true, creat
 export const insertChildUpdateSchema = createInsertSchema(childUpdates).omit({ id: true, createdAt: true });
 export const insertPetSchema = createInsertSchema(pets).omit({ id: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
-export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
+export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({ id: true, createdAt: true });
 export const insertUsageMetricSchema = createInsertSchema(usageMetrics).omit({ id: true, lastUpdated: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, updatedAt: true });
@@ -398,3 +440,15 @@ export type Call = typeof calls.$inferSelect;
 export const insertScheduledCallSchema = createInsertSchema(scheduledCalls).omit({ id: true, createdAt: true });
 export type InsertScheduledCall = z.infer<typeof insertScheduledCallSchema>;
 export type ScheduledCall = typeof scheduledCalls.$inferSelect;
+
+export const insertExpenseParticipantSchema = createInsertSchema(expenseParticipants).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertExpenseParticipant = z.infer<typeof insertExpenseParticipantSchema>;
+export type ExpenseParticipant = typeof expenseParticipants.$inferSelect;
+
+export const insertSettlementSchema = createInsertSchema(settlements).omit({ id: true, createdAt: true, updatedAt: true, initiatedAt: true });
+export type InsertSettlement = z.infer<typeof insertSettlementSchema>;
+export type Settlement = typeof settlements.$inferSelect;
+
+export const insertPartnershipBalanceSchema = createInsertSchema(partnershipBalances).omit({ id: true, lastUpdated: true });
+export type InsertPartnershipBalance = z.infer<typeof insertPartnershipBalanceSchema>;
+export type PartnershipBalance = typeof partnershipBalances.$inferSelect;

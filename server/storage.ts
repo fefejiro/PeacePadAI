@@ -6,6 +6,9 @@ import {
   childUpdates,
   pets,
   expenses,
+  expenseParticipants,
+  settlements,
+  partnershipBalances,
   events,
   guestSessions,
   usageMetrics,
@@ -36,6 +39,12 @@ import {
   type InsertPet,
   type Expense,
   type InsertExpense,
+  type ExpenseParticipant,
+  type InsertExpenseParticipant,
+  type Settlement,
+  type InsertSettlement,
+  type PartnershipBalance,
+  type InsertPartnershipBalance,
   type Event,
   type InsertEvent,
   type GuestSession,
@@ -145,6 +154,24 @@ export interface IStorage {
   // Expense operations
   getExpenses(userId: string): Promise<Expense[]>;
   createExpense(expense: InsertExpense): Promise<Expense>;
+  
+  // Expense participant operations
+  getExpenseParticipants(expenseId: string): Promise<ExpenseParticipant[]>;
+  createExpenseParticipant(participant: InsertExpenseParticipant): Promise<ExpenseParticipant>;
+  updateExpenseParticipant(id: string, updates: Partial<ExpenseParticipant>): Promise<ExpenseParticipant>;
+  
+  // Settlement operations
+  getSettlements(partnershipId: string): Promise<Settlement[]>;
+  getSettlement(settlementId: string): Promise<Settlement | undefined>;
+  getExpenseSettlements(expenseId: string): Promise<Settlement[]>;
+  createSettlement(settlement: InsertSettlement): Promise<Settlement>;
+  updateSettlement(id: string, updates: Partial<Settlement>): Promise<Settlement>;
+  getPendingSettlements(userId: string): Promise<Settlement[]>;
+  
+  // Partnership balance operations
+  getPartnershipBalance(partnershipId: string, userId: string): Promise<PartnershipBalance | undefined>;
+  upsertPartnershipBalance(balance: InsertPartnershipBalance): Promise<PartnershipBalance>;
+  calculatePartnershipBalances(partnershipId: string): Promise<void>;
   
   // Event operations
   getEvents(userId: string): Promise<Event[]>;
@@ -792,6 +819,129 @@ export class DatabaseStorage implements IStorage {
   async createExpense(expenseData: InsertExpense): Promise<Expense> {
     const [expense] = await db.insert(expenses).values(expenseData).returning();
     return expense;
+  }
+
+  // Expense participant operations
+  async getExpenseParticipants(expenseId: string): Promise<ExpenseParticipant[]> {
+    return await db.select().from(expenseParticipants)
+      .where(eq(expenseParticipants.expenseId, expenseId));
+  }
+
+  async createExpenseParticipant(participantData: InsertExpenseParticipant): Promise<ExpenseParticipant> {
+    const [participant] = await db.insert(expenseParticipants).values(participantData).returning();
+    return participant;
+  }
+
+  async updateExpenseParticipant(id: string, updates: Partial<ExpenseParticipant>): Promise<ExpenseParticipant> {
+    const [updated] = await db.update(expenseParticipants)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(expenseParticipants.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Settlement operations
+  async getSettlements(partnershipId: string): Promise<Settlement[]> {
+    return await db.select().from(settlements)
+      .where(eq(settlements.partnershipId, partnershipId))
+      .orderBy(desc(settlements.createdAt));
+  }
+
+  async getSettlement(settlementId: string): Promise<Settlement | undefined> {
+    const [settlement] = await db.select().from(settlements)
+      .where(eq(settlements.id, settlementId));
+    return settlement;
+  }
+
+  async getExpenseSettlements(expenseId: string): Promise<Settlement[]> {
+    return await db.select().from(settlements)
+      .where(eq(settlements.expenseId, expenseId))
+      .orderBy(desc(settlements.createdAt));
+  }
+
+  async createSettlement(settlementData: InsertSettlement): Promise<Settlement> {
+    const [settlement] = await db.insert(settlements).values(settlementData).returning();
+    return settlement;
+  }
+
+  async updateSettlement(id: string, updates: Partial<Settlement>): Promise<Settlement> {
+    const [updated] = await db.update(settlements)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(settlements.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getPendingSettlements(userId: string): Promise<Settlement[]> {
+    // Get settlements where user is the receiver and status is pending_confirmation
+    return await db.select().from(settlements)
+      .where(
+        and(
+          eq(settlements.receiverId, userId),
+          or(
+            eq(settlements.status, 'initiated'),
+            eq(settlements.status, 'pending_confirmation')
+          )
+        )
+      )
+      .orderBy(desc(settlements.createdAt));
+  }
+
+  // Partnership balance operations
+  async getPartnershipBalance(partnershipId: string, userId: string): Promise<PartnershipBalance | undefined> {
+    const [balance] = await db.select().from(partnershipBalances)
+      .where(
+        and(
+          eq(partnershipBalances.partnershipId, partnershipId),
+          eq(partnershipBalances.userId, userId)
+        )
+      );
+    return balance;
+  }
+
+  async upsertPartnershipBalance(balanceData: InsertPartnershipBalance): Promise<PartnershipBalance> {
+    // Try to find existing balance
+    const existing = await this.getPartnershipBalance(balanceData.partnershipId, balanceData.userId);
+    
+    if (existing) {
+      // Update existing
+      const [updated] = await db.update(partnershipBalances)
+        .set({ ...balanceData, lastUpdated: new Date() })
+        .where(eq(partnershipBalances.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new
+      const [created] = await db.insert(partnershipBalances).values(balanceData).returning();
+      return created;
+    }
+  }
+
+  async calculatePartnershipBalances(partnershipId: string): Promise<void> {
+    // Get all expense participants for this partnership
+    const participants = await db.select().from(expenseParticipants)
+      .where(eq(expenseParticipants.partnershipId, partnershipId));
+    
+    // Calculate balance per user
+    const balanceMap = new Map<string, number>();
+    
+    for (const participant of participants) {
+      const owed = parseFloat(participant.owedAmount);
+      const paid = parseFloat(participant.paidAmount);
+      const balance = owed - paid; // Positive = they owe money
+      
+      const currentBalance = balanceMap.get(participant.userId) || 0;
+      balanceMap.set(participant.userId, currentBalance + balance);
+    }
+    
+    // Upsert balances for each user
+    for (const [userId, netBalance] of Array.from(balanceMap.entries())) {
+      await this.upsertPartnershipBalance({
+        partnershipId,
+        userId,
+        netBalance: netBalance.toFixed(2),
+      });
+    }
   }
 
   // Event operations

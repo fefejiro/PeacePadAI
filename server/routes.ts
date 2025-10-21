@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
+import { insertMessageSchema, insertNoteSchema, insertTaskSchema, insertChildUpdateSchema, insertPetSchema, insertExpenseSchema, insertExpenseParticipantSchema, insertSettlementSchema, insertEventSchema, insertCallRecordingSchema, insertTherapistSchema, insertAuditLogSchema } from "@shared/schema";
 import { 
   setupWebRTCSignaling, 
   broadcastNewMessage, 
@@ -1018,15 +1018,233 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/expenses', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const { splitPercentages } = req.body; // e.g., { user1Id: 60, user2Id: 40 }
+      
       const parsed = insertExpenseSchema.parse({
         ...req.body,
         paidBy: userId,
       });
       const expense = await storage.createExpense(parsed);
+      
+      // Get partnership to determine both parents
+      const partnership = await storage.getPartnership(parsed.partnershipId);
+      if (!partnership) {
+        throw new Error("Partnership not found");
+      }
+      
+      // Determine split percentages (default to 50/50 if not provided)
+      const totalAmount = parseFloat(parsed.amount);
+      const user1Id = partnership.user1Id;
+      const user2Id = partnership.user2Id;
+      
+      let user1Percentage = 50;
+      let user2Percentage = 50;
+      
+      if (splitPercentages) {
+        user1Percentage = splitPercentages[user1Id] || 50;
+        user2Percentage = splitPercentages[user2Id] || 50;
+      }
+      
+      // Create expense participants for both users
+      const user1Owed = (totalAmount * user1Percentage / 100).toFixed(2);
+      const user2Owed = (totalAmount * user2Percentage / 100).toFixed(2);
+      
+      await storage.createExpenseParticipant({
+        expenseId: expense.id,
+        userId: user1Id,
+        partnershipId: parsed.partnershipId,
+        owedAmount: user1Owed,
+        paidAmount: parsed.paidBy === user1Id ? totalAmount.toFixed(2) : "0",
+        percentage: user1Percentage.toString(),
+      });
+      
+      await storage.createExpenseParticipant({
+        expenseId: expense.id,
+        userId: user2Id,
+        partnershipId: parsed.partnershipId,
+        owedAmount: user2Owed,
+        paidAmount: parsed.paidBy === user2Id ? totalAmount.toFixed(2) : "0",
+        percentage: user2Percentage.toString(),
+      });
+      
+      // Initialize or update partnership balances
+      await storage.calculatePartnershipBalances(parsed.partnershipId);
+      
       res.json(expense);
     } catch (error: any) {
       console.error("Error creating expense:", error);
       res.status(400).json({ message: error.message || "Failed to create expense" });
+    }
+  });
+
+  // Settlement routes
+  app.post('/api/settlements/initiate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { expenseId, amount, method, paymentLink, partnershipId, receiverId } = req.body;
+      
+      // Verify user is part of the partnership
+      const partnership = await storage.getPartnership(partnershipId);
+      if (!partnership) {
+        return res.status(404).json({ message: "Partnership not found" });
+      }
+      
+      const isPartOfPartnership = partnership.user1Id === userId || partnership.user2Id === userId;
+      if (!isPartOfPartnership) {
+        return res.status(403).json({ message: "You are not part of this partnership" });
+      }
+      
+      // Verify user is a participant in the expense
+      const participants = await storage.getExpenseParticipants(expenseId);
+      const userParticipant = participants.find(p => p.userId === userId);
+      if (!userParticipant) {
+        return res.status(403).json({ message: "You are not a participant in this expense" });
+      }
+      
+      // Determine receiver (the other person in the partnership)
+      const derivedReceiverId = partnership.user1Id === userId ? partnership.user2Id : partnership.user1Id;
+      
+      // Validate receiverId if provided
+      if (receiverId && receiverId !== derivedReceiverId) {
+        return res.status(400).json({ message: "Invalid receiver for this partnership" });
+      }
+      
+      const parsed = insertSettlementSchema.parse({
+        expenseId,
+        payerId: userId, // Always use authenticated user
+        receiverId: derivedReceiverId,
+        partnershipId,
+        amount,
+        method,
+        paymentLink,
+        status: 'pending_confirmation',
+      });
+      
+      const settlement = await storage.createSettlement(parsed);
+      
+      // Update payer's paid amount
+      const currentPaid = parseFloat(userParticipant.paidAmount);
+      const settlementAmount = parseFloat(amount);
+      await storage.updateExpenseParticipant(userParticipant.id, {
+        paidAmount: (currentPaid + settlementAmount).toFixed(2),
+      });
+      
+      // Recalculate partnership balances
+      await storage.calculatePartnershipBalances(partnershipId);
+      
+      res.json(settlement);
+    } catch (error: any) {
+      console.error("Error initiating settlement:", error);
+      res.status(400).json({ message: error.message || "Failed to initiate settlement" });
+    }
+  });
+
+  app.patch('/api/settlements/:id/confirm', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const settlementId = req.params.id;
+      
+      const settlement = await storage.getSettlement(settlementId);
+      if (!settlement) {
+        return res.status(404).json({ message: "Settlement not found" });
+      }
+      
+      // Only receiver can confirm
+      if (settlement.receiverId !== userId) {
+        return res.status(403).json({ message: "Only the receiver can confirm" });
+      }
+      
+      const updated = await storage.updateSettlement(settlementId, {
+        status: 'confirmed',
+        confirmedAt: new Date(),
+      });
+      
+      // Recalculate partnership balances
+      await storage.calculatePartnershipBalances(settlement.partnershipId);
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error confirming settlement:", error);
+      res.status(400).json({ message: error.message || "Failed to confirm settlement" });
+    }
+  });
+
+  app.patch('/api/settlements/:id/dispute', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const settlementId = req.params.id;
+      const { reason } = req.body;
+      
+      const settlement = await storage.getSettlement(settlementId);
+      if (!settlement) {
+        return res.status(404).json({ message: "Settlement not found" });
+      }
+      
+      // Only receiver can dispute
+      if (settlement.receiverId !== userId) {
+        return res.status(403).json({ message: "Only the receiver can dispute" });
+      }
+      
+      const updated = await storage.updateSettlement(settlementId, {
+        status: 'rejected',
+        rejectedAt: new Date(),
+        rejectedReason: reason,
+      });
+      
+      // Reverse the paid amount update
+      const participants = await storage.getExpenseParticipants(settlement.expenseId);
+      const payerParticipant = participants.find(p => p.userId === settlement.payerId);
+      
+      if (payerParticipant) {
+        const currentPaid = parseFloat(payerParticipant.paidAmount);
+        const settlementAmount = parseFloat(settlement.amount);
+        await storage.updateExpenseParticipant(payerParticipant.id, {
+          paidAmount: Math.max(0, currentPaid - settlementAmount).toFixed(2),
+        });
+      }
+      
+      // Recalculate partnership balances
+      await storage.calculatePartnershipBalances(settlement.partnershipId);
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error disputing settlement:", error);
+      res.status(400).json({ message: error.message || "Failed to dispute settlement" });
+    }
+  });
+
+  app.get('/api/partnerships/:id/balance', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const partnershipId = req.params.id;
+      
+      const balance = await storage.getPartnershipBalance(partnershipId, userId);
+      res.json(balance || { partnershipId, userId, netBalance: "0", lastUpdated: new Date() });
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      res.status(500).json({ message: "Failed to fetch balance" });
+    }
+  });
+
+  app.get('/api/settlements/pending', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const pending = await storage.getPendingSettlements(userId);
+      res.json(pending);
+    } catch (error) {
+      console.error("Error fetching pending settlements:", error);
+      res.status(500).json({ message: "Failed to fetch pending settlements" });
+    }
+  });
+
+  app.get('/api/expenses/:id/settlements', isAuthenticated, async (req: any, res) => {
+    try {
+      const expenseId = req.params.id;
+      const settlements = await storage.getExpenseSettlements(expenseId);
+      res.json(settlements);
+    } catch (error) {
+      console.error("Error fetching expense settlements:", error);
+      res.status(500).json({ message: "Failed to fetch settlements" });
     }
   });
 
