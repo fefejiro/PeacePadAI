@@ -598,6 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create partnership
+      console.log(`[Partnership Join] Creating partnership between ${userId} and ${coParent.id}`);
       const partnership = await storage.createPartnership({
         user1Id: userId,
         user2Id: coParent.id,
@@ -607,11 +608,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowRecording: false,
         allowAiTone: true,
       });
+      console.log(`[Partnership Join] ✅ Partnership created successfully! ID: ${partnership.id}`);
 
       // Auto-create 1:1 direct conversation for this partnership
       const existingConversation = await storage.findDirectConversation(userId, coParent.id);
       
       if (!existingConversation) {
+        console.log(`[Partnership Join] Creating 1:1 conversation for partnership`);
         const conversation = await storage.createConversation({
           type: 'direct',
           createdBy: userId,
@@ -626,6 +629,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           conversationId: conversation.id,
           userId: coParent.id,
         });
+        console.log(`[Partnership Join] ✅ 1:1 conversation created! ID: ${conversation.id}`);
+      } else {
+        console.log(`[Partnership Join] 1:1 conversation already exists (ID: ${existingConversation.id})`);
       }
 
       // Auto-create family group conversation if 3+ people are connected
@@ -697,16 +703,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notifyPartnershipJoin(coParent.id, currentUser.displayName || 'Someone');
       }
 
-      res.json({
+      const response = {
         ...partnership,
         coParent: {
           id: coParent.id,
           displayName: coParent.displayName,
           profileImageUrl: coParent.profileImageUrl,
         },
-      });
+      };
+      
+      console.log(`[Partnership Join] ✅ SUCCESS! Sending response to client`);
+      res.json(response);
     } catch (error) {
-      console.error("Error joining partnership:", error);
+      console.error("[Partnership Join] ❌ ERROR:", error);
+      console.error("[Partnership Join] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       res.status(500).json({ message: "Failed to join partnership" });
     }
   });

@@ -16,20 +16,37 @@ export default function JoinPartnershipPage() {
 
   const joinPartnershipMutation = useMutation({
     mutationFn: async (inviteCode: string) => {
+      console.log("[JoinPartnership] 🚀 Starting partnership join flow...");
+      console.log("[JoinPartnership] User ID:", user?.id);
+      console.log("[JoinPartnership] Invite code:", inviteCode);
       console.log("[JoinPartnership] Calling API to join with code:", inviteCode);
+      
       const res = await apiRequest("POST", "/api/partnerships/join", {
         inviteCode: inviteCode.toUpperCase(),
       });
+      
+      console.log("[JoinPartnership] Response status:", res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("[JoinPartnership] ❌ API error response:", errorData);
+        throw new Error(errorData.message || "Failed to join partnership");
+      }
+      
       const data = await res.json();
-      console.log("[JoinPartnership] API response:", data);
+      console.log("[JoinPartnership] ✅ API response:", data);
       return data;
     },
     onSuccess: (data) => {
-      console.log("[JoinPartnership] Successfully joined partnership:", data);
+      console.log("[JoinPartnership] ✅ Successfully joined partnership!");
+      console.log("[JoinPartnership] Partnership ID:", data.id);
+      console.log("[JoinPartnership] Co-parent:", data.coParent?.displayName);
+      
       queryClient.invalidateQueries({ queryKey: ["/api/partnerships"] });
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       
       // Clean up localStorage after successful join
+      console.log("[JoinPartnership] Cleaning up localStorage...");
       localStorage.removeItem("pending_join_code");
       localStorage.removeItem("hasSeenIntro");
       localStorage.removeItem("hasAcceptedConsent");
@@ -46,12 +63,19 @@ export default function JoinPartnershipPage() {
         duration: 3000,
       });
       // Redirect to chat after successful join
+      console.log("[JoinPartnership] Redirecting to chat in 2 seconds...");
       setTimeout(() => {
         setLocation("/");
       }, 2000);
     },
     onError: (error: any) => {
-      console.error("[JoinPartnership] Error joining partnership:", error);
+      console.error("[JoinPartnership] ❌ Error joining partnership:", error);
+      console.error("[JoinPartnership] Error details:", error.message);
+      
+      // CRITICAL: Clear pending_join_code on error to prevent infinite redirect loop
+      console.log("[JoinPartnership] Clearing pending_join_code to allow navigation...");
+      localStorage.removeItem("pending_join_code");
+      
       const message = error.message || "Failed to join partnership. The code may be invalid or already used.";
       toast({
         title: "Error",
@@ -65,15 +89,17 @@ export default function JoinPartnershipPage() {
   useEffect(() => {
     // If not authenticated, store the code and redirect to onboarding
     if (!authLoading && !isAuthenticated && code) {
-      console.log("[JoinPartnership] Not authenticated. Storing code:", code);
+      console.log("[JoinPartnership] 📝 Not authenticated. Storing code in localStorage:", code);
       localStorage.setItem("pending_join_code", code);
+      console.log("[JoinPartnership] 🔄 Redirecting to /onboarding for OAuth...");
       setLocation("/onboarding");
       return;
     }
 
     // If authenticated and have a code, auto-join
     if (isAuthenticated && code && !joinPartnershipMutation.isPending && !joinPartnershipMutation.isSuccess) {
-      console.log("[JoinPartnership] Authenticated. Auto-joining partnership with code:", code);
+      console.log("[JoinPartnership] ✅ User is authenticated!");
+      console.log("[JoinPartnership] 🤝 Auto-joining partnership with code:", code);
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
         joinPartnershipMutation.mutate(code);

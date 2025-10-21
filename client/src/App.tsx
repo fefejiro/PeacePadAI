@@ -38,6 +38,7 @@ import { TermsAcceptanceDialog } from "@/components/TermsAcceptanceDialog";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [location, setLocation] = useLocation();
 
   // Show loading only briefly while checking auth
   if (isLoading) {
@@ -48,8 +49,20 @@ function Router() {
     );
   }
 
-  // If authenticated, show authenticated routes
+  // If authenticated, check for pending join code FIRST
   if (isAuthenticated && user) {
+    const pendingCode = localStorage.getItem("pending_join_code");
+    const hasSeenIntro = localStorage.getItem("hasSeenIntro");
+    const hasAcceptedConsent = localStorage.getItem("hasAcceptedConsent");
+    
+    // If there's a pending join code and user has completed intro/consent, redirect to join
+    if (pendingCode && hasSeenIntro && hasAcceptedConsent && location !== `/join/${pendingCode}`) {
+      console.log("[Router] ✅ Authenticated user with pending join code detected!");
+      console.log("[Router] 🔄 Redirecting to /join/" + pendingCode);
+      setLocation(`/join/${pendingCode}`);
+      return null;
+    }
+    
     // Check if user needs to accept terms
     const needsTermsAcceptance = !user.termsAcceptedAt;
 

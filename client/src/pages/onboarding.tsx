@@ -69,7 +69,8 @@ export default function OnboardingPage() {
     
     // If user IS authenticated and has a pending join code, skip onboarding and join partnership
     if (user && pendingCode && hasSeenIntro && hasAcceptedConsent) {
-      console.log("[Onboarding] Authenticated user with pending code - redirecting to join partnership:", pendingCode);
+      console.log("[Onboarding] ✅ User authenticated with pending join code!");
+      console.log("[Onboarding] 🔄 Redirecting to /join/" + pendingCode + " to complete partnership...");
       // Don't clear pending_join_code yet - let join-partnership page handle cleanup after successful join
       setLocation(`/join/${pendingCode}`);
       return;
