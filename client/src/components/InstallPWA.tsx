@@ -69,8 +69,8 @@ export function InstallPWA() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // Store dismissal in localStorage to not show again this session
-    localStorage.setItem('install_prompt_dismissed', 'true');
+    // Store dismissal in sessionStorage to not show again this session only
+    sessionStorage.setItem('install_prompt_dismissed', 'true');
   };
 
   // Don't show if already installed or dismissed
@@ -79,7 +79,7 @@ export function InstallPWA() {
   }
 
   // Check if user dismissed it this session
-  if (localStorage.getItem('install_prompt_dismissed') === 'true') {
+  if (sessionStorage.getItem('install_prompt_dismissed') === 'true') {
     return null;
   }
 

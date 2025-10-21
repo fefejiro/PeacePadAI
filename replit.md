@@ -13,14 +13,14 @@ Preferred communication style: Simple, everyday language.
 - **Design System**: Custom calming color palette, Inter and JetBrains Mono fonts, accessibility-first.
 - **Responsive Design**: Mobile-first approach with bottom navigation for mobile and sidebar for desktop.
 - **Onboarding**: Streamlined 3-step flow (welcome/photo, optional details, invite code display) with smart state recovery.
-- **PWA**: `manifest.json`, dynamic cache versioning service worker with auto-update notifications, network-first strategy for instant updates, offline support, "Add to Home Screen", push notifications.
+- **PWA**: `manifest.json`, dynamic cache versioning service worker with auto-update notifications, network-first strategy for instant updates, manual install prompt button, offline support, "Add to Home Screen", push notifications.
 - **System Theme Detection**: ThemeProvider defaults to system preference with light/dark/system options.
 
 ### Technical Implementations
 - **Frontend**: Modular component architecture, real profile photo uploads.
-- **Backend**: Node.js, Express.js, TypeScript, ES Modules, Drizzle ORM, PostgreSQL (Neon serverless), RESTful API with Replit Auth middleware.
+- **Backend**: Node.js, Express.js, TypeScript, ES Modules, Drizzle ORM, PostgreSQL (Neon serverless), RESTful API with Replit Auth middleware. Graceful shutdown handlers to prevent port conflicts.
 - **Database**: Neon Serverless PostgreSQL with UUID primary keys, `createdAt`/`updatedAt` timestamps, Drizzle Kit for migrations. Added retry logic and graceful error handling for database connections.
-- **Authentication**: Replit Auth OAuth (supports Google, Apple, GitHub, X, email). All users must authenticate via OAuth before using the platform.
+- **Authentication**: Replit Auth OAuth (supports Google, Apple, GitHub, X, email). All users must authenticate via OAuth before using the platform. Invite link users are prompted to sign in after accepting terms.
 - **Terms & Conditions**: Mandatory acceptance flow with Non-Disclosure Agreement (NDA) for all users. First-time users must accept terms via modal dialog before accessing the platform. Terms acceptance tracked via `termsAcceptedAt` timestamp in user profile.
 - **Partnership Model**: Invite code system (unique 6-digit alphanumeric) for creating co-parenting partnerships, supporting multiple partnerships. Privacy-first with no user directory.
 - **WebRTC Real-Time Communication**: WebSocket signaling server for multi-user voice/video calls (2-12 participants), STUN server configuration, role-based negotiation, offer caching. Unauthenticated join flow for guests.
