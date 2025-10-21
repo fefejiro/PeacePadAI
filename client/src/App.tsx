@@ -259,7 +259,7 @@ function ConditionalBottomNav() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   
-  // Show bottom nav only when authenticated and not on onboarding/landing
-  if (!isAuthenticated || location === "/onboarding" || location === "/") return null;
+  // Show bottom nav only when authenticated and not on onboarding
+  if (!isAuthenticated || location === "/onboarding") return null;
   return <BottomNav />;
 }
