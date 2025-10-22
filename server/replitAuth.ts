@@ -84,32 +84,43 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  const domains = process.env.REPLIT_DOMAINS!.split(",");
+  console.log("[Auth] Registering Replit Auth strategies for domains:", domains);
+  
+  for (const domain of domains) {
+    const trimmedDomain = domain.trim();
+    const strategyName = `replitauth:${trimmedDomain}`;
+    console.log(`[Auth] Registering strategy: ${strategyName}`);
+    
     const strategy = new Strategy(
       {
-        name: `replitauth:${domain}`,
+        name: strategyName,
         config,
         scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
+        callbackURL: `https://${trimmedDomain}/api/callback`,
       },
       verify,
     );
     passport.use(strategy);
   }
+  console.log("[Auth] All strategies registered successfully");
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const strategyName = `replitauth:${req.hostname}`;
+    console.log(`[Auth] Login requested - hostname: ${req.hostname}, strategy: ${strategyName}`);
+    passport.authenticate(strategyName, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const strategyName = `replitauth:${req.hostname}`;
+    console.log(`[Auth] Callback received - hostname: ${req.hostname}, strategy: ${strategyName}`);
+    passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
