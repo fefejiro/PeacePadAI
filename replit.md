@@ -60,3 +60,81 @@ Preferred communication style: Simple, everyday language.
 - **Development**: `vite`, `typescript`, `tsx`, `wouter`.
 - **File Upload**: `multer`.
 - **AI Optimization**: `node-cache`.
+
+## Deployment Architecture
+
+### Environment Separation Strategy
+PeacePad uses **separate Replit deployments** for production and development to ensure security, data isolation, and regulatory compliance.
+
+#### Production Deployment (peacepad.ca)
+- **Purpose**: Live application for end users
+- **Domains**: `peacepad.ca`, `support.peacepad.ca`
+- **Database**: Production PostgreSQL (Neon)
+- **Environment Variables**:
+  - `CUSTOM_DOMAINS=peacepad.ca,support.peacepad.ca`
+  - All production API keys (OpenAI, etc.)
+  - `SESSION_SECRET` (production-specific)
+- **Security**: 
+  - Strict domain allowlist
+  - Production-only user accounts
+  - No test data
+  - Regular backups enabled
+
+#### Development Deployment (dev.peacepad.ca)
+- **Purpose**: Testing and feature development
+- **Domains**: `dev.peacepad.ca`
+- **Database**: Separate development PostgreSQL database
+- **Environment Variables**:
+  - `CUSTOM_DOMAINS=dev.peacepad.ca`
+  - Development/test API keys
+  - `SESSION_SECRET` (dev-specific, different from production)
+- **Features**:
+  - Test data and dummy accounts
+  - Enhanced logging and debugging
+  - Can be reset without affecting production
+
+### Security Benefits of Separation
+1. **Session Isolation**: Users authenticated on production cannot access development (and vice versa)
+2. **Data Protection**: Production user data never mixes with test data
+3. **Attack Surface Reduction**: Vulnerabilities in dev environment cannot compromise production
+4. **Compliance**: Meets security requirements for healthcare/legal data handling
+5. **Cookie Scoping**: Each environment has isolated session cookies
+
+### Deployment Configuration
+
+#### Required Environment Variables (Production)
+```
+CUSTOM_DOMAINS=peacepad.ca,support.peacepad.ca
+DATABASE_URL=<production-database-connection-string>
+SESSION_SECRET=<production-secret>
+OPENAI_API_KEY=<production-key>
+REPLIT_DOMAINS=<auto-populated-by-replit>
+```
+
+#### Required Environment Variables (Development)
+```
+CUSTOM_DOMAINS=dev.peacepad.ca
+DATABASE_URL=<development-database-connection-string>
+SESSION_SECRET=<dev-secret>
+OPENAI_API_KEY=<development-key>
+REPLIT_DOMAINS=<auto-populated-by-replit>
+```
+
+### Port Configuration
+- **External Port**: 80 (HTTPS handled by Replit)
+- **Internal Port**: 5000 (Express server)
+- All other ports (3000, 3001, etc.) are internal development tools and should not be exposed
+
+### DNS Configuration
+Point custom domains to Replit deployments:
+- `peacepad.ca` → Production Replit deployment
+- `support.peacepad.ca` → Production Replit deployment (same app)
+- `dev.peacepad.ca` → Development Replit deployment
+
+### Migration Strategy
+When deploying database changes:
+1. Test schema changes in development first
+2. Use `npm run db:push` in dev to verify migrations
+3. Only after successful testing, deploy to production
+4. Never manually edit `drizzle.config.ts`
+5. Use `npm run db:push --force` if data-loss warnings appear (after backing up data)
